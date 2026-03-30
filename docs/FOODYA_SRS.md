@@ -1,8 +1,8 @@
-Mr. Ngo - `<u>`uit@gm.uit.edu.vn `</u>`
+Mr. Ngo - `<u>`<uit@gm.uit.edu.vn> `</u>`
 
-Mr. Dinh - `<u>`uit@gm.uit.edu.vn `</u>`
+Mr. Dinh - `<u>`<uit@gm.uit.edu.vn> `</u>`
 
-*Prepared for*
+_Prepared for_
 
 Foodya Project
 
@@ -25,9 +25,9 @@ Foodya
 
 | Name | Version | Position       | Date |
 | :--- | :-----: | :------------- | :--: |
-| TBD  |   1.0   | Supervisor     | TBD |
-| TBD  |   1.0   | Product Owner  | TBD |
-| TBD  |   1.0   | Technical Lead | TBD |
+| TBD  |   1.0   | Supervisor     | TBD  |
+| TBD  |   1.0   | Product Owner  | TBD  |
+| TBD  |   1.0   | Technical Lead | TBD  |
 
 **Pre-computation**
 
@@ -159,7 +159,7 @@ This SRS is intended for:
 | FR ID | Name                            | Main actor(s)                | Description                                                                                                                                                                           |
 | :---- | :------------------------------ | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | FR01  | Account registration            | Customer, Merchant, Delivery | Register with username, email, password, full name, phone, role.                                                                                                                      |
-| FR02  | Login                           | All roles                    | Login and get `accessToken` + `refreshToken`.                                                                                                                                     |
+| FR02  | Login                           | All roles                    | Login and get `accessToken` + `refreshToken`.                                                                                                                                         |
 | FR03  | Refresh session                 | All roles                    | Renew access token from valid refresh token.                                                                                                                                          |
 | FR04  | Password recovery and change    | All roles                    | Forgot-password via email OTP and authenticated password change.                                                                                                                      |
 | FR05  | View profile                    | All roles                    | View own profile data.                                                                                                                                                                |
@@ -186,76 +186,76 @@ This SRS is intended for:
 | FR26  | Logout and session invalidation | All roles                    | Logout current/all sessions by revoking refresh tokens and session family.                                                                                                            |
 | FR27  | Cart management                 | Customer                     | Add/update/remove items, clear cart, and enforce single-restaurant cart scope.                                                                                                        |
 | FR28  | Real-time delivery tracking     | Delivery, Customer           | Delivery app/API posts location points; customer views live route updates.                                                                                                            |
-| FR29  | Payment and settlement baseline | Customer, Admin, Merchant    | MVP payment method handling (`COD`) with deterministic payment state and platform profit fields.                                                                                    |
+| FR29  | Payment and settlement baseline | Customer, Admin, Merchant    | MVP payment method handling (`COD`) with deterministic payment state and platform profit fields.                                                                                      |
 | FR30  | Nearby restaurant discovery     | Customer                     | Find nearby restaurants using Uber H3 indexing for fast geospatial candidate lookup and straight-line distance sorting.                                                               |
 | FR31  | System parameter management     | Admin                        | Configure runtime parameters (shipping fees, max distance, H3/search settings, cache TTL, and safety limits) without code deploy.                                                     |
 
 ### Business Rules
 
-| BR ID | Rule                                                                                                                                                                                           |
-| :---- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| BR01  | `username` is globally unique.                                                                                                                                                               |
-| BR02  | `email` is globally unique and valid format.                                                                                                                                                 |
-| BR03  | `phoneNumber` is globally unique and normalized format.                                                                                                                                      |
-| BR04  | Password >= 8 chars and must contain uppercase, lowercase, number, special char.                                                                                                               |
-| BR05  | Password change requires valid `currentPassword`.                                                                                                                                            |
-| BR06  | `newPassword` equals `confirmPassword`.                                                                                                                                                    |
-| BR07  | New password must differ from old password.                                                                                                                                                    |
-| BR08  | Profile read/update only for owner account (except admin actions).                                                                                                                             |
-| BR09  | Changing email/phone must pass uniqueness validation before commit.                                                                                                                            |
-| BR10  | Order creation requires `restaurantId`, non-empty `items`, valid `deliveryAddress`.                                                                                                      |
-| BR11  | Each order item requires valid `menuItemId` and `quantity > 0`.                                                                                                                            |
-| BR12  | All order items belong to a single restaurant.                                                                                                                                                 |
-| BR13  | Only active and available menu items are orderable.                                                                                                                                            |
-| BR14  | `totalAmount = itemsSubtotal + deliveryFee`.                                                                                                                                                 |
-| BR15  | Customer may cancel only own order.                                                                                                                                                            |
-| BR16  | Cancellation allowed only in `PENDING`, `ACCEPTED`, `ASSIGNED`.                                                                                                                          |
-| BR17  | Review allowed only for `SUCCESS` orders.                                                                                                                                                    |
-| BR18  | Order status flow:`PENDING -> ACCEPTED -> ASSIGNED -> PREPARING -> DELIVERING -> SUCCESS` or terminal `CANCELLED`/`FAILED`.                                                              |
-| BR19  | Merchant can manage only owned restaurants and related catalog/orders.                                                                                                                         |
-| BR20  | `/api/v1/admin/**` endpoints require `ADMIN`; `/api/v1/merchant/**` require `MERCHANT` or `ADMIN`.                                                                                   |
-| BR21  | Menu item price must be `> 0` and within configured numeric bounds.                                                                                                                          |
-| BR22  | Restaurant data must satisfy name/address/cuisine/open-close format constraints.                                                                                                               |
-| BR23  | Max delivery distance must be non-negative and <= platform parameter `shipping.max_delivery_km`.                                                                                                |
-| BR24  | Hard-delete policy is deterministic: menu items can be hard-deleted anytime; users/restaurants can be hard-deleted only when they have no linked orders in `PENDING|ACCEPTED|ASSIGNED|PREPARING|DELIVERING`, no active delivery assignments, and no active carts; otherwise they must be `LOCKED`/`INACTIVE` (soft governance). |
-| BR25  | Delivery flow in `v1` is backend status simulation.                                                                                                                                          |
-| BR26  | AI suggestions must be strictly from internal valid menu/restaurant data.                                                                                                                      |
-| BR27  | Logout revokes refresh token jti; revoked token reuse must be rejected.                                                                                                                        |
-| BR28  | One customer can have only one `ACTIVE` cart at a time.                                                                                                                                      |
-| BR29  | Active cart must contain items from one restaurant only.                                                                                                                                       |
-| BR30  | Delivery location update must include `lat`, `lng`, and `recordedAt`.                                                                                                                    |
-| BR31  | Location updates accepted only when order status is `ASSIGNED` or `DELIVERING`.                                                                                                            |
-| BR32  | MVP payment method is `COD`; payment status changes only via allowed transitions.                                                                                                            |
+| BR ID | Rule                                                                                                                                                                                                                                                                                                                                                |
+| :---- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BR01  | `username` is globally unique.                                                                                                                                                                                                                                                                                                                      |
+| BR02  | `email` is globally unique and valid format.                                                                                                                                                                                                                                                                                                        |
+| BR03  | `phoneNumber` is globally unique and normalized format.                                                                                                                                                                                                                                                                                             |
+| BR04  | Password >= 8 chars and must contain uppercase, lowercase, number, special char.                                                                                                                                                                                                                                                                    |
+| BR05  | Password change requires valid `currentPassword`.                                                                                                                                                                                                                                                                                                   |
+| BR06  | `newPassword` equals `confirmPassword`.                                                                                                                                                                                                                                                                                                             |
+| BR07  | New password must differ from old password.                                                                                                                                                                                                                                                                                                         |
+| BR08  | Profile read/update only for owner account (except admin actions).                                                                                                                                                                                                                                                                                  |
+| BR09  | Changing email/phone must pass uniqueness validation before commit.                                                                                                                                                                                                                                                                                 |
+| BR10  | Order creation requires `restaurantId`, non-empty `items`, valid `deliveryAddress`.                                                                                                                                                                                                                                                                 |
+| BR11  | Each order item requires valid `menuItemId` and `quantity > 0`.                                                                                                                                                                                                                                                                                     |
+| BR12  | All order items belong to a single restaurant.                                                                                                                                                                                                                                                                                                      |
+| BR13  | Only active and available menu items are orderable.                                                                                                                                                                                                                                                                                                 |
+| BR14  | `totalAmount = itemsSubtotal + deliveryFee`.                                                                                                                                                                                                                                                                                                        |
+| BR15  | Customer may cancel only own order.                                                                                                                                                                                                                                                                                                                 |
+| BR16  | Cancellation allowed only in `PENDING`, `ACCEPTED`, `ASSIGNED`.                                                                                                                                                                                                                                                                                     |
+| BR17  | Review allowed only for `SUCCESS` orders.                                                                                                                                                                                                                                                                                                           |
+| BR18  | Order status flow:`PENDING -> ACCEPTED -> ASSIGNED -> PREPARING -> DELIVERING -> SUCCESS` or terminal `CANCELLED`/`FAILED`.                                                                                                                                                                                                                         |
+| BR19  | Merchant can manage only owned restaurants and related catalog/orders.                                                                                                                                                                                                                                                                              |
+| BR20  | `/api/v1/admin/**` endpoints require `ADMIN`; `/api/v1/merchant/**` require `MERCHANT` or `ADMIN`.                                                                                                                                                                                                                                                  |
+| BR21  | Menu item price must be `> 0` and within configured numeric bounds.                                                                                                                                                                                                                                                                                 |
+| BR22  | Restaurant data must satisfy name/address/cuisine/open-close format constraints.                                                                                                                                                                                                                                                                    |
+| BR23  | Max delivery distance must be non-negative and <= platform parameter `shipping.max_delivery_km`.                                                                                                                                                                                                                                                    |
+| BR24  | Hard-delete policy is deterministic: menu items can be hard-deleted anytime; users/restaurants can be hard-deleted only when they have no linked orders in `PENDING                                                                                                                                                                                 |
+| BR25  | Delivery flow in `v1` is backend status simulation.                                                                                                                                                                                                                                                                                                 |
+| BR26  | AI suggestions must be strictly from internal valid menu/restaurant data.                                                                                                                                                                                                                                                                           |
+| BR27  | Logout revokes refresh token jti; revoked token reuse must be rejected.                                                                                                                                                                                                                                                                             |
+| BR28  | One customer can have only one `ACTIVE` cart at a time.                                                                                                                                                                                                                                                                                             |
+| BR29  | Active cart must contain items from one restaurant only.                                                                                                                                                                                                                                                                                            |
+| BR30  | Delivery location update must include `lat`, `lng`, and `recordedAt`.                                                                                                                                                                                                                                                                               |
+| BR31  | Location updates accepted only when order status is `ASSIGNED` or `DELIVERING`.                                                                                                                                                                                                                                                                     |
+| BR32  | MVP payment method is `COD`; payment status changes only via allowed transitions.                                                                                                                                                                                                                                                                   |
 | BR33  | Platform profit is computed as `platform_profit_amount = commission_amount + shipping_fee_margin_amount`, where `commission_amount = round(subtotal_amount * finance.commission_rate_percent / 100, currency.minor_unit)` and `shipping_fee_margin_amount = round(delivery_fee * finance.shipping_margin_rate_percent / 100, currency.minor_unit)`. |
-| BR34  | `POST /api/v1/customer/orders` must support idempotency using `Idempotency-Key`.                                                                                                           |
-| BR35  | Search response is grouped by restaurant. If keyword matches menu items, return parent restaurant and only matched menu items in `matchedItems`.                                             |
-| BR36  | Weather cache key must be computed from Uber H3 index (`h3_index_res8`) derived from latitude/longitude.                                                                                     |
-| BR37  | Nearby restaurant search must prefilter by Uber H3 k-ring from user location, then use straight-line distance for filtering/sorting.                                                           |
-| BR38  | Each restaurant must persist canonical Uber H3 index (`h3_index_res9`) for nearby search optimization.                                                                                       |
-| BR39  | Delivery distance for fee calculation must be fetched from Goong Maps route API (not straight-line distance).                                                                                  |
-| BR40  | Delivery fee formula uses platform parameters: if `distanceKm <= shipping.base_distance_km` then `deliveryFee = shipping.base_delivery_fee`; else `deliveryFee = shipping.base_delivery_fee + (distanceKm - shipping.base_distance_km) * shipping.fee_per_km`. |
-| BR41  | Global system parameters are stored as typed key-value records (`NUMBER`, `BOOLEAN`, `STRING`, `JSON`) with validation constraints.                                                    |
-| BR42  | Only `ADMIN` can update system parameters, and every change must be written to audit logs with previous and new values.                                                                      |
-| BR43  | Parameters marked as runtime-applicable are effective without redeploy; non-runtime parameters require controlled restart/redeploy.                                                            |
-| BR44  | Shipping policy is platform-owned: delivery fee and max distance are sourced from global `system_parameters` only (no restaurant-level override).                                            |
-| BR45  | Straight-line distance for nearby search must use Haversine formula on WGS84 coordinates and be returned as kilometers rounded to 3 decimal places.                                           |
-| BR46  | Pagination defaults are `page=0`, `size=search.default_page_size`; max `size` is `search.max_page_size`; invalid pagination values return `422`.                                              |
-| BR47  | Monetary fields are computed and persisted using configured currency policy keys (`currency.code`, `currency.minor_unit`, `currency.rounding_mode`).                                           |
-| BR48  | Data retention and DR targets are mandatory system parameters and must be enforced by scheduled jobs (`retention.*`, `ops.backup.rpo_minutes`, `ops.backup.rto_minutes`).                      |
-| BR49  | `orders.payment_status` is the canonical payment state; `order_payments.payment_status` is an event/audit mirror and must match the canonical value at commit.                                 |
-| BR50  | All foreign keys must declare explicit `ON DELETE`/`ON UPDATE` actions as defined in the Physical DDL Contract section; implicit DB defaults are not allowed.                                    |
+| BR34  | `POST /api/v1/customer/orders` must support idempotency using `Idempotency-Key`.                                                                                                                                                                                                                                                                    |
+| BR35  | Search response is grouped by restaurant. If keyword matches menu items, return parent restaurant and only matched menu items in `matchedItems`.                                                                                                                                                                                                    |
+| BR36  | Weather cache key must be computed from Uber H3 index (`h3_index_res8`) derived from latitude/longitude.                                                                                                                                                                                                                                            |
+| BR37  | Nearby restaurant search must prefilter by Uber H3 k-ring from user location, then use straight-line distance for filtering/sorting.                                                                                                                                                                                                                |
+| BR38  | Each restaurant must persist canonical Uber H3 index (`h3_index_res9`) for nearby search optimization.                                                                                                                                                                                                                                              |
+| BR39  | Delivery distance for fee calculation must be fetched from Goong Maps route API (not straight-line distance).                                                                                                                                                                                                                                       |
+| BR40  | Delivery fee formula uses platform parameters: if `distanceKm <= shipping.base_distance_km` then `deliveryFee = shipping.base_delivery_fee`; else `deliveryFee = shipping.base_delivery_fee + (distanceKm - shipping.base_distance_km) * shipping.fee_per_km`.                                                                                      |
+| BR41  | Global system parameters are stored as typed key-value records (`NUMBER`, `BOOLEAN`, `STRING`, `JSON`) with validation constraints.                                                                                                                                                                                                                 |
+| BR42  | Only `ADMIN` can update system parameters, and every change must be written to audit logs with previous and new values.                                                                                                                                                                                                                             |
+| BR43  | Parameters marked as runtime-applicable are effective without redeploy; non-runtime parameters require controlled restart/redeploy.                                                                                                                                                                                                                 |
+| BR44  | Shipping policy is platform-owned: delivery fee and max distance are sourced from global `system_parameters` only (no restaurant-level override).                                                                                                                                                                                                   |
+| BR45  | Straight-line distance for nearby search must use Haversine formula on WGS84 coordinates and be returned as kilometers rounded to 3 decimal places.                                                                                                                                                                                                 |
+| BR46  | Pagination defaults are `page=0`, `size=search.default_page_size`; max `size` is `search.max_page_size`; invalid pagination values return `422`.                                                                                                                                                                                                    |
+| BR47  | Monetary fields are computed and persisted using configured currency policy keys (`currency.code`, `currency.minor_unit`, `currency.rounding_mode`).                                                                                                                                                                                                |
+| BR48  | Data retention and DR targets are mandatory system parameters and must be enforced by scheduled jobs (`retention.*`, `ops.backup.rpo_minutes`, `ops.backup.rto_minutes`).                                                                                                                                                                           |
+| BR49  | `orders.payment_status` is the canonical payment state; `order_payments.payment_status` is an event/audit mirror and must match the canonical value at commit.                                                                                                                                                                                      |
+| BR50  | All foreign keys must declare explicit `ON DELETE`/`ON UPDATE` actions as defined in the Physical DDL Contract section; implicit DB defaults are not allowed.                                                                                                                                                                                       |
 
 ## Use Case Description
 
 ### UC1: Register account
 
-|                          |                                                                               |
-| :----------------------- | :---------------------------------------------------------------------------- |
-| **Name**           | Register account                                                              |
-| **Description**    | New user creates account by role type.                                        |
-| **Actor**          | Customer, Merchant, Delivery                                                  |
-| **Trigger**        | User submits registration form.                                               |
-| **Pre-condition**  | User is unauthenticated.                                                      |
+|                    |                                                                           |
+| :----------------- | :------------------------------------------------------------------------ |
+| **Name**           | Register account                                                          |
+| **Description**    | New user creates account by role type.                                    |
+| **Actor**          | Customer, Merchant, Delivery                                              |
+| **Trigger**        | User submits registration form.                                           |
+| **Pre-condition**  | User is unauthenticated.                                                  |
 | **Post-condition** | Account created with `ACTIVE` or `PENDING_APPROVAL` state by role policy. |
 
 #### Activities Flow
@@ -285,8 +285,8 @@ stop
 
 ### UC2: Login and token refresh
 
-|                          |                                                       |
-| :----------------------- | :---------------------------------------------------- |
+|                    |                                                       |
+| :----------------- | :---------------------------------------------------- |
 | **Name**           | Login and token refresh                               |
 | **Description**    | User authenticates and refreshes session securely.    |
 | **Actor**          | All roles                                             |
@@ -320,8 +320,8 @@ stop
 
 ### UC3: Manage profile and password
 
-|                          |                                                    |
-| :----------------------- | :------------------------------------------------- |
+|                    |                                                    |
+| :----------------- | :------------------------------------------------- |
 | **Name**           | Manage profile and password                        |
 | **Description**    | User views/edits own profile and changes password. |
 | **Actor**          | All roles                                          |
@@ -359,8 +359,8 @@ stop
 
 ### UC4: Browse restaurants and menus
 
-|                          |                                                     |
-| :----------------------- | :-------------------------------------------------- |
+|                    |                                                     |
+| :----------------- | :-------------------------------------------------- |
 | **Name**           | Browse restaurants and menus                        |
 | **Description**    | Customer searches restaurants and menu items.       |
 | **Actor**          | Customer                                            |
@@ -390,17 +390,17 @@ stop
 | :----------------------- | :--------- | :------------------------------------------------------------------------------------ |
 | Data validity            | BR22, BR23 | Restaurant metadata and delivery bounds enforced.                                     |
 | Grouped search behavior  | BR35       | Keyword matches restaurant or menu item names and returns grouped restaurant results. |
-| Nearby geospatial filter | BR37, BR38 | Nearby mode uses H3 prefilter and straight-line distance sort.                       |
+| Nearby geospatial filter | BR37, BR38 | Nearby mode uses H3 prefilter and straight-line distance sort.                        |
 
 ### UC5: Create order from cart
 
-|                          |                                                                  |
-| :----------------------- | :--------------------------------------------------------------- |
-| **Name**           | Create order from cart                                           |
-| **Description**    | Customer submits cart and creates a payable order.               |
-| **Actor**          | Customer                                                         |
-| **Trigger**        | Customer confirms checkout.                                      |
-| **Pre-condition**  | Cart contains valid items from one restaurant.                   |
+|                    |                                                                |
+| :----------------- | :------------------------------------------------------------- |
+| **Name**           | Create order from cart                                         |
+| **Description**    | Customer submits cart and creates a payable order.             |
+| **Actor**          | Customer                                                       |
+| **Trigger**        | Customer confirms checkout.                                    |
+| **Pre-condition**  | Cart contains valid items from one restaurant.                 |
 | **Post-condition** | Order is created in `PENDING` and notifications are triggered. |
 
 #### Activities Flow
@@ -436,8 +436,8 @@ stop
 
 ### UC6: Track and cancel order
 
-|                          |                                                      |
-| :----------------------- | :--------------------------------------------------- |
+|                    |                                                      |
+| :----------------- | :--------------------------------------------------- |
 | **Name**           | Track and cancel order                               |
 | **Description**    | Customer monitors status and cancels if eligible.    |
 | **Actor**          | Customer                                             |
@@ -473,13 +473,13 @@ stop
 
 ### UC7: Leave and respond to review
 
-|                          |                                                        |
-| :----------------------- | :----------------------------------------------------- |
+|                    |                                                        |
+| :----------------- | :----------------------------------------------------- |
 | **Name**           | Leave and respond to review                            |
 | **Description**    | Customer rates completed orders; merchant replies.     |
 | **Actor**          | Customer, Merchant                                     |
 | **Trigger**        | Customer submits review; merchant opens review center. |
-| **Pre-condition**  | Order status is `SUCCESS`.                           |
+| **Pre-condition**  | Order status is `SUCCESS`.                             |
 | **Post-condition** | Review and optional merchant response are persisted.   |
 
 #### Activities Flow
@@ -507,8 +507,8 @@ stop
 
 ### UC8: Merchant restaurant management
 
-|                          |                                                         |
-| :----------------------- | :------------------------------------------------------ |
+|                    |                                                         |
+| :----------------- | :------------------------------------------------------ |
 | **Name**           | Merchant restaurant management                          |
 | **Description**    | Merchant creates and updates owned restaurant profiles. |
 | **Actor**          | Merchant                                                |
@@ -542,8 +542,8 @@ stop
 
 ### UC9: Merchant menu and category management
 
-|                          |                                                                  |
-| :----------------------- | :--------------------------------------------------------------- |
+|                    |                                                                  |
+| :----------------- | :--------------------------------------------------------------- |
 | **Name**           | Merchant menu and category management                            |
 | **Description**    | Merchant manages categories and menu items per restaurant.       |
 | **Actor**          | Merchant                                                         |
@@ -577,8 +577,8 @@ stop
 
 ### UC10: Merchant order processing
 
-|                          |                                                            |
-| :----------------------- | :--------------------------------------------------------- |
+|                    |                                                            |
+| :----------------- | :--------------------------------------------------------- |
 | **Name**           | Merchant order processing                                  |
 | **Description**    | Merchant accepts/prepares orders and responds to feedback. |
 | **Actor**          | Merchant                                                   |
@@ -613,8 +613,8 @@ stop
 
 ### UC11: Delivery simulation updates
 
-|                          |                                                               |
-| :----------------------- | :------------------------------------------------------------ |
+|                    |                                                               |
+| :----------------- | :------------------------------------------------------------ |
 | **Name**           | Delivery simulation updates                                   |
 | **Description**    | Delivery actor accepts assignment and updates delivery state. |
 | **Actor**          | Delivery                                                      |
@@ -649,8 +649,8 @@ stop
 
 ### UC12: Admin user management
 
-|                          |                                                  |
-| :----------------------- | :----------------------------------------------- |
+|                    |                                                  |
+| :----------------- | :----------------------------------------------- |
 | **Name**           | Admin user management                            |
 | **Description**    | Admin governs user lifecycle and account status. |
 | **Actor**          | Admin                                            |
@@ -677,13 +677,13 @@ stop
 
 | Activity                  | BR Code | Description                            |
 | :------------------------ | :------ | :------------------------------------- |
-| Admin endpoint protection | BR20    | `/admin/**` protected by ADMIN role. |
+| Admin endpoint protection | BR20    | `/admin/**` protected by ADMIN role.   |
 | Deletion policy           | BR24    | Hard-delete follows governance policy. |
 
 ### UC13: Admin platform governance
 
-|                          |                                                                |
-| :----------------------- | :------------------------------------------------------------- |
+|                    |                                                                |
+| :----------------- | :------------------------------------------------------------- |
 | **Name**           | Admin platform governance                                      |
 | **Description**    | Admin governs restaurants, orders, and hard-delete operations. |
 | **Actor**          | Admin                                                          |
@@ -714,8 +714,8 @@ stop
 
 ### UC14: AI recommendation chat
 
-|                          |                                                                  |
-| :----------------------- | :--------------------------------------------------------------- |
+|                    |                                                                  |
+| :----------------- | :--------------------------------------------------------------- |
 | **Name**           | AI recommendation chat                                           |
 | **Description**    | Customer asks AI for context-aware recommendations.              |
 | **Actor**          | Customer                                                         |
@@ -752,8 +752,8 @@ stop
 
 ### UC15: Push notifications
 
-|                          |                                                              |
-| :----------------------- | :----------------------------------------------------------- |
+|                    |                                                              |
+| :----------------- | :----------------------------------------------------------- |
 | **Name**           | Push notifications                                           |
 | **Description**    | System pushes order-related events to customer and merchant. |
 | **Actor**          | Customer, Merchant                                           |
@@ -784,8 +784,8 @@ stop
 
 ### UC16: Analytics and revenue reports
 
-|                          |                                                                 |
-| :----------------------- | :-------------------------------------------------------------- |
+|                    |                                                                 |
+| :----------------- | :-------------------------------------------------------------- |
 | **Name**           | Analytics and revenue reports                                   |
 | **Description**    | Admin and merchant view revenue metrics by time and dimensions. |
 | **Actor**          | Admin, Merchant                                                 |
@@ -814,8 +814,8 @@ stop
 
 ### UC17: Logout and session invalidation
 
-|                          |                                                                              |
-| :----------------------- | :--------------------------------------------------------------------------- |
+|                    |                                                                              |
+| :----------------- | :--------------------------------------------------------------------------- |
 | **Name**           | Logout and session invalidation                                              |
 | **Description**    | User logs out from current device or all devices by revoking refresh tokens. |
 | **Actor**          | All roles                                                                    |
@@ -847,8 +847,8 @@ stop
 
 ### UC18: Cart management lifecycle
 
-|                          |                                                         |
-| :----------------------- | :------------------------------------------------------ |
+|                    |                                                         |
+| :----------------- | :------------------------------------------------------ |
 | **Name**           | Cart management lifecycle                               |
 | **Description**    | Customer maintains active cart before checkout.         |
 | **Actor**          | Customer                                                |
@@ -884,8 +884,8 @@ stop
 
 ### UC19: Real-time delivery location tracking
 
-|                          |                                                                           |
-| :----------------------- | :------------------------------------------------------------------------ |
+|                    |                                                                           |
+| :----------------- | :------------------------------------------------------------------------ |
 | **Name**           | Real-time delivery location tracking                                      |
 | **Description**    | Delivery actor publishes live coordinates; customer tracks route updates. |
 | **Actor**          | Delivery, Customer                                                        |
@@ -919,8 +919,8 @@ stop
 
 ### UC20: Checkout payment and settlement
 
-|                          |                                                                                |
-| :----------------------- | :----------------------------------------------------------------------------- |
+|                    |                                                                                |
+| :----------------- | :----------------------------------------------------------------------------- |
 | **Name**           | Checkout payment and settlement                                                |
 | **Description**    | Customer places order with MVP payment policy and settlement fields persisted. |
 | **Actor**          | Customer, Admin, Merchant                                                      |
@@ -955,8 +955,8 @@ stop
 
 ### UC21: Configure system parameters
 
-|                          |                                                                                                        |
-| :----------------------- | :----------------------------------------------------------------------------------------------------- |
+|                    |                                                                                                        |
+| :----------------- | :----------------------------------------------------------------------------------------------------- |
 | **Name**           | Configure system parameters                                                                            |
 | **Description**    | Admin configures global runtime/system parameters used by shipping, search, AI, and platform behavior. |
 | **Actor**          | Admin                                                                                                  |
@@ -990,31 +990,31 @@ stop
 
 #### Business Rules
 
-| Activity                | BR Code | Description                                                          |
-| :---------------------- | :------ | :------------------------------------------------------------------- |
-| Parameter schema        | BR41    | Parameter key/value must satisfy typed schema and constraints.       |
-| Authorization and audit | BR42    | Only admin updates, with full audit history.                         |
-| Runtime application     | BR43    | Runtime parameters apply immediately, others staged for restart.     |
+| Activity                | BR Code | Description                                                                    |
+| :---------------------- | :------ | :----------------------------------------------------------------------------- |
+| Parameter schema        | BR41    | Parameter key/value must satisfy typed schema and constraints.                 |
+| Authorization and audit | BR42    | Only admin updates, with full audit history.                                   |
+| Runtime application     | BR43    | Runtime parameters apply immediately, others staged for restart.               |
 | Shipping ownership      | BR44    | Shipping policy is platform-level and read only from global system parameters. |
 
 # List Description
 
-| List ID | List Name                | Purpose                       | Key columns                                                               | API endpoint                                                       |
-| :------ | :----------------------- | :---------------------------- | :------------------------------------------------------------------------ | :----------------------------------------------------------------- |
-| L01     | User List                | Admin user governance         | id, username, email, role, status, createdAt                              | `GET /api/v1/admin/users`                                        |
-| L02     | Restaurant Search Result | Discovery and management      | restaurantId, restaurantName, cuisine, rating, openStatus, matchedItems[] | `GET /api/v1/restaurants?q=` / `GET /api/v1/admin/restaurants` |
-| L03     | Menu Item List           | Menu browsing and maintenance | id, name, category, price, isAvailable                                    | `GET /api/v1/restaurants/{id}/menu-items`                        |
-| L04     | Order List (Customer)    | Customer order tracking       | id, code, status, totalAmount, createdAt                                  | `GET /api/v1/customer/orders`                                    |
-| L05     | Order List (Merchant)    | Merchant order operations     | id, customer, status, totalAmount, createdAt                              | `GET /api/v1/merchant/restaurants/{id}/orders`                   |
-| L06     | Platform Order List      | Admin order governance        | id, customer, merchant, status, totalAmount                               | `GET /api/v1/admin/orders`                                       |
-| L07     | Review List              | Customer feedback center      | id, orderCode, stars, comment, response                                   | `GET /api/v1/restaurants/{id}/reviews`                           |
-| L08     | Notification Log         | Delivery observability        | id, receiverType, title, status, sentAt                                   | `GET /api/v1/admin/notifications`                                |
-| L09     | AI Chat History          | AI interaction review         | id, userId, prompt, responseSummary, createdAt                            | `GET /api/v1/customer/ai/chats`                                  |
+| List ID | List Name                | Purpose                       | Key columns                                                               | API endpoint                                                                 |
+| :------ | :----------------------- | :---------------------------- | :------------------------------------------------------------------------ | :--------------------------------------------------------------------------- |
+| L01     | User List                | Admin user governance         | id, username, email, role, status, createdAt                              | `GET /api/v1/admin/users`                                                    |
+| L02     | Restaurant Search Result | Discovery and management      | restaurantId, restaurantName, cuisine, rating, openStatus, matchedItems[] | `GET /api/v1/restaurants?q=` / `GET /api/v1/admin/restaurants`               |
+| L03     | Menu Item List           | Menu browsing and maintenance | id, name, category, price, isAvailable                                    | `GET /api/v1/restaurants/{id}/menu-items`                                    |
+| L04     | Order List (Customer)    | Customer order tracking       | id, code, status, totalAmount, createdAt                                  | `GET /api/v1/customer/orders`                                                |
+| L05     | Order List (Merchant)    | Merchant order operations     | id, customer, status, totalAmount, createdAt                              | `GET /api/v1/merchant/restaurants/{id}/orders`                               |
+| L06     | Platform Order List      | Admin order governance        | id, customer, merchant, status, totalAmount                               | `GET /api/v1/admin/orders`                                                   |
+| L07     | Review List              | Customer feedback center      | id, orderCode, stars, comment, response                                   | `GET /api/v1/restaurants/{id}/reviews`                                       |
+| L08     | Notification Log         | Delivery observability        | id, receiverType, title, status, sentAt                                   | `GET /api/v1/admin/notifications`                                            |
+| L09     | AI Chat History          | AI interaction review         | id, userId, prompt, responseSummary, createdAt                            | `GET /api/v1/customer/ai/chats`                                              |
 | L10     | Revenue Summary          | Dashboard aggregation         | period, revenue, orderCount, avgOrderValue                                | `GET /api/v1/admin/reports/revenue` / `GET /api/v1/merchant/reports/revenue` |
-| L11     | Active Cart              | Customer checkout preparation | cartId, restaurantId, subtotal, itemCount                                 | `GET /api/v1/customer/carts/active`                              |
-| L12     | Delivery Tracking Points | Real-time route updates       | orderId, lat, lng, recordedAt                                             | `GET /api/v1/customer/orders/{id}/tracking`                      |
-| L13     | Nearby Restaurant List   | Proximity discovery           | restaurantId, restaurantName, h3Index, distanceKm, openStatus             | `GET /api/v1/restaurants/nearby`                                 |
-| L14     | System Parameters        | Runtime configuration         | key, valueType, value, runtime, version, updatedAt                        | `GET /api/v1/admin/system-parameters`                            |
+| L11     | Active Cart              | Customer checkout preparation | cartId, restaurantId, subtotal, itemCount                                 | `GET /api/v1/customer/carts/active`                                          |
+| L12     | Delivery Tracking Points | Real-time route updates       | orderId, lat, lng, recordedAt                                             | `GET /api/v1/customer/orders/{id}/tracking`                                  |
+| L13     | Nearby Restaurant List   | Proximity discovery           | restaurantId, restaurantName, h3Index, distanceKm, openStatus             | `GET /api/v1/restaurants/nearby`                                             |
+| L14     | System Parameters        | Runtime configuration         | key, valueType, value, runtime, version, updatedAt                        | `GET /api/v1/admin/system-parameters`                                        |
 
 # View Description
 
@@ -1437,98 +1437,98 @@ users ||--o{ system_parameters
 
 ## Index and Constraint Plan
 
-| Object                               | Type                 | Definition                                                |
-| :----------------------------------- | :------------------- | :-------------------------------------------------------- |
-| `users_username_uq`                | unique index         | `users(username)`                                       |
-| `users_email_uq`                   | unique index         | `users(email)`                                          |
-| `users_phone_uq`                   | unique index         | `users(phone_number)`                                   |
-| `orders_code_uq`                   | unique index         | `orders(order_code)`                                    |
-| `orders_customer_created_idx`      | btree index          | `orders(customer_user_id, placed_at desc)`              |
-| `orders_restaurant_status_idx`     | btree index          | `orders(restaurant_id, status, placed_at desc)`         |
-| `menu_items_restaurant_active_idx` | btree index          | `menu_items(restaurant_id, is_active, is_available)`    |
-| `restaurants_geo_idx`              | gist index           | geography point from `(longitude, latitude)`            |
-| `notifications_user_status_idx`    | btree index          | `notifications(user_id, delivery_status, sent_at desc)` |
-| `weather_cache_expiry_idx`         | btree index          | `weather_cache(expires_at)`                             |
-| `cart_active_customer_uq`          | partial unique index | `carts(customer_user_id) where status='ACTIVE'`         |
-| `delivery_points_order_time_idx`   | btree index          | `delivery_location_points(order_id, recorded_at desc)`  |
-| `orders_idempotency_uq`            | unique index         | `orders(customer_user_id, idempotency_key)`             |
-| `restaurants_h3_idx`               | btree index          | `restaurants(h3_index_res9)`                            |
-| `weather_cache_h3_uq`              | unique index         | `weather_cache(h3_index_res8)`                          |
-| `system_parameters_key_uq`         | unique index         | `system_parameters(param_key)`                          |
-| `order_payments_order_uq`          | unique index         | `order_payments(order_id)`                              |
-| `delivery_assignments_order_uq`    | unique index         | `delivery_assignments(order_id)`                        |
-| `reviews_order_uq`                 | unique index         | `reviews(order_id)`                                     |
-| `review_replies_review_uq`         | unique index         | `review_replies(review_id)`                             |
-| `cart_items_cart_menu_uq`          | unique index         | `cart_items(cart_id, menu_item_id)`                     |
-| `operating_hours_rest_day_uq`      | unique index         | `restaurant_operating_hours(restaurant_id, day_of_week)`|
-| `menu_categories_rest_name_uq`     | unique index         | `menu_categories(restaurant_id, name)`                  |
-| `menu_items_rest_category_idx`     | btree index          | `menu_items(restaurant_id, category_id)`                |
-| `menu_items_name_search_idx`       | gin/trgm index       | `menu_items(name)`                                      |
-| `restaurants_name_search_idx`      | gin/trgm index       | `restaurants(name)`                                     |
-| `refresh_tokens_user_expires_idx`  | btree index          | `refresh_tokens(user_id, expires_at desc)`              |
-| `audit_logs_target_idx`            | btree index          | `audit_logs(target_type, target_id, created_at desc)`   |
-| `notifications_user_read_idx`      | btree index          | `notifications(user_id, read_at asc nulls first)`       |
+| Object                             | Type                 | Definition                                               |
+| :--------------------------------- | :------------------- | :------------------------------------------------------- |
+| `users_username_uq`                | unique index         | `users(username)`                                        |
+| `users_email_uq`                   | unique index         | `users(email)`                                           |
+| `users_phone_uq`                   | unique index         | `users(phone_number)`                                    |
+| `orders_code_uq`                   | unique index         | `orders(order_code)`                                     |
+| `orders_customer_created_idx`      | btree index          | `orders(customer_user_id, placed_at desc)`               |
+| `orders_restaurant_status_idx`     | btree index          | `orders(restaurant_id, status, placed_at desc)`          |
+| `menu_items_restaurant_active_idx` | btree index          | `menu_items(restaurant_id, is_active, is_available)`     |
+| `restaurants_geo_idx`              | gist index           | geography point from `(longitude, latitude)`             |
+| `notifications_user_status_idx`    | btree index          | `notifications(user_id, delivery_status, sent_at desc)`  |
+| `weather_cache_expiry_idx`         | btree index          | `weather_cache(expires_at)`                              |
+| `cart_active_customer_uq`          | partial unique index | `carts(customer_user_id) where status='ACTIVE'`          |
+| `delivery_points_order_time_idx`   | btree index          | `delivery_location_points(order_id, recorded_at desc)`   |
+| `orders_idempotency_uq`            | unique index         | `orders(customer_user_id, idempotency_key)`              |
+| `restaurants_h3_idx`               | btree index          | `restaurants(h3_index_res9)`                             |
+| `weather_cache_h3_uq`              | unique index         | `weather_cache(h3_index_res8)`                           |
+| `system_parameters_key_uq`         | unique index         | `system_parameters(param_key)`                           |
+| `order_payments_order_uq`          | unique index         | `order_payments(order_id)`                               |
+| `delivery_assignments_order_uq`    | unique index         | `delivery_assignments(order_id)`                         |
+| `reviews_order_uq`                 | unique index         | `reviews(order_id)`                                      |
+| `review_replies_review_uq`         | unique index         | `review_replies(review_id)`                              |
+| `cart_items_cart_menu_uq`          | unique index         | `cart_items(cart_id, menu_item_id)`                      |
+| `operating_hours_rest_day_uq`      | unique index         | `restaurant_operating_hours(restaurant_id, day_of_week)` |
+| `menu_categories_rest_name_uq`     | unique index         | `menu_categories(restaurant_id, name)`                   |
+| `menu_items_rest_category_idx`     | btree index          | `menu_items(restaurant_id, category_id)`                 |
+| `menu_items_name_search_idx`       | gin/trgm index       | `menu_items(name)`                                       |
+| `restaurants_name_search_idx`      | gin/trgm index       | `restaurants(name)`                                      |
+| `refresh_tokens_user_expires_idx`  | btree index          | `refresh_tokens(user_id, expires_at desc)`               |
+| `audit_logs_target_idx`            | btree index          | `audit_logs(target_type, target_id, created_at desc)`    |
+| `notifications_user_read_idx`      | btree index          | `notifications(user_id, read_at asc nulls first)`        |
 
 ## Physical DDL Contract
 
 ### Referential Action Policy
 
-| Child FK | Parent | ON DELETE | ON UPDATE | Rationale |
-| :-- | :-- | :-- | :-- | :-- |
-| `refresh_tokens.user_id` | `users.id` | `CASCADE` | `CASCADE` | Revoke session records with user removal. |
-| `restaurants.owner_user_id` | `users.id` | `RESTRICT` | `CASCADE` | Prevent deleting owner while restaurants exist. |
-| `restaurant_operating_hours.restaurant_id` | `restaurants.id` | `CASCADE` | `CASCADE` | Remove schedule with restaurant. |
-| `menu_categories.restaurant_id` | `restaurants.id` | `CASCADE` | `CASCADE` | Remove category tree with restaurant. |
-| `menu_items.restaurant_id` | `restaurants.id` | `RESTRICT` | `CASCADE` | Preserve order history constraints; no hard delete when referenced. |
-| `menu_items.category_id` | `menu_categories.id` | `RESTRICT` | `CASCADE` | Prevent orphan category references. |
-| `menu_item_images.menu_item_id` | `menu_items.id` | `CASCADE` | `CASCADE` | Remove images with menu item. |
-| `carts.customer_user_id` | `users.id` | `RESTRICT` | `CASCADE` | Keep governance over active carts. |
-| `carts.restaurant_id` | `restaurants.id` | `RESTRICT` | `CASCADE` | Keep cart scope valid. |
-| `cart_items.cart_id` | `carts.id` | `CASCADE` | `CASCADE` | Remove lines with cart. |
-| `cart_items.menu_item_id` | `menu_items.id` | `RESTRICT` | `CASCADE` | Keep historical menu item linkage during active carts. |
-| `orders.customer_user_id` | `users.id` | `RESTRICT` | `CASCADE` | Protect transactional history. |
-| `orders.restaurant_id` | `restaurants.id` | `RESTRICT` | `CASCADE` | Protect transactional history. |
-| `order_payments.order_id` | `orders.id` | `CASCADE` | `CASCADE` | Payment row lifecycle tied to order. |
-| `order_items.order_id` | `orders.id` | `CASCADE` | `CASCADE` | Line items tied to order. |
-| `order_items.menu_item_id` | `menu_items.id` | `RESTRICT` | `CASCADE` | Preserve snapshot relation integrity. |
-| `order_status_histories.order_id` | `orders.id` | `CASCADE` | `CASCADE` | Remove state trail only when order is removed. |
-| `order_status_histories.changed_by_user_id` | `users.id` | `SET NULL` | `CASCADE` | Preserve audit trail if actor removed. |
-| `delivery_assignments.order_id` | `orders.id` | `CASCADE` | `CASCADE` | Assignment tied to order. |
-| `delivery_assignments.delivery_user_id` | `users.id` | `RESTRICT` | `CASCADE` | Prevent deleting delivery user with active assignments. |
-| `delivery_location_points.order_id` | `orders.id` | `CASCADE` | `CASCADE` | Tracking points tied to order lifecycle. |
-| `delivery_location_points.delivery_user_id` | `users.id` | `SET NULL` | `CASCADE` | Keep telemetry history after actor offboarding. |
-| `reviews.order_id` | `orders.id` | `CASCADE` | `CASCADE` | Review tied to order. |
-| `reviews.customer_user_id` | `users.id` | `RESTRICT` | `CASCADE` | Preserve customer accountability. |
-| `reviews.restaurant_id` | `restaurants.id` | `RESTRICT` | `CASCADE` | Preserve review lineage. |
-| `review_replies.review_id` | `reviews.id` | `CASCADE` | `CASCADE` | Reply tied to review lifecycle. |
-| `review_replies.merchant_user_id` | `users.id` | `SET NULL` | `CASCADE` | Preserve moderation trail. |
-| `ai_chat_sessions.customer_user_id` | `users.id` | `CASCADE` | `CASCADE` | User conversation lifecycle. |
-| `ai_chat_messages.session_id` | `ai_chat_sessions.id` | `CASCADE` | `CASCADE` | Messages tied to session. |
-| `ai_recommendations.session_id` | `ai_chat_sessions.id` | `CASCADE` | `CASCADE` | Recommendations tied to session. |
-| `ai_recommendations.menu_item_id` | `menu_items.id` | `RESTRICT` | `CASCADE` | Preserve recommendation traceability. |
-| `ai_recommendations.restaurant_id` | `restaurants.id` | `RESTRICT` | `CASCADE` | Preserve recommendation traceability. |
-| `device_tokens.user_id` | `users.id` | `CASCADE` | `CASCADE` | Device tokens should be removed with user. |
-| `notifications.user_id` | `users.id` | `CASCADE` | `CASCADE` | Notification records scoped to user. |
-| `audit_logs.actor_user_id` | `users.id` | `SET NULL` | `CASCADE` | Immutable audit must survive user offboarding. |
-| `system_parameters.updated_by_user_id` | `users.id` | `RESTRICT` | `CASCADE` | Preserve ownership for config governance. |
+| Child FK                                    | Parent                | ON DELETE  | ON UPDATE | Rationale                                                           |
+| :------------------------------------------ | :-------------------- | :--------- | :-------- | :------------------------------------------------------------------ |
+| `refresh_tokens.user_id`                    | `users.id`            | `CASCADE`  | `CASCADE` | Revoke session records with user removal.                           |
+| `restaurants.owner_user_id`                 | `users.id`            | `RESTRICT` | `CASCADE` | Prevent deleting owner while restaurants exist.                     |
+| `restaurant_operating_hours.restaurant_id`  | `restaurants.id`      | `CASCADE`  | `CASCADE` | Remove schedule with restaurant.                                    |
+| `menu_categories.restaurant_id`             | `restaurants.id`      | `CASCADE`  | `CASCADE` | Remove category tree with restaurant.                               |
+| `menu_items.restaurant_id`                  | `restaurants.id`      | `RESTRICT` | `CASCADE` | Preserve order history constraints; no hard delete when referenced. |
+| `menu_items.category_id`                    | `menu_categories.id`  | `RESTRICT` | `CASCADE` | Prevent orphan category references.                                 |
+| `menu_item_images.menu_item_id`             | `menu_items.id`       | `CASCADE`  | `CASCADE` | Remove images with menu item.                                       |
+| `carts.customer_user_id`                    | `users.id`            | `RESTRICT` | `CASCADE` | Keep governance over active carts.                                  |
+| `carts.restaurant_id`                       | `restaurants.id`      | `RESTRICT` | `CASCADE` | Keep cart scope valid.                                              |
+| `cart_items.cart_id`                        | `carts.id`            | `CASCADE`  | `CASCADE` | Remove lines with cart.                                             |
+| `cart_items.menu_item_id`                   | `menu_items.id`       | `RESTRICT` | `CASCADE` | Keep historical menu item linkage during active carts.              |
+| `orders.customer_user_id`                   | `users.id`            | `RESTRICT` | `CASCADE` | Protect transactional history.                                      |
+| `orders.restaurant_id`                      | `restaurants.id`      | `RESTRICT` | `CASCADE` | Protect transactional history.                                      |
+| `order_payments.order_id`                   | `orders.id`           | `CASCADE`  | `CASCADE` | Payment row lifecycle tied to order.                                |
+| `order_items.order_id`                      | `orders.id`           | `CASCADE`  | `CASCADE` | Line items tied to order.                                           |
+| `order_items.menu_item_id`                  | `menu_items.id`       | `RESTRICT` | `CASCADE` | Preserve snapshot relation integrity.                               |
+| `order_status_histories.order_id`           | `orders.id`           | `CASCADE`  | `CASCADE` | Remove state trail only when order is removed.                      |
+| `order_status_histories.changed_by_user_id` | `users.id`            | `SET NULL` | `CASCADE` | Preserve audit trail if actor removed.                              |
+| `delivery_assignments.order_id`             | `orders.id`           | `CASCADE`  | `CASCADE` | Assignment tied to order.                                           |
+| `delivery_assignments.delivery_user_id`     | `users.id`            | `RESTRICT` | `CASCADE` | Prevent deleting delivery user with active assignments.             |
+| `delivery_location_points.order_id`         | `orders.id`           | `CASCADE`  | `CASCADE` | Tracking points tied to order lifecycle.                            |
+| `delivery_location_points.delivery_user_id` | `users.id`            | `SET NULL` | `CASCADE` | Keep telemetry history after actor offboarding.                     |
+| `reviews.order_id`                          | `orders.id`           | `CASCADE`  | `CASCADE` | Review tied to order.                                               |
+| `reviews.customer_user_id`                  | `users.id`            | `RESTRICT` | `CASCADE` | Preserve customer accountability.                                   |
+| `reviews.restaurant_id`                     | `restaurants.id`      | `RESTRICT` | `CASCADE` | Preserve review lineage.                                            |
+| `review_replies.review_id`                  | `reviews.id`          | `CASCADE`  | `CASCADE` | Reply tied to review lifecycle.                                     |
+| `review_replies.merchant_user_id`           | `users.id`            | `SET NULL` | `CASCADE` | Preserve moderation trail.                                          |
+| `ai_chat_sessions.customer_user_id`         | `users.id`            | `CASCADE`  | `CASCADE` | User conversation lifecycle.                                        |
+| `ai_chat_messages.session_id`               | `ai_chat_sessions.id` | `CASCADE`  | `CASCADE` | Messages tied to session.                                           |
+| `ai_recommendations.session_id`             | `ai_chat_sessions.id` | `CASCADE`  | `CASCADE` | Recommendations tied to session.                                    |
+| `ai_recommendations.menu_item_id`           | `menu_items.id`       | `RESTRICT` | `CASCADE` | Preserve recommendation traceability.                               |
+| `ai_recommendations.restaurant_id`          | `restaurants.id`      | `RESTRICT` | `CASCADE` | Preserve recommendation traceability.                               |
+| `device_tokens.user_id`                     | `users.id`            | `CASCADE`  | `CASCADE` | Device tokens should be removed with user.                          |
+| `notifications.user_id`                     | `users.id`            | `CASCADE`  | `CASCADE` | Notification records scoped to user.                                |
+| `audit_logs.actor_user_id`                  | `users.id`            | `SET NULL` | `CASCADE` | Immutable audit must survive user offboarding.                      |
+| `system_parameters.updated_by_user_id`      | `users.id`            | `RESTRICT` | `CASCADE` | Preserve ownership for config governance.                           |
 
 ### Check Constraint Policy
 
-| Constraint | Definition |
-| :-- | :-- |
-| `restaurants_lat_ck` | `latitude between -90 and 90` |
-| `restaurants_lng_ck` | `longitude between -180 and 180` |
-| `delivery_points_lat_ck` | `latitude between -90 and 90` |
-| `delivery_points_lng_ck` | `longitude between -180 and 180` |
-| `operating_hours_day_ck` | `day_of_week between 1 and 7` |
-| `menu_items_price_ck` | `price > 0` |
-| `cart_items_qty_ck` | `quantity > 0` |
-| `order_items_qty_ck` | `quantity > 0` |
-| `order_items_line_total_ck` | `line_total >= 0` |
-| `reviews_stars_ck` | `stars between 1 and 5` |
+| Constraint                      | Definition                                                         |
+| :------------------------------ | :----------------------------------------------------------------- |
+| `restaurants_lat_ck`            | `latitude between -90 and 90`                                      |
+| `restaurants_lng_ck`            | `longitude between -180 and 180`                                   |
+| `delivery_points_lat_ck`        | `latitude between -90 and 90`                                      |
+| `delivery_points_lng_ck`        | `longitude between -180 and 180`                                   |
+| `operating_hours_day_ck`        | `day_of_week between 1 and 7`                                      |
+| `menu_items_price_ck`           | `price > 0`                                                        |
+| `cart_items_qty_ck`             | `quantity > 0`                                                     |
+| `order_items_qty_ck`            | `quantity > 0`                                                     |
+| `order_items_line_total_ck`     | `line_total >= 0`                                                  |
+| `reviews_stars_ck`              | `stars between 1 and 5`                                            |
 | `orders_amount_non_negative_ck` | `subtotal_amount >= 0 and delivery_fee >= 0 and total_amount >= 0` |
-| `orders_total_consistency_ck` | `total_amount = subtotal_amount + delivery_fee` |
-| `system_parameters_version_ck` | `version >= 1` |
+| `orders_total_consistency_ck`   | `total_amount = subtotal_amount + delivery_fee`                    |
+| `system_parameters_version_ck`  | `version >= 1`                                                     |
 
 ### Geospatial and Search Extension Contract
 
@@ -1539,76 +1539,76 @@ users ||--o{ system_parameters
 
 # API Contracts (Implementable Baseline)
 
-| API ID      | Endpoint                                | Method | Actor           | Success          |
-| :---------- | :-------------------------------------- | :----: | :-------------- | :--------------- |
-| API-AUTH-01 | `/api/v1/auth/register`               |  POST  | Public          | `201 Created`  |
-| API-AUTH-02 | `/api/v1/auth/login`                  |  POST  | Public          | `200 OK`       |
-| API-AUTH-03 | `/api/v1/auth/refresh`                |  POST  | Public          | `200 OK`       |
-| API-AUTH-04 | `/api/v1/auth/forgot-password`        |  POST  | Public          | `202 Accepted` |
-| API-AUTH-08 | `/api/v1/auth/forgot-password/verify-otp` | POST | Public      | `200 OK`       |
-| API-AUTH-05 | `/api/v1/auth/reset-password`         |  POST  | Public          | `200 OK`       |
-| API-AUTH-06 | `/api/v1/auth/logout`                 |  POST  | Authenticated   | `200 OK`       |
-| API-AUTH-07 | `/api/v1/auth/logout-all`             |  POST  | Authenticated   | `200 OK`       |
-| API-PROF-01 | `/api/v1/me`                          |  GET  | Authenticated   | `200 OK`       |
-| API-PROF-02 | `/api/v1/me`                          | PATCH | Authenticated   | `200 OK`       |
-| API-PROF-03 | `/api/v1/me/password`                 |  PUT  | Authenticated   | `200 OK`       |
-| API-CAT-01  | `/api/v1/restaurants`                 |  GET  | Public/Customer | `200 OK`       |
-| API-CAT-02  | `/api/v1/restaurants/{id}`            |  GET  | Public/Customer | `200 OK`       |
-| API-CAT-03  | `/api/v1/restaurants/{id}/menu-items` |  GET  | Public/Customer | `200 OK`       |
-| API-CAT-04  | `/api/v1/restaurants/nearby`          |  GET  | Public/Customer | `200 OK`       |
-| API-CART-01 | `/api/v1/customer/carts/active`       |  GET  | Customer        | `200 OK`       |
-| API-CART-02 | `/api/v1/customer/carts/items`        | POST  | Customer        | `200 OK`       |
-| API-CART-03 | `/api/v1/customer/carts/items/{id}`   | PATCH | Customer        | `200 OK`       |
-| API-CART-04 | `/api/v1/customer/carts/items/{id}`   | DELETE| Customer        | `204 No Content` |
-| API-CART-05 | `/api/v1/customer/carts/active/clear` | POST  | Customer        | `200 OK`       |
-| API-ORD-01  | `/api/v1/customer/orders`             | POST  | Customer        | `201 Created`  |
-| API-ORD-02  | `/api/v1/customer/orders`             |  GET  | Customer        | `200 OK`       |
-| API-ORD-03  | `/api/v1/customer/orders/{id}`        |  GET  | Customer        | `200 OK`       |
-| API-ORD-04  | `/api/v1/customer/orders/{id}/cancel` | POST  | Customer        | `200 OK`       |
-| API-ORD-05  | `/api/v1/customer/orders/{id}/tracking` | GET | Customer        | `200 OK`       |
-| API-REV-01  | `/api/v1/customer/orders/{id}/reviews`| POST  | Customer        | `201 Created`  |
-| API-REV-02  | `/api/v1/restaurants/{id}/reviews`    |  GET  | Public/Customer | `200 OK`       |
-| API-MER-01  | `/api/v1/merchant/restaurants`        | POST  | Merchant        | `201 Created`  |
-| API-MER-02  | `/api/v1/merchant/restaurants/{id}`   | PATCH | Merchant        | `200 OK`       |
-| API-MER-03  | `/api/v1/merchant/restaurants/{id}/menu-categories` | POST | Merchant | `201 Created` |
-| API-MER-04  | `/api/v1/merchant/restaurants/{id}/menu-items` | POST | Merchant | `201 Created` |
-| API-MER-05  | `/api/v1/merchant/restaurants/{id}/orders` | GET | Merchant      | `200 OK`       |
-| API-MER-06  | `/api/v1/merchant/orders/{id}/status` | PATCH | Merchant        | `200 OK`       |
-| API-MER-07  | `/api/v1/merchant/restaurants/{id}/menu-categories` | GET | Merchant | `200 OK` |
-| API-MER-08  | `/api/v1/merchant/menu-categories/{id}` | PATCH | Merchant      | `200 OK`       |
-| API-MER-09  | `/api/v1/merchant/menu-categories/{id}` | DELETE | Merchant     | `204 No Content` |
-| API-MER-10  | `/api/v1/merchant/restaurants/{id}/menu-items` | GET | Merchant    | `200 OK`       |
-| API-MER-11  | `/api/v1/merchant/menu-items/{id}`    | PATCH | Merchant        | `200 OK`       |
-| API-MER-12  | `/api/v1/merchant/menu-items/{id}`    | DELETE| Merchant        | `204 No Content` |
-| API-MER-13  | `/api/v1/merchant/menu-items/{id}/availability` | PATCH | Merchant | `200 OK` |
-| API-MER-14  | `/api/v1/merchant/reviews/{id}/replies` | POST | Merchant      | `201 Created`  |
-| API-MER-15  | `/api/v1/merchant/review-replies/{id}` | PATCH | Merchant      | `200 OK`       |
-| API-DEL-01  | `/api/v1/delivery/orders/assigned`    |  GET  | Delivery        | `200 OK`       |
-| API-DEL-02  | `/api/v1/delivery/orders/{id}/accept` | POST  | Delivery        | `200 OK`       |
-| API-DEL-03  | `/api/v1/delivery/orders/{id}/status` | PATCH | Delivery        | `200 OK`       |
-| API-DEL-04  | `/api/v1/delivery/orders/{id}/locations` | POST | Delivery      | `202 Accepted` |
-| API-AI-01   | `/api/v1/customer/ai/recommendations` | POST  | Customer        | `200 OK`       |
-| API-AI-02   | `/api/v1/customer/ai/suggestions/today` | GET | Customer        | `200 OK`       |
-| API-AI-03   | `/api/v1/customer/ai/chats`           |  GET  | Customer        | `200 OK`       |
-| API-NTF-01  | `/api/v1/notifications`               |  GET  | Authenticated   | `200 OK`       |
-| API-NTF-02  | `/api/v1/admin/notifications`         |  GET  | Admin           | `200 OK`       |
-| API-NTF-03  | `/api/v1/notifications/{id}/read`     | PATCH | Authenticated   | `200 OK`       |
-| API-ADM-01  | `/api/v1/admin/users`                 |  GET  | Admin           | `200 OK`       |
-| API-ADM-02  | `/api/v1/admin/users/{id}/lock`       | POST  | Admin           | `200 OK`       |
-| API-ADM-03  | `/api/v1/admin/restaurants`           |  GET  | Admin           | `200 OK`       |
-| API-ADM-04  | `/api/v1/admin/orders`                |  GET  | Admin           | `200 OK`       |
-| API-ADM-05  | `/api/v1/admin/system-parameters`     |  GET  | Admin           | `200 OK`       |
-| API-ADM-06  | `/api/v1/admin/system-parameters/{key}` | PUT | Admin           | `200 OK`       |
-| API-ADM-07  | `/api/v1/admin/system-parameters/{key}` | PATCH | Admin         | `200 OK`       |
-| API-ADM-08  | `/api/v1/admin/users/{id}/unlock`     | POST  | Admin           | `200 OK`       |
-| API-ADM-09  | `/api/v1/admin/users/{id}`            | DELETE| Admin           | `204 No Content` |
-| API-ADM-10  | `/api/v1/admin/restaurants/{id}/approve` | POST | Admin        | `200 OK`       |
-| API-ADM-11  | `/api/v1/admin/restaurants/{id}/reject` | POST | Admin         | `200 OK`       |
-| API-ADM-12  | `/api/v1/admin/restaurants/{id}`      | DELETE| Admin           | `204 No Content` |
-| API-ADM-13  | `/api/v1/admin/orders/{id}/status`    | PATCH | Admin           | `200 OK`       |
-| API-ADM-14  | `/api/v1/admin/orders/{id}`           | DELETE| Admin           | `204 No Content` |
-| API-RPT-01  | `/api/v1/admin/reports/revenue`       |  GET  | Admin           | `200 OK`       |
-| API-RPT-02  | `/api/v1/merchant/reports/revenue`    |  GET  | Merchant        | `200 OK`       |
+| API ID      | Endpoint                                            | Method | Actor           | Success          |
+| :---------- | :-------------------------------------------------- | :----: | :-------------- | :--------------- |
+| API-AUTH-01 | `/api/v1/auth/register`                             |  POST  | Public          | `201 Created`    |
+| API-AUTH-02 | `/api/v1/auth/login`                                |  POST  | Public          | `200 OK`         |
+| API-AUTH-03 | `/api/v1/auth/refresh`                              |  POST  | Public          | `200 OK`         |
+| API-AUTH-04 | `/api/v1/auth/forgot-password`                      |  POST  | Public          | `202 Accepted`   |
+| API-AUTH-08 | `/api/v1/auth/forgot-password/verify-otp`           |  POST  | Public          | `200 OK`         |
+| API-AUTH-05 | `/api/v1/auth/reset-password`                       |  POST  | Public          | `200 OK`         |
+| API-AUTH-06 | `/api/v1/auth/logout`                               |  POST  | Authenticated   | `200 OK`         |
+| API-AUTH-07 | `/api/v1/auth/logout-all`                           |  POST  | Authenticated   | `200 OK`         |
+| API-PROF-01 | `/api/v1/me`                                        |  GET   | Authenticated   | `200 OK`         |
+| API-PROF-02 | `/api/v1/me`                                        | PATCH  | Authenticated   | `200 OK`         |
+| API-PROF-03 | `/api/v1/me/password`                               |  PUT   | Authenticated   | `200 OK`         |
+| API-CAT-01  | `/api/v1/restaurants`                               |  GET   | Public/Customer | `200 OK`         |
+| API-CAT-02  | `/api/v1/restaurants/{id}`                          |  GET   | Public/Customer | `200 OK`         |
+| API-CAT-03  | `/api/v1/restaurants/{id}/menu-items`               |  GET   | Public/Customer | `200 OK`         |
+| API-CAT-04  | `/api/v1/restaurants/nearby`                        |  GET   | Public/Customer | `200 OK`         |
+| API-CART-01 | `/api/v1/customer/carts/active`                     |  GET   | Customer        | `200 OK`         |
+| API-CART-02 | `/api/v1/customer/carts/items`                      |  POST  | Customer        | `200 OK`         |
+| API-CART-03 | `/api/v1/customer/carts/items/{id}`                 | PATCH  | Customer        | `200 OK`         |
+| API-CART-04 | `/api/v1/customer/carts/items/{id}`                 | DELETE | Customer        | `204 No Content` |
+| API-CART-05 | `/api/v1/customer/carts/active/clear`               |  POST  | Customer        | `200 OK`         |
+| API-ORD-01  | `/api/v1/customer/orders`                           |  POST  | Customer        | `201 Created`    |
+| API-ORD-02  | `/api/v1/customer/orders`                           |  GET   | Customer        | `200 OK`         |
+| API-ORD-03  | `/api/v1/customer/orders/{id}`                      |  GET   | Customer        | `200 OK`         |
+| API-ORD-04  | `/api/v1/customer/orders/{id}/cancel`               |  POST  | Customer        | `200 OK`         |
+| API-ORD-05  | `/api/v1/customer/orders/{id}/tracking`             |  GET   | Customer        | `200 OK`         |
+| API-REV-01  | `/api/v1/customer/orders/{id}/reviews`              |  POST  | Customer        | `201 Created`    |
+| API-REV-02  | `/api/v1/restaurants/{id}/reviews`                  |  GET   | Public/Customer | `200 OK`         |
+| API-MER-01  | `/api/v1/merchant/restaurants`                      |  POST  | Merchant        | `201 Created`    |
+| API-MER-02  | `/api/v1/merchant/restaurants/{id}`                 | PATCH  | Merchant        | `200 OK`         |
+| API-MER-03  | `/api/v1/merchant/restaurants/{id}/menu-categories` |  POST  | Merchant        | `201 Created`    |
+| API-MER-04  | `/api/v1/merchant/restaurants/{id}/menu-items`      |  POST  | Merchant        | `201 Created`    |
+| API-MER-05  | `/api/v1/merchant/restaurants/{id}/orders`          |  GET   | Merchant        | `200 OK`         |
+| API-MER-06  | `/api/v1/merchant/orders/{id}/status`               | PATCH  | Merchant        | `200 OK`         |
+| API-MER-07  | `/api/v1/merchant/restaurants/{id}/menu-categories` |  GET   | Merchant        | `200 OK`         |
+| API-MER-08  | `/api/v1/merchant/menu-categories/{id}`             | PATCH  | Merchant        | `200 OK`         |
+| API-MER-09  | `/api/v1/merchant/menu-categories/{id}`             | DELETE | Merchant        | `204 No Content` |
+| API-MER-10  | `/api/v1/merchant/restaurants/{id}/menu-items`      |  GET   | Merchant        | `200 OK`         |
+| API-MER-11  | `/api/v1/merchant/menu-items/{id}`                  | PATCH  | Merchant        | `200 OK`         |
+| API-MER-12  | `/api/v1/merchant/menu-items/{id}`                  | DELETE | Merchant        | `204 No Content` |
+| API-MER-13  | `/api/v1/merchant/menu-items/{id}/availability`     | PATCH  | Merchant        | `200 OK`         |
+| API-MER-14  | `/api/v1/merchant/reviews/{id}/replies`             |  POST  | Merchant        | `201 Created`    |
+| API-MER-15  | `/api/v1/merchant/review-replies/{id}`              | PATCH  | Merchant        | `200 OK`         |
+| API-DEL-01  | `/api/v1/delivery/orders/assigned`                  |  GET   | Delivery        | `200 OK`         |
+| API-DEL-02  | `/api/v1/delivery/orders/{id}/accept`               |  POST  | Delivery        | `200 OK`         |
+| API-DEL-03  | `/api/v1/delivery/orders/{id}/status`               | PATCH  | Delivery        | `200 OK`         |
+| API-DEL-04  | `/api/v1/delivery/orders/{id}/locations`            |  POST  | Delivery        | `202 Accepted`   |
+| API-AI-01   | `/api/v1/customer/ai/recommendations`               |  POST  | Customer        | `200 OK`         |
+| API-AI-02   | `/api/v1/customer/ai/suggestions/today`             |  GET   | Customer        | `200 OK`         |
+| API-AI-03   | `/api/v1/customer/ai/chats`                         |  GET   | Customer        | `200 OK`         |
+| API-NTF-01  | `/api/v1/notifications`                             |  GET   | Authenticated   | `200 OK`         |
+| API-NTF-02  | `/api/v1/admin/notifications`                       |  GET   | Admin           | `200 OK`         |
+| API-NTF-03  | `/api/v1/notifications/{id}/read`                   | PATCH  | Authenticated   | `200 OK`         |
+| API-ADM-01  | `/api/v1/admin/users`                               |  GET   | Admin           | `200 OK`         |
+| API-ADM-02  | `/api/v1/admin/users/{id}/lock`                     |  POST  | Admin           | `200 OK`         |
+| API-ADM-03  | `/api/v1/admin/restaurants`                         |  GET   | Admin           | `200 OK`         |
+| API-ADM-04  | `/api/v1/admin/orders`                              |  GET   | Admin           | `200 OK`         |
+| API-ADM-05  | `/api/v1/admin/system-parameters`                   |  GET   | Admin           | `200 OK`         |
+| API-ADM-06  | `/api/v1/admin/system-parameters/{key}`             |  PUT   | Admin           | `200 OK`         |
+| API-ADM-07  | `/api/v1/admin/system-parameters/{key}`             | PATCH  | Admin           | `200 OK`         |
+| API-ADM-08  | `/api/v1/admin/users/{id}/unlock`                   |  POST  | Admin           | `200 OK`         |
+| API-ADM-09  | `/api/v1/admin/users/{id}`                          | DELETE | Admin           | `204 No Content` |
+| API-ADM-10  | `/api/v1/admin/restaurants/{id}/approve`            |  POST  | Admin           | `200 OK`         |
+| API-ADM-11  | `/api/v1/admin/restaurants/{id}/reject`             |  POST  | Admin           | `200 OK`         |
+| API-ADM-12  | `/api/v1/admin/restaurants/{id}`                    | DELETE | Admin           | `204 No Content` |
+| API-ADM-13  | `/api/v1/admin/orders/{id}/status`                  | PATCH  | Admin           | `200 OK`         |
+| API-ADM-14  | `/api/v1/admin/orders/{id}`                         | DELETE | Admin           | `204 No Content` |
+| API-RPT-01  | `/api/v1/admin/reports/revenue`                     |  GET   | Admin           | `200 OK`         |
+| API-RPT-02  | `/api/v1/merchant/reports/revenue`                  |  GET   | Merchant        | `200 OK`         |
 
 `API-CAT-01` query behavior:
 
@@ -1675,25 +1675,25 @@ System parameter APIs:
 
 System parameter catalog (v1 defaults):
 
-| Key | Type | Default | Runtime | Constraint |
-| :-- | :--: | :-----: | :-----: | :--------- |
-| `shipping.base_delivery_fee` | NUMBER | `10000` | true | `>= 0` |
-| `shipping.base_distance_km` | NUMBER | `2.0` | true | `>= 0` |
-| `shipping.fee_per_km` | NUMBER | `5000` | true | `>= 0` |
-| `shipping.max_delivery_km` | NUMBER | `15.0` | true | `> 0` |
-| `search.nearby.max_radius_km` | NUMBER | `10.0` | true | `> 0` |
-| `search.default_page_size` | NUMBER | `20` | true | `1..100` |
-| `search.max_page_size` | NUMBER | `100` | true | `1..200` |
-| `finance.commission_rate_percent` | NUMBER | `10.0` | true | `0..100` |
-| `finance.shipping_margin_rate_percent` | NUMBER | `0.0` | true | `0..100` |
-| `currency.code` | STRING | `VND` | false | ISO-4217 uppercase |
-| `currency.minor_unit` | NUMBER | `0` | false | `0..4` |
-| `currency.rounding_mode` | STRING | `HALF_UP` | false | `HALF_UP|HALF_EVEN|DOWN|UP` |
-| `retention.audit_logs_days` | NUMBER | `365` | false | `>= 30` |
-| `retention.tracking_points_days` | NUMBER | `30` | false | `>= 1` |
-| `retention.ai_chat_days` | NUMBER | `90` | false | `>= 1` |
-| `ops.backup.rpo_minutes` | NUMBER | `15` | false | `1..1440` |
-| `ops.backup.rto_minutes` | NUMBER | `60` | false | `1..2880` |
+| Key                                    |  Type  |  Default  | Runtime | Constraint         |
+| :------------------------------------- | :----: | :-------: | :-----: | :----------------- |
+| `shipping.base_delivery_fee`           | NUMBER |  `10000`  |  true   | `>= 0`             |
+| `shipping.base_distance_km`            | NUMBER |   `2.0`   |  true   | `>= 0`             |
+| `shipping.fee_per_km`                  | NUMBER |  `5000`   |  true   | `>= 0`             |
+| `shipping.max_delivery_km`             | NUMBER |  `15.0`   |  true   | `> 0`              |
+| `search.nearby.max_radius_km`          | NUMBER |  `10.0`   |  true   | `> 0`              |
+| `search.default_page_size`             | NUMBER |   `20`    |  true   | `1..100`           |
+| `search.max_page_size`                 | NUMBER |   `100`   |  true   | `1..200`           |
+| `finance.commission_rate_percent`      | NUMBER |  `10.0`   |  true   | `0..100`           |
+| `finance.shipping_margin_rate_percent` | NUMBER |   `0.0`   |  true   | `0..100`           |
+| `currency.code`                        | STRING |   `VND`   |  false  | ISO-4217 uppercase |
+| `currency.minor_unit`                  | NUMBER |    `0`    |  false  | `0..4`             |
+| `currency.rounding_mode`               | STRING | `HALF_UP` |  false  | `HALF_UP           |
+| `retention.audit_logs_days`            | NUMBER |   `365`   |  false  | `>= 30`            |
+| `retention.tracking_points_days`       | NUMBER |   `30`    |  false  | `>= 1`             |
+| `retention.ai_chat_days`               | NUMBER |   `90`    |  false  | `>= 1`             |
+| `ops.backup.rpo_minutes`               | NUMBER |   `15`    |  false  | `1..1440`          |
+| `ops.backup.rto_minutes`               | NUMBER |   `60`    |  false  | `1..2880`          |
 
 `API-ORD-01` delivery fee behavior:
 
@@ -1715,21 +1715,21 @@ System parameter catalog (v1 defaults):
 
 | Function                            | Customer | Merchant | Delivery | Admin |
 | :---------------------------------- | :------: | :------: | :------: | :---: |
-| Register/login/refresh              |    X    |    X    |    X    |   X   |
-| View/update own profile             |    X    |    X    |    X    |   X   |
-| Browse restaurants and menu         |    X    |          |          |      |
-| Create/cancel own orders            |    X    |          |          |      |
-| Leave review                        |    X    |          |          |      |
-| Restaurant management               |          |    X    |          |   X   |
-| Menu/category management            |          |    X    |          |   X   |
-| Merchant order processing           |          |    X    |          |   X   |
-| Delivery simulation updates         |          |          |    X    |   X   |
+| Register/login/refresh              |    X     |    X     |    X     |   X   |
+| View/update own profile             |    X     |    X     |    X     |   X   |
+| Browse restaurants and menu         |    X     |          |          |       |
+| Create/cancel own orders            |    X     |          |          |       |
+| Leave review                        |    X     |          |          |       |
+| Restaurant management               |          |    X     |          |   X   |
+| Menu/category management            |          |    X     |          |   X   |
+| Merchant order processing           |          |    X     |          |   X   |
+| Delivery simulation updates         |          |          |    X     |   X   |
 | User governance                     |          |          |          |   X   |
 | Restaurant/order governance         |          |          |          |   X   |
-| Revenue reporting                   |          |    X    |          |   X   |
-| Logout/session invalidation         |    X    |    X    |    X    |   X   |
-| Cart management                     |    X    |          |          |      |
-| Real-time delivery location updates |          |          |    X    |   X   |
+| Revenue reporting                   |          |    X     |          |   X   |
+| Logout/session invalidation         |    X     |    X     |    X     |   X   |
+| Cart management                     |    X     |          |          |       |
+| Real-time delivery location updates |          |          |    X     |   X   |
 | System parameter management         |          |          |          |   X   |
 
 Security requirements:
