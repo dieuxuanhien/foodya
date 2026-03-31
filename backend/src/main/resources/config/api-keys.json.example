@@ -1,0 +1,15 @@
+{
+  "google.ai.studio.api.key": "<GOOGLE_AI_STUDIO_KEY>",
+  "supabase.project.url": "<SUPABASE_PROJECT_URL>",
+  "supabase.storage.s3.access-key-id": "<SUPABASE_S3_ACCESS_KEY_ID>",
+  "supabase.storage.s3.secret-access-key": "<SUPABASE_S3_SECRET_ACCESS_KEY>",
+  "goong.api.key": "<GOONG_API_KEY>",
+  "firebase.api.key": "<FIREBASE_WEB_API_KEY>",
+  "firebase.auth.domain": "<FIREBASE_AUTH_DOMAIN>",
+  "firebase.project.id": "<FIREBASE_PROJECT_ID>",
+  "firebase.storage.bucket": "<FIREBASE_STORAGE_BUCKET>",
+  "firebase.messaging.sender.id": "<FIREBASE_MESSAGING_SENDER_ID>",
+  "firebase.app.id": "<FIREBASE_APP_ID>",
+  "firebase.measurement.id": "<FIREBASE_MEASUREMENT_ID>",
+  "openweather.api.key": "<OPENWEATHER_API_KEY>"
+}

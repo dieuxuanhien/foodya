@@ -1,0 +1,42 @@
+package com.foodya.backend.infrastructure.repository;
+
+import com.foodya.backend.domain.model.OrderStatus;
+import com.foodya.backend.domain.persistence.UserAccount;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.Collection;
+import java.util.UUID;
+
+public interface AdminUserRepository extends JpaRepository<UserAccount, UUID> {
+
+    Page<UserAccount> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFullNameContainingIgnoreCaseOrPhoneNumberContainingIgnoreCase(
+            String username,
+            String email,
+            String fullName,
+            String phoneNumber,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT (COUNT(o) > 0)
+            FROM Order o
+            WHERE o.customerUserId = :userId
+              AND o.status IN :statuses
+            """)
+    boolean hasCustomerOrdersInStatuses(@Param("userId") UUID userId,
+                                        @Param("statuses") Collection<OrderStatus> statuses);
+
+    @Query("""
+            SELECT (COUNT(o) > 0)
+            FROM Order o, Restaurant r
+            WHERE o.restaurantId = r.id
+              AND r.ownerUserId = :userId
+              AND o.status IN :statuses
+            """)
+    boolean hasMerchantOrdersInStatuses(@Param("userId") UUID userId,
+                                        @Param("statuses") Collection<OrderStatus> statuses);
+}

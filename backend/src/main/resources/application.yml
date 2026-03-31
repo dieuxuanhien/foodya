@@ -1,0 +1,53 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: foodya-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_APP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+foodya:
+  secrets:
+    json-file: ${FOODYA_SECRETS_JSON_FILE:config/api-keys.json}
+  security:
+    jwt-secret: ${FOODYA_JWT_SECRET:foodya-dev-secret-key-please-change-32-bytes-minimum}
+    access-token-minutes: ${FOODYA_ACCESS_TOKEN_MINUTES:15}
+    refresh-token-days: ${FOODYA_REFRESH_TOKEN_DAYS:30}
+    reset-token-minutes: ${FOODYA_RESET_TOKEN_MINUTES:10}
+    otp-expiry-minutes: ${FOODYA_OTP_EXPIRY_MINUTES:10}
+  rate-limit:
+    auth-requests-per-minute: ${FOODYA_AUTH_RATE_LIMIT_PER_MINUTE:60}
+    ai-requests-per-minute: ${FOODYA_AI_RATE_LIMIT_PER_MINUTE:30}
