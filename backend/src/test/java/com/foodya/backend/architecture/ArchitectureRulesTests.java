@@ -65,9 +65,9 @@ class ArchitectureRulesTests {
     // ============================================================================
 
     @Test
-    void domainModelMustStayFrameworkFree() {
+    void domainValueObjectsMustStayFrameworkFree() {
         ArchRule rule = noClasses()
-                .that().resideInAPackage("..domain.model..")
+                .that().resideInAPackage("..domain.value_objects..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "jakarta.persistence..",
                         "org.springframework..",
@@ -79,17 +79,24 @@ class ArchitectureRulesTests {
     }
 
     @Test
-    void domainPersistenceLayerMustBeFrameworkFree() {
-        // IMPORTANT: domain.persistence entities should eventually move to
-        // infrastructure.persistence and be replaced with pure domain models.
-        // This rule enforces that IF entities are in domain.persistence,
-        // they must NOT import Spring external libraries (only JPA is allowed temporarily).
-        ArchRule rule = noClasses()
+    void domainLayerMustNotContainLegacyPersistencePackage() {
+        ArchRule rule = classes()
                 .that().resideInAPackage("..domain.persistence..")
+                .should().haveFullyQualifiedName("com.foodya.backend.__legacy__.ShouldNotExist")
+                .allowEmptyShould(true);
+
+        rule.check(classes);
+    }
+
+    @Test
+    void domainEntitiesMustNotDependOnSpringOrOuterLayers() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..domain.entities..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "org.springframework..",
                         "com.foodya.backend.infrastructure..",
-                        "com.foodya.backend.application.."
+                        "com.foodya.backend.application..",
+                        "com.foodya.backend.interfaces.."
                 );
 
         rule.check(classes);
@@ -103,7 +110,7 @@ class ArchitectureRulesTests {
     void restDtosMustNotDependOnPersistenceEntities() {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("..interfaces.rest.dto..")
-                .should().dependOnClassesThat().resideInAPackage("..domain.persistence..");
+                                .should().dependOnClassesThat().resideInAPackage("..domain.entities..");
 
         rule.check(classes);
     }
@@ -132,7 +139,7 @@ class ArchitectureRulesTests {
         //   - infrastructure.* (except through ports)
         //   - interfaces.* (which is outside layer)
         ArchRule rule = noClasses()
-                .that().resideInAPackage("..application.service..")
+                .that().resideInAPackage("..application.usecases..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "com.foodya.backend.infrastructure.repository..",
                         "com.foodya.backend.infrastructure.persistence..",
@@ -151,18 +158,58 @@ class ArchitectureRulesTests {
         rule.check(classes);
     }
 
+        @Test
+        void applicationUseCasesMustNotDependOnFrameworkPasswordOrEventApis() {
+                ArchRule rule = noClasses()
+                                .that().resideInAPackage("..application.usecases..")
+                                .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.security.crypto.password.PasswordEncoder")
+                                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.context.ApplicationEventPublisher");
+
+                rule.check(classes);
+        }
+
     // ============================================================================
     // PORT-ADAPTER PATTERN RULES
     // ============================================================================
 
     @Test
     void portsMustBeDefinedInApplicationLayer() {
-        // All port interfaces must reside in application.port modules
+        // All port interfaces must reside in application.ports modules
         ArchRule rule = classes()
                 .that().haveNameMatching(".*Port")
-                .should().resideInAPackage("..application.port..")
+                .should().resideInAPackage("..application.ports..")
                 .allowEmptyShould(true);
 
         rule.check(classes);
     }
+
+        @Test
+        void legacyApplicationServicePackageMustBeEmpty() {
+                ArchRule rule = classes()
+                                .that().resideInAPackage("..application.service..")
+                                .should().haveFullyQualifiedName("com.foodya.backend.__legacy__.ShouldNotExist")
+                                .allowEmptyShould(true);
+
+                rule.check(classes);
+        }
+
+        @Test
+        void legacyApplicationPortPackageMustBeEmpty() {
+                ArchRule rule = classes()
+                                .that().resideInAPackage("..application.port..")
+                                .should().haveFullyQualifiedName("com.foodya.backend.__legacy__.ShouldNotExist")
+                                .allowEmptyShould(true);
+
+                rule.check(classes);
+        }
+
+        @Test
+        void legacyDomainModelPackageMustBeEmpty() {
+                ArchRule rule = classes()
+                                .that().resideInAPackage("..domain.model..")
+                                .should().haveFullyQualifiedName("com.foodya.backend.__legacy__.ShouldNotExist")
+                                .allowEmptyShould(true);
+
+                rule.check(classes);
+        }
 }

@@ -1,9 +1,9 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.ProfileService;
+import com.foodya.backend.application.usecases.ProfileService;
+import com.foodya.backend.application.dto.UserAccountModel;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
-import com.foodya.backend.domain.persistence.UserAccount;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.ChangePasswordRestRequest;
 import com.foodya.backend.interfaces.rest.dto.MeResponse;
@@ -45,7 +45,7 @@ public class ProfileController {
     })
     public ResponseEntity<ApiSuccessResponse<MeResponse>> me(Authentication authentication,
                                                               HttpServletRequest httpServletRequest) {
-        UserAccount user = profileService.me(CurrentUser.userId(authentication));
+        UserAccountModel user = profileService.me(CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(RestDtoMapper.toMeResponse(user), RequestTrace.from(httpServletRequest)));
     }
 
@@ -65,7 +65,7 @@ public class ProfileController {
                 request.phoneNumber(),
                 request.avatarUrl()
         );
-        UserAccount user = profileService.update(CurrentUser.userId(authentication), command);
+        UserAccountModel user = profileService.update(CurrentUser.userId(authentication), command);
         return ResponseEntity.ok(ApiSuccessResponse.of(RestDtoMapper.toMeResponse(user), RequestTrace.from(httpServletRequest)));
     }
 

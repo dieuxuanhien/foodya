@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter.integration;
 
-import com.foodya.backend.application.port.out.WeatherContextPort;
+import com.foodya.backend.application.ports.out.WeatherContextPort;
 import com.foodya.backend.infrastructure.integration.OpenWeatherAdapter;
 import org.springframework.stereotype.Component;
 

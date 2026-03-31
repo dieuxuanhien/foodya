@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter.config;
 
-import com.foodya.backend.application.port.out.IntegrationSecretPort;
+import com.foodya.backend.application.ports.out.IntegrationSecretPort;
 import com.foodya.backend.infrastructure.config.ApiSecretsProvider;
 import org.springframework.stereotype.Component;
 

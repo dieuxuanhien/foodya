@@ -1,13 +1,14 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.OrderManagementPort;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.persistence.Order;
+import com.foodya.backend.application.ports.out.OrderManagementPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.infrastructure.repository.OrderManagementRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,7 +23,7 @@ public class OrderManagementPersistenceAdapter implements OrderManagementPort {
 
     @Override
     public Optional<Order> findById(UUID orderId) {
-        return repository.findById(orderId);
+        return repository.findById(Objects.requireNonNull(orderId));
     }
 
     @Override
@@ -42,6 +43,6 @@ public class OrderManagementPersistenceAdapter implements OrderManagementPort {
 
     @Override
     public Order save(Order order) {
-        return repository.save(order);
+        return repository.save(Objects.requireNonNull(order));
     }
 }

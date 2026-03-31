@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.persistence.MenuItem;
+import com.foodya.backend.domain.entities.MenuItem;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

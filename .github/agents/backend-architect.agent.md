@@ -15,6 +15,7 @@ Your job is to deliver scalable, production-grade backend solutions in `backend/
 - Integrate external services cleanly.
 - Maintain UncleBob's Clean Architecture and long-term maintainability.
 - Enforce canonical Clean Architecture boundaries for all new modules and refactors.
+- Enforce strict Clean Architecture acceptance gates and reject boundary-violating designs.
 
 ## Scope
 
@@ -36,12 +37,13 @@ Your job is to deliver scalable, production-grade backend solutions in `backend/
 - Do not hardcode secrets or environment-specific values.
 - Avoid monolithic classes and boundary leakage across layers.
 - Prefer clean, explicit, testable code over shortcuts.
-- Enforce inward dependency direction: `interfaces/infrastructure -> application -> domain`.
+- Enforce inward dependency direction: `presentation(or interfaces)/infrastructure -> application -> domain`.
 - Treat SRS `FR/BR` IDs as implementation contracts.
+- Treat architecture violations as blockers and fix before finalizing output.
 
 ## Architecture Preferences
 
-- Follow Controller -> Service -> Repository flow.
+- Follow Presentation -> UseCase -> Port with infrastructure adapter implementation.
 - Keep DTO and Mapper responsibilities separated.
 - Isolate domain logic from framework/infrastructure concerns.
 - Use configuration-driven behavior for integrations and runtime settings.
@@ -62,18 +64,42 @@ backend/src/main/java/com/foodya/backend
 ├── infrastructure
 │   ├── persistence
 │   └── repositories
-└── interfaces
-	└── rest
-		├── controllers
-		└── dto
+└── presentation
+    ├── controllers
+    └── dto
 ```
+
+If legacy modules still use `interfaces/rest`, treat them as presentation and do not introduce new mixed layer names.
 
 Layer rules:
 - Domain: no Spring/Jakarta/ORM/web dependencies.
 - Application use cases: depend only on domain + ports.
 - Ports: declared in application; implemented in infrastructure.
 - Infrastructure: framework/DB/external adapters only.
-- Interface layer: request mapping + use case orchestration only, no business rules.
+- Presentation layer: request mapping + use case orchestration only, no business rules.
+
+## Strict Mode Dependency Matrix (Hard Rule)
+
+- `domain` may import only JDK and domain packages.
+- `application` may import only domain, application ports/dto, JDK.
+- `infrastructure` may import application/domain + technical frameworks.
+- `presentation` may import application/domain DTO mappers + web framework.
+- Forbidden: domain/application importing infrastructure or presentation.
+
+## Mandatory Business-Rule Placement
+
+- Domain entities/value objects own invariants and state-transition rules.
+- Use cases orchestrate flows and call ports.
+- Presentation and infrastructure never own business invariants.
+
+## Hard-Fail Anti-Patterns
+
+- Use case imports persistence adapters/repositories implementations.
+- Controller contains branching business logic or state transitions.
+- Domain entities with framework annotations.
+- Ports placed in infrastructure.
+- Field injection instead of constructor injection.
+- Anemic domain models with only getters/setters and no behavior.
 
 ## Mandatory Evaluation Checklist
 
@@ -84,6 +110,25 @@ Layer rules:
 - Dependency injection is used at boundaries.
 - Controllers do not hold business logic.
 - Implementation is traceable to SRS FR/BR.
+- Constructor injection only.
+- No cyclic dependencies between layers.
+- Domain invariants are enforced and tested.
+
+## Required Deliverables for Major Refactors
+
+- Updated source code aligned to strict 4-layer architecture.
+- Clean Architecture diagram.
+- Short architecture report (2-3 pages) covering rationale, trade-offs, and boundary compliance.
+
+## Internal Rubric (100)
+
+- Architecture layering and dependency rule: 30.
+- Domain model and business rule correctness: 25.
+- Application/use case purity: 20.
+- Presentation/infrastructure correctness + DI: 15.
+- Documentation and explanation quality: 10.
+
+Target quality bar: 85+.
 
 ## Pattern Guidance
 
@@ -102,14 +147,16 @@ Use patterns when contextually appropriate:
 1. Read relevant SRS sections.
 2. Inspect existing backend code and conventions.
 3. Build explicit requirement mapping (`FRxx`, `BRxx`) for intended changes.
-4. Propose a concise architecture approach by layer (domain/application/infra/interface).
+4. Propose a concise architecture approach by layer (domain/application/infrastructure/presentation).
 5. Implement changes in cohesive, modular units.
 6. Refactor for clarity and boundary compliance.
-7. Validate implementation against SRS mapping and Clean Architecture checklist.
+7. Validate implementation against SRS mapping and strict Clean Architecture checklist.
+8. Report any architecture violation and fix it before final output.
 
 ## Output Format
 
 - Brief architecture summary first.
 - Then SRS mapping table (`FR/BR -> modules/use cases/endpoints`).
+- Then strict layer compliance report (pass/fail per checklist item).
 - Then concrete code changes.
 - Keep output structured and production-focused.

@@ -1,11 +1,12 @@
 package com.foodya.backend.infrastructure.security;
 
-import com.foodya.backend.application.service.TokenService;
-import io.jsonwebtoken.Claims;
+import com.foodya.backend.application.dto.TokenClaims;
+import com.foodya.backend.application.ports.out.TokenPort;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,16 +20,16 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final TokenService tokenService;
+    private final TokenPort tokenPort;
 
-    public JwtAuthenticationFilter(TokenService tokenService) {
-        this.tokenService = tokenService;
+    public JwtAuthenticationFilter(TokenPort tokenPort) {
+        this.tokenPort = tokenPort;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -37,18 +38,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(7);
         try {
-            Claims claims = tokenService.parseClaims(token);
-            if (!TokenService.TOKEN_TYPE_ACCESS.equals(claims.get(TokenService.CLAIM_TOKEN_TYPE, String.class))) {
+            TokenClaims claims = tokenPort.parseClaims(token);
+            if (!TokenPort.TOKEN_TYPE_ACCESS.equals(claims.getString(TokenPort.CLAIM_TOKEN_TYPE))) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
             AuthPrincipal principal = new AuthPrincipal(
-                    UUID.fromString(claims.getSubject()),
-                    claims.get(TokenService.CLAIM_ROLE, String.class)
+                    UUID.fromString(claims.subject()),
+                    claims.getString(TokenPort.CLAIM_ROLE)
             );
 
-                String role = claims.get(TokenService.CLAIM_ROLE, String.class);
+            String role = claims.getString(TokenPort.CLAIM_ROLE);
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(
                         principal,

@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.integration;
 
-import com.foodya.backend.application.port.out.SupabaseConfigPort;
+import com.foodya.backend.application.ports.out.SupabaseConfigPort;
 import com.foodya.backend.infrastructure.config.ApiSecretsProvider;
 import com.foodya.backend.infrastructure.config.IntegrationKey;
 import org.springframework.stereotype.Component;

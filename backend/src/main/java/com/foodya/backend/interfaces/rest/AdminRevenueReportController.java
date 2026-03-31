@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.RevenueReportService;
+import com.foodya.backend.application.usecases.RevenueReportService;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.RevenueReportResponse;
 import com.foodya.backend.interfaces.rest.mapper.RevenueReportRestMapper;

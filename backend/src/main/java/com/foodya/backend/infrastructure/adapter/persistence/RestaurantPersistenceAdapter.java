@@ -1,13 +1,14 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.RestaurantPort;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.model.RestaurantStatus;
+import com.foodya.backend.application.ports.out.RestaurantPort;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,7 +34,7 @@ public class RestaurantPersistenceAdapter implements RestaurantPort {
 
     @Override
     public Optional<Restaurant> findById(UUID id) {
-        return repository.findById(id);
+        return repository.findById(Objects.requireNonNull(id));
     }
 
     @Override
@@ -43,6 +44,6 @@ public class RestaurantPersistenceAdapter implements RestaurantPort {
 
     @Override
     public Restaurant save(Restaurant restaurant) {
-        return repository.save(restaurant);
+        return repository.save(Objects.requireNonNull(restaurant));
     }
 }

@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public interface RevenueReportReadRepository extends Repository<com.foodya.backend.domain.persistence.Order, UUID> {
+public interface RevenueReportReadRepository extends Repository<com.foodya.backend.domain.entities.Order, UUID> {
 
     @Query(value = """
             SELECT

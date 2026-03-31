@@ -1,18 +1,19 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.model.PaymentMethod;
-import com.foodya.backend.domain.model.PaymentStatus;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.Order;
-import com.foodya.backend.domain.persistence.OrderItem;
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.PaymentMethod;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderItem;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
@@ -69,7 +70,7 @@ class RevenueReportingIntegrationTests {
     private CartRepository cartRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @BeforeEach
     void setUp() {
@@ -108,8 +109,8 @@ class RevenueReportingIntegrationTests {
         saveOrderItem(otherMerchantSuccess, burgerItem, 1, new BigDecimal("90000.00"));
         saveOrder(customer, firstRestaurant, OrderStatus.PENDING, "ODR-REPORT-0004", new BigDecimal("50000.00"), new BigDecimal("5000.00"));
 
-        String adminToken = tokenService.issueAccessToken(admin, UUID.randomUUID().toString());
-        String merchantOneToken = tokenService.issueAccessToken(merchantOne, UUID.randomUUID().toString());
+        String adminToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(admin), UUID.randomUUID().toString());
+        String merchantOneToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(merchantOne), UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/admin/reports/revenue")
                         .header("Authorization", "Bearer " + adminToken))
@@ -131,7 +132,7 @@ class RevenueReportingIntegrationTests {
     @Test
     void merchantRevenueReportRejectsInvalidTopItems() throws Exception {
         UserAccount merchant = saveUser("merchant_report_03", "merchant_report_03@foodya.test", "+84991110005", UserRole.MERCHANT);
-        String token = tokenService.issueAccessToken(merchant, UUID.randomUUID().toString());
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(merchant), UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/merchant/reports/revenue")
                         .header("Authorization", "Bearer " + token)

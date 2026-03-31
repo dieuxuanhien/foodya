@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.persistence.OrderPayment;
+import com.foodya.backend.domain.entities.OrderPayment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;

@@ -1,15 +1,16 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.port.out.RouteDistancePort;
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.RouteDistancePort;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
@@ -22,8 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -66,12 +69,12 @@ class CustomerOrderCheckoutIntegrationTests {
     private CartRepository cartRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @Autowired
-    private GeoService geoService;
+    private GeoPort geoService;
 
-    @MockBean
+    @MockitoBean
     private RouteDistancePort routeDistancePort;
 
     @BeforeEach
@@ -111,7 +114,7 @@ class CustomerOrderCheckoutIntegrationTests {
         String firstResponse = mockMvc.perform(post("/api/v1/customer/orders")
                         .header("Authorization", "Bearer " + customerToken)
                         .header("Idempotency-Key", idemKey)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
@@ -125,7 +128,7 @@ class CustomerOrderCheckoutIntegrationTests {
         String secondResponse = mockMvc.perform(post("/api/v1/customer/orders")
                         .header("Authorization", "Bearer " + customerToken)
                         .header("Idempotency-Key", idemKey)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -155,7 +158,7 @@ class CustomerOrderCheckoutIntegrationTests {
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
         UserAccount saved = userAccountRepository.save(user);
-        return tokenService.issueAccessToken(saved, UUID.randomUUID().toString());
+        return tokenService.issueAccessToken(AuthPersistenceMapper.toModel(saved), UUID.randomUUID().toString());
     }
 
     private Restaurant seedRestaurant(String name, BigDecimal lat, BigDecimal lng) {

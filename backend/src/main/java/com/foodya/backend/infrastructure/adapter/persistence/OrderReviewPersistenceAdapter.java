@@ -1,11 +1,12 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.OrderReviewPort;
-import com.foodya.backend.domain.persistence.OrderReview;
+import com.foodya.backend.application.ports.out.OrderReviewPort;
+import com.foodya.backend.domain.entities.OrderReview;
 import com.foodya.backend.infrastructure.repository.OrderReviewRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,12 +21,12 @@ public class OrderReviewPersistenceAdapter implements OrderReviewPort {
 
     @Override
     public OrderReview save(OrderReview review) {
-        return repository.save(review);
+        return repository.save(Objects.requireNonNull(review));
     }
 
     @Override
     public Optional<OrderReview> findById(UUID reviewId) {
-        return repository.findById(reviewId);
+        return repository.findById(Objects.requireNonNull(reviewId));
     }
 
     @Override

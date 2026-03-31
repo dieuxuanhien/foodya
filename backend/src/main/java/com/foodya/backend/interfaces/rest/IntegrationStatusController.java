@@ -1,7 +1,7 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.IntegrationStatusService;
-import com.foodya.backend.domain.model.IntegrationStatus;
+import com.foodya.backend.application.usecases.IntegrationStatusService;
+import com.foodya.backend.domain.value_objects.IntegrationStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

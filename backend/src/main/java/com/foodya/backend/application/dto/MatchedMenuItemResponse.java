@@ -1,7 +1,5 @@
 package com.foodya.backend.application.dto;
 
-import com.foodya.backend.domain.persistence.MenuItem;
-
 import java.math.BigDecimal;
 
 public record MatchedMenuItemResponse(
@@ -9,7 +7,7 @@ public record MatchedMenuItemResponse(
         String name,
         BigDecimal price
 ) {
-    public static MatchedMenuItemResponse from(MenuItem item) {
+    public static MatchedMenuItemResponse from(MenuItemModel item) {
         return new MatchedMenuItemResponse(item.getId().toString(), item.getName(), item.getPrice());
     }
 }

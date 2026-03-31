@@ -2,7 +2,7 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.NotificationLogView;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.service.NotificationService;
+import com.foodya.backend.application.usecases.NotificationService;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.NotificationLogResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMeta;
@@ -51,6 +51,7 @@ public class AdminNotificationController {
                 view.status().name(),
                 view.orderId(),
                 view.sentAt(),
+                view.readAt(),
                 view.createdAt()
         );
     }

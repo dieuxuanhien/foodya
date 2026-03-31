@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.persistence.Order;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.entities.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,7 +1,7 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.CreateAiChatRequest;
-import com.foodya.backend.application.service.AiRecommendationService;
+import com.foodya.backend.application.usecases.AiRecommendationService;
 import com.foodya.backend.interfaces.rest.dto.AiChatHistoryResponse;
 import com.foodya.backend.interfaces.rest.dto.AiChatResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;

@@ -1,13 +1,13 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.persistence.UserAccount;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
@@ -59,7 +59,7 @@ class CatalogIntegrationTests {
     private OrderRepository orderRepository;
 
     @Autowired
-    private GeoService geoService;
+    private GeoPort geoService;
 
     @BeforeEach
     void setUp() {

@@ -1,9 +1,9 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.port.out.AdminUserPort;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.AdminUserPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.AdminUserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,26 +52,26 @@ public class AdminUserPersistenceAdapter implements AdminUserPort {
 
     @Override
     public Optional<UserAccount> findById(UUID userId) {
-        return repository.findById(userId);
+        return repository.findById(Objects.requireNonNull(userId));
     }
 
     @Override
     public UserAccount save(UserAccount userAccount) {
-        return repository.save(userAccount);
+        return repository.save(Objects.requireNonNull(userAccount));
     }
 
     @Override
     public void delete(UserAccount userAccount) {
-        repository.delete(userAccount);
+        repository.delete(Objects.requireNonNull(userAccount));
     }
 
     @Override
     public boolean hasCustomerOrdersInStatuses(UUID userId, Collection<OrderStatus> statuses) {
-        return repository.hasCustomerOrdersInStatuses(userId, statuses);
+        return repository.hasCustomerOrdersInStatuses(Objects.requireNonNull(userId), Objects.requireNonNull(statuses));
     }
 
     @Override
     public boolean hasMerchantOrdersInStatuses(UUID userId, Collection<OrderStatus> statuses) {
-        return repository.hasMerchantOrdersInStatuses(userId, statuses);
+        return repository.hasMerchantOrdersInStatuses(Objects.requireNonNull(userId), Objects.requireNonNull(statuses));
     }
 }

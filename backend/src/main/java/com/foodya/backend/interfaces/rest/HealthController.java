@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.HealthReadinessService;
+import com.foodya.backend.application.usecases.HealthReadinessService;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;

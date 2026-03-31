@@ -1,6 +1,6 @@
 package com.foodya.backend.application.dto;
 
-import com.foodya.backend.domain.model.ParameterValueType;
+import com.foodya.backend.domain.value_objects.ParameterValueType;
 
 public record SystemParameterPutRequest(
         ParameterValueType valueType,

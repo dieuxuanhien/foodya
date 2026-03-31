@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter.integration;
 
-import com.foodya.backend.application.port.out.AiDraftPort;
+import com.foodya.backend.application.ports.out.AiDraftPort;
 import com.foodya.backend.infrastructure.integration.GoogleAiStudioAdapter;
 import org.springframework.stereotype.Component;
 

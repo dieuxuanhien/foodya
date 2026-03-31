@@ -1,14 +1,15 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.MenuItemPort;
+import com.foodya.backend.application.ports.out.MenuItemPort;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.domain.persistence.MenuItem;
+import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,11 +46,11 @@ public class MenuItemPersistenceAdapter implements MenuItemPort {
 
     @Override
     public Optional<MenuItem> findById(UUID id) {
-        return repository.findById(id);
+        return repository.findById(Objects.requireNonNull(id));
     }
 
     @Override
     public MenuItem save(MenuItem menuItem) {
-        return repository.save(menuItem);
+        return repository.save(Objects.requireNonNull(menuItem));
     }
 }

@@ -1,12 +1,13 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -49,7 +50,7 @@ class ProfileIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/me")
                         .header("Authorization", "Bearer " + access)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(updateReq))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.email").value("u1-updated@example.com"));
@@ -64,14 +65,14 @@ class ProfileIntegrationTests {
 
         mockMvc.perform(put("/api/v1/me/password")
                         .header("Authorization", "Bearer " + access)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(pwdReq))
                 .andExpect(status().isOk());
     }
 
     @Test
     void updateRejectsDuplicateEmail() throws Exception {
-        String first = register("u2", "u2@example.com", "+84901000002");
+                register("u2", "u2@example.com", "+84901000002");
         String second = register("u3", "u3@example.com", "+84901000003");
 
         String accessSecond = objectMapper.readTree(second).path("data").path("accessToken").asText();
@@ -87,7 +88,7 @@ class ProfileIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/me")
                         .header("Authorization", "Bearer " + accessSecond)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(updateReq))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
@@ -106,8 +107,8 @@ class ProfileIntegrationTests {
                 """.formatted(username, email, phone, username);
 
         return mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                                .content(Objects.requireNonNull(body)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
     }

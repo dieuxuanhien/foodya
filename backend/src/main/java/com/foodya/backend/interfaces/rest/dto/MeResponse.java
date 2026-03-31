@@ -1,7 +1,7 @@
 package com.foodya.backend.interfaces.rest.dto;
 
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
 
 public record MeResponse(
         String id,

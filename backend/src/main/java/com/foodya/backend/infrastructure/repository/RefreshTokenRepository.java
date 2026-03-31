@@ -1,7 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.persistence.RefreshToken;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.domain.entities.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.OffsetDateTime;
@@ -14,5 +13,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     List<RefreshToken> findByTokenFamily(String tokenFamily);
 
-    List<RefreshToken> findByUserAndRevokedAtIsNullAndExpiresAtAfter(UserAccount user, OffsetDateTime now);
+    List<RefreshToken> findByUserIdAndRevokedAtIsNullAndExpiresAtAfter(UUID userId, OffsetDateTime now);
 }

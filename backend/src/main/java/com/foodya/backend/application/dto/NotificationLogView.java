@@ -1,7 +1,7 @@
 package com.foodya.backend.application.dto;
 
-import com.foodya.backend.domain.model.NotificationReceiverType;
-import com.foodya.backend.domain.model.NotificationStatus;
+import com.foodya.backend.domain.value_objects.NotificationReceiverType;
+import com.foodya.backend.domain.value_objects.NotificationStatus;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -16,6 +16,7 @@ public record NotificationLogView(
         NotificationStatus status,
         UUID orderId,
         OffsetDateTime sentAt,
+        OffsetDateTime readAt,
         OffsetDateTime createdAt
 ) {
 }

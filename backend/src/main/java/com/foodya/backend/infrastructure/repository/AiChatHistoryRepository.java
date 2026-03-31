@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.persistence.AiChatHistory;
+import com.foodya.backend.domain.entities.AiChatHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.OffsetDateTime;

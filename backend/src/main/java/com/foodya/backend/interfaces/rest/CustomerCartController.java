@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.dto.ActiveCartView;
 import com.foodya.backend.application.dto.AddCartItemRequest;
 import com.foodya.backend.application.dto.UpdateCartItemRequest;
-import com.foodya.backend.application.service.CartService;
+import com.foodya.backend.application.usecases.CartService;
 import com.foodya.backend.interfaces.rest.dto.ActiveCartResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.mapper.CartRestMapper;

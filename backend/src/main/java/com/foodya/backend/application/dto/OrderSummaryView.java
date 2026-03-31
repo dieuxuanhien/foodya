@@ -1,7 +1,7 @@
 package com.foodya.backend.application.dto;
 
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.model.PaymentStatus;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.util.UUID;

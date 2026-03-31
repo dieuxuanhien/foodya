@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.model.CartStatus;
-import com.foodya.backend.domain.persistence.Cart;
+import com.foodya.backend.domain.value_objects.CartStatus;
+import com.foodya.backend.domain.entities.Cart;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

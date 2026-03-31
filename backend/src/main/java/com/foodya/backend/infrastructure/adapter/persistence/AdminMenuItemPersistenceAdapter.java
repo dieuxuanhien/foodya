@@ -1,10 +1,11 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.AdminMenuItemPort;
-import com.foodya.backend.domain.persistence.MenuItem;
+import com.foodya.backend.application.ports.out.AdminMenuItemPort;
+import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.infrastructure.repository.AdminMenuItemRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,11 +20,11 @@ public class AdminMenuItemPersistenceAdapter implements AdminMenuItemPort {
 
     @Override
     public Optional<MenuItem> findById(UUID menuItemId) {
-        return repository.findById(menuItemId);
+        return repository.findById(Objects.requireNonNull(menuItemId));
     }
 
     @Override
     public void delete(MenuItem menuItem) {
-        repository.delete(menuItem);
+        repository.delete(Objects.requireNonNull(menuItem));
     }
 }

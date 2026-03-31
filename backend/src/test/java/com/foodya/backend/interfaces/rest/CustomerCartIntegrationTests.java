@@ -1,14 +1,15 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
@@ -22,6 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -65,10 +68,10 @@ class CustomerCartIntegrationTests {
     private OrderRepository orderRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @Autowired
-    private GeoService geoService;
+    private GeoPort geoService;
 
     @BeforeEach
     void setUp() {
@@ -97,7 +100,7 @@ class CustomerCartIntegrationTests {
 
         mockMvc.perform(post("/api/v1/customer/carts/active/items")
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{" +
                                 "\"menuItemId\":\"" + menuItem.getId() + "\"," +
                                 "\"quantity\":2," +
@@ -109,7 +112,7 @@ class CustomerCartIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/customer/carts/active/items/{menuItemId}", menuItem.getId())
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"quantity\":1,\"note\":\"normal\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.itemCount").value(1))
@@ -139,13 +142,13 @@ class CustomerCartIntegrationTests {
 
         mockMvc.perform(post("/api/v1/customer/carts/active/items")
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"menuItemId\":\"" + firstItem.getId() + "\",\"quantity\":1}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/v1/customer/carts/active/items")
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"menuItemId\":\"" + secondItem.getId() + "\",\"quantity\":1}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
@@ -161,7 +164,7 @@ class CustomerCartIntegrationTests {
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
         UserAccount saved = userAccountRepository.save(user);
-        return tokenService.issueAccessToken(saved, UUID.randomUUID().toString());
+        return tokenService.issueAccessToken(AuthPersistenceMapper.toModel(saved), UUID.randomUUID().toString());
     }
 
     private Restaurant seedRestaurant(String name, BigDecimal lat, BigDecimal lng) {

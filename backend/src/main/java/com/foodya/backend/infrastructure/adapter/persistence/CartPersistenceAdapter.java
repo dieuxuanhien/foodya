@@ -1,11 +1,12 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.CartPort;
-import com.foodya.backend.domain.model.CartStatus;
-import com.foodya.backend.domain.persistence.Cart;
+import com.foodya.backend.application.ports.out.CartPort;
+import com.foodya.backend.domain.value_objects.CartStatus;
+import com.foodya.backend.domain.entities.Cart;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,6 +26,6 @@ public class CartPersistenceAdapter implements CartPort {
 
     @Override
     public Cart save(Cart cart) {
-        return repository.save(cart);
+        return repository.save(Objects.requireNonNull(cart));
     }
 }

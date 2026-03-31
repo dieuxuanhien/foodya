@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.RevenueReportPort;
+import com.foodya.backend.application.ports.out.RevenueReportPort;
 import com.foodya.backend.infrastructure.repository.RevenueReportReadRepository;
 import org.springframework.stereotype.Component;
 

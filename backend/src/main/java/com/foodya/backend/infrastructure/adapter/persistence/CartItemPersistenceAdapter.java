@@ -1,11 +1,12 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.CartItemPort;
-import com.foodya.backend.domain.persistence.CartItem;
+import com.foodya.backend.application.ports.out.CartItemPort;
+import com.foodya.backend.domain.entities.CartItem;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,12 +31,12 @@ public class CartItemPersistenceAdapter implements CartItemPort {
 
     @Override
     public CartItem save(CartItem cartItem) {
-        return repository.save(cartItem);
+        return repository.save(Objects.requireNonNull(cartItem));
     }
 
     @Override
     public void delete(CartItem cartItem) {
-        repository.delete(cartItem);
+        repository.delete(Objects.requireNonNull(cartItem));
     }
 
     @Override

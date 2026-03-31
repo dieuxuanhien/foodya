@@ -1,8 +1,8 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.OrderLifecycleService;
+import com.foodya.backend.application.usecases.OrderLifecycleService;
 import com.foodya.backend.application.exception.ValidationException;
-import com.foodya.backend.domain.model.OrderStatus;
+import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateRestRequest;

@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.AuthService;
+import com.foodya.backend.application.usecases.AuthService;
 import com.foodya.backend.application.dto.ForgotPasswordResponse;
 import com.foodya.backend.application.dto.LoginRequest;
 import com.foodya.backend.application.dto.RegisterRequest;

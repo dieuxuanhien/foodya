@@ -1,7 +1,5 @@
 package com.foodya.backend.application.dto;
 
-import com.foodya.backend.domain.persistence.Restaurant;
-
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -15,7 +13,7 @@ public record RestaurantSearchResponse(
         BigDecimal distanceKm,
         List<MatchedMenuItemResponse> matchedItems
 ) {
-    public static RestaurantSearchResponse from(Restaurant restaurant,
+        public static RestaurantSearchResponse from(RestaurantModel restaurant,
                                                 BigDecimal distanceKm,
                                                 List<MatchedMenuItemResponse> matchedItems) {
         return new RestaurantSearchResponse(

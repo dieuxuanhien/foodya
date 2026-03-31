@@ -1,6 +1,6 @@
 package com.foodya.backend.application.event;
 
-import com.foodya.backend.domain.model.OrderStatus;
+import com.foodya.backend.domain.value_objects.OrderStatus;
 
 import java.util.UUID;
 

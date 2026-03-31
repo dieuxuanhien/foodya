@@ -1,15 +1,16 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.port.out.AdminOrderPort;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.persistence.Order;
+import com.foodya.backend.application.ports.out.AdminOrderPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.infrastructure.repository.AdminOrderRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,16 +41,16 @@ public class AdminOrderPersistenceAdapter implements AdminOrderPort {
 
     @Override
     public Optional<Order> findById(UUID orderId) {
-        return repository.findById(orderId);
+        return repository.findById(Objects.requireNonNull(orderId));
     }
 
     @Override
     public Order save(Order order) {
-        return repository.save(order);
+        return repository.save(Objects.requireNonNull(order));
     }
 
     @Override
     public void delete(Order order) {
-        repository.delete(order);
+        repository.delete(Objects.requireNonNull(order));
     }
 }

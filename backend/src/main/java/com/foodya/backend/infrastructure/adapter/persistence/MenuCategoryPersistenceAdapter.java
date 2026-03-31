@@ -1,13 +1,14 @@
 package com.foodya.backend.infrastructure.adapter.persistence;
 
-import com.foodya.backend.application.port.out.MenuCategoryPort;
+import com.foodya.backend.application.ports.out.MenuCategoryPort;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.domain.persistence.MenuCategory;
+import com.foodya.backend.domain.entities.MenuCategory;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,7 +23,7 @@ public class MenuCategoryPersistenceAdapter implements MenuCategoryPort {
 
     @Override
     public Optional<MenuCategory> findById(UUID id) {
-        return repository.findById(id);
+        return repository.findById(Objects.requireNonNull(id));
     }
 
     @Override
@@ -54,11 +55,11 @@ public class MenuCategoryPersistenceAdapter implements MenuCategoryPort {
 
     @Override
     public MenuCategory save(MenuCategory menuCategory) {
-        return repository.save(menuCategory);
+        return repository.save(Objects.requireNonNull(menuCategory));
     }
 
     @Override
     public void delete(MenuCategory menuCategory) {
-        repository.delete(menuCategory);
+        repository.delete(Objects.requireNonNull(menuCategory));
     }
 }

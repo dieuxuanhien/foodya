@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,7 +41,7 @@ class AuthFlowIntegrationTests {
                 """;
 
         String registerResponse = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(registerBody))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
@@ -52,7 +54,7 @@ class AuthFlowIntegrationTests {
 
         String refreshReq = "{\"refreshToken\":\"" + refreshToken + "\"}";
         String refreshResponse = mockMvc.perform(post("/api/v1/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(refreshReq))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
@@ -60,7 +62,7 @@ class AuthFlowIntegrationTests {
 
         String reusedReq = "{\"refreshToken\":\"" + refreshToken + "\"}";
         mockMvc.perform(post("/api/v1/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(reusedReq))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -70,7 +72,7 @@ class AuthFlowIntegrationTests {
 
         mockMvc.perform(post("/api/v1/auth/logout")
                         .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"refreshToken\":\"" + newRefresh + "\"}"))
                 .andExpect(status().isOk());
     }
@@ -89,7 +91,7 @@ class AuthFlowIntegrationTests {
                 """;
 
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(first))
                 .andExpect(status().isCreated());
 
@@ -105,7 +107,7 @@ class AuthFlowIntegrationTests {
                 """;
 
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(second))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
@@ -125,12 +127,12 @@ class AuthFlowIntegrationTests {
                 """;
 
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(registerBody))
                 .andExpect(status().isCreated());
 
         String forgotResponse = mockMvc.perform(post("/api/v1/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"email\":\"forgot@example.com\"}"))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
@@ -141,7 +143,7 @@ class AuthFlowIntegrationTests {
         String otp = deliveryHint.substring(deliveryHint.indexOf("dev-otp:") + 8, deliveryHint.length() - 1);
 
         String verifyResponse = mockMvc.perform(post("/api/v1/auth/forgot-password/verify-otp")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"challengeToken\":\"" + challengeToken + "\",\"otp\":\"" + otp + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -149,12 +151,12 @@ class AuthFlowIntegrationTests {
         String resetToken = objectMapper.readTree(verifyResponse).path("data").path("resetToken").asText();
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"resetToken\":\"" + resetToken + "\",\"newPassword\":\"NewStrong@456\",\"confirmPassword\":\"NewStrong@456\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"usernameOrEmail\":\"forgot-user\",\"password\":\"NewStrong@456\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
@@ -163,7 +165,7 @@ class AuthFlowIntegrationTests {
     @Test
     void logoutRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/api/v1/auth/logout")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"refreshToken\":\"dummy\"}"))
                                 .andExpect(status().isUnauthorized())
                                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -183,7 +185,7 @@ class AuthFlowIntegrationTests {
                 """;
 
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(registerBody))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));

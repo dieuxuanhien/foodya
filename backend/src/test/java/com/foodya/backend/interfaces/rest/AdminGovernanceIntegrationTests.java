@@ -1,22 +1,25 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.model.PaymentMethod;
-import com.foodya.backend.domain.model.PaymentStatus;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Order;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.value_objects.PaymentMethod;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
+import com.foodya.backend.infrastructure.repository.OrderItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.repository.CartItemRepository;
+import com.foodya.backend.infrastructure.repository.CartRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -63,10 +67,22 @@ class AdminGovernanceIntegrationTests {
     private MenuItemRepository menuItemRepository;
 
     @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void cleanData() {
+        cartItemRepository.deleteAll();
+        cartRepository.deleteAll();
+        orderItemRepository.deleteAll();
         orderRepository.deleteAll();
         menuItemRepository.deleteAll();
         menuCategoryRepository.deleteAll();
@@ -135,7 +151,7 @@ class AdminGovernanceIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
                         .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("""
                                 {"status":"ACCEPTED"}
                                 """))
@@ -144,7 +160,7 @@ class AdminGovernanceIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
                         .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("""
                                 {"status":"SUCCESS"}
                                 """))
@@ -238,8 +254,8 @@ class AdminGovernanceIntegrationTests {
     private String login(String username, String password) throws Exception {
         String body = objectMapper.writeValueAsString(new LoginRequestPayload(username, password));
         String response = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content(Objects.requireNonNull(body)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 

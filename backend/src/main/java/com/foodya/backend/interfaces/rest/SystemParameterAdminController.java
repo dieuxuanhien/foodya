@@ -1,9 +1,9 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.SystemParameterService;
+import com.foodya.backend.application.usecases.SystemParameterService;
+import com.foodya.backend.application.dto.SystemParameterModel;
 import com.foodya.backend.application.dto.SystemParameterPatchRequest;
 import com.foodya.backend.application.dto.SystemParameterPutRequest;
-import com.foodya.backend.domain.persistence.SystemParameter;
 import com.foodya.backend.interfaces.rest.dto.ApiErrorResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.SystemParameterPatchRestRequest;
@@ -81,7 +81,7 @@ public class SystemParameterAdminController {
                 request.runtimeApplicable(),
                 request.description()
         );
-        SystemParameter updated = systemParameterService.replace(key, command, actorRole, actorId);
+        SystemParameterModel updated = systemParameterService.replace(key, command, actorRole, actorId);
         return ResponseEntity.ok(ApiSuccessResponse.of(RestDtoMapper.toSystemParameterResponse(updated), RequestTrace.from(httpServletRequest)));
     }
 
@@ -98,7 +98,7 @@ public class SystemParameterAdminController {
                 request.runtimeApplicable(),
                 request.description()
         );
-        SystemParameter updated = systemParameterService.patch(key, command, actorRole, actorId);
+                SystemParameterModel updated = systemParameterService.patch(key, command, actorRole, actorId);
         return ResponseEntity.ok(ApiSuccessResponse.of(RestDtoMapper.toSystemParameterResponse(updated), RequestTrace.from(httpServletRequest)));
     }
 }

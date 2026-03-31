@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.persistence.Order;
+import com.foodya.backend.domain.entities.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

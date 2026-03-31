@@ -1,14 +1,15 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.AiChatHistoryRepository;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
@@ -24,6 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -71,10 +74,10 @@ class CustomerAiChatIntegrationTests {
     private CartRepository cartRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @Autowired
-    private GeoService geoService;
+    private GeoPort geoService;
 
     @BeforeEach
     void setUp() {
@@ -99,11 +102,11 @@ class CustomerAiChatIntegrationTests {
         seedMenuItem(restaurant, category, "Pho Ga", new BigDecimal("62000"), true);
         seedMenuItem(restaurant, category, "Hidden Pho", new BigDecimal("50000"), false);
 
-        String token = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/ai/chats")
                         .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("""
                                 {
                                   "prompt":"pho for lunch",
@@ -114,7 +117,8 @@ class CustomerAiChatIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.prompt").value("pho for lunch"))
                 .andExpect(jsonPath("$.data.recommendations[0].menuItemName").exists())
-                .andExpect(jsonPath("$.data.recommendations[*].menuItemName").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Hidden Pho"))));
+                .andExpect(jsonPath("$.data.recommendations[*].menuItemName")
+                    .value(Objects.requireNonNull(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Hidden Pho")))));
     }
 
     @Test
@@ -125,11 +129,11 @@ class CustomerAiChatIntegrationTests {
         MenuCategory category = seedCategory(restaurant, "Main", 1);
         seedMenuItem(restaurant, category, "Com Tam", new BigDecimal("45000"), true);
 
-        String token = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/ai/chats")
                         .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{" +
                                 "\"prompt\":\"first request\"" +
                                 "}"))
@@ -137,7 +141,7 @@ class CustomerAiChatIntegrationTests {
 
         mockMvc.perform(post("/api/v1/customer/ai/chats")
                         .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{" +
                                 "\"prompt\":\"second request\"" +
                                 "}"))

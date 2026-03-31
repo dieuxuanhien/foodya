@@ -10,6 +10,7 @@ import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -72,12 +74,12 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Unexpected server error", null, request);
     }
 
-    private ResponseEntity<ApiErrorResponse> error(HttpStatus status,
+    private ResponseEntity<ApiErrorResponse> error(HttpStatusCode status,
                                                    String code,
                                                    String message,
                                                    Object details,
                                                    HttpServletRequest request) {
         ApiErrorResponse response = new ApiErrorResponse(code, message, details, RequestTrace.from(request));
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.status(Objects.requireNonNull(status)).body(response);
     }
 }

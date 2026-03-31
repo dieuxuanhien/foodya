@@ -1,17 +1,18 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.model.PaymentMethod;
-import com.foodya.backend.domain.model.PaymentStatus;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.Order;
-import com.foodya.backend.domain.persistence.OrderReview;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.PaymentMethod;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderReview;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.OrderManagementRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.OrderReviewRepository;
@@ -27,6 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -75,10 +78,10 @@ class OrderReviewIntegrationTests {
     private CartRepository cartRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @Autowired
-    private GeoService geoService;
+    private GeoPort geoService;
 
     @BeforeEach
     void setUp() {
@@ -100,11 +103,11 @@ class OrderReviewIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Review Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
 
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"stars\":5,\"comment\":\"Great meal\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.orderId").value(order.getId().toString()))
@@ -122,12 +125,12 @@ class OrderReviewIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Response Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
 
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
-        String merchantToken = tokenService.issueAccessToken(merchant, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+        String merchantToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(merchant), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"stars\":4,\"comment\":\"Nice\"}"))
                 .andExpect(status().isOk());
 
@@ -135,7 +138,7 @@ class OrderReviewIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/merchant/reviews/{id}/response", review.getId())
                         .header("Authorization", "Bearer " + merchantToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"response\":\"Thank you\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.merchantResponse").value("Thank you"));
@@ -148,11 +151,11 @@ class OrderReviewIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Blocked Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.DELIVERING);
 
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"stars\":5,\"comment\":\"Soon\"}"))
                 .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.message").value("review is allowed only for SUCCESS orders"));

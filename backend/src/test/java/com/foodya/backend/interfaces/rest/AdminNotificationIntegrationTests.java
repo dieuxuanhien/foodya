@@ -1,17 +1,23 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.model.PaymentMethod;
-import com.foodya.backend.domain.model.PaymentStatus;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.Order;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.PaymentMethod;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.NotificationLogRepository;
+import com.foodya.backend.infrastructure.repository.CartItemRepository;
+import com.foodya.backend.infrastructure.repository.CartRepository;
+import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
+import com.foodya.backend.infrastructure.repository.MenuItemRepository;
+import com.foodya.backend.infrastructure.repository.OrderItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
@@ -21,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,7 +49,7 @@ class AdminNotificationIntegrationTests {
     private MockMvc mockMvc;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @Autowired
     private UserAccountRepository userAccountRepository;
@@ -56,12 +64,32 @@ class AdminNotificationIntegrationTests {
     private NotificationLogRepository notificationLogRepository;
 
     @Autowired
-    private GeoService geoService;
+    private MenuItemRepository menuItemRepository;
+
+    @Autowired
+    private MenuCategoryRepository menuCategoryRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private GeoPort geoService;
 
     @BeforeEach
     void setUp() {
         notificationLogRepository.deleteAll();
+        cartItemRepository.deleteAll();
+        cartRepository.deleteAll();
+        orderItemRepository.deleteAll();
         orderRepository.deleteAll();
+        menuItemRepository.deleteAll();
+        menuCategoryRepository.deleteAll();
         restaurantRepository.deleteAll();
         userAccountRepository.deleteAll();
     }
@@ -74,12 +102,12 @@ class AdminNotificationIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Notify Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
 
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
-        String adminToken = tokenService.issueAccessToken(admin, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+        String adminToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(admin), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/cancel", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"reason\":\"changed mind\"}"))
                 .andExpect(status().isOk());
 

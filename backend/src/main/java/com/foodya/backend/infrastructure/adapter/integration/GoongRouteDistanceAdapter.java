@@ -2,7 +2,7 @@ package com.foodya.backend.infrastructure.adapter.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodya.backend.application.port.out.RouteDistancePort;
+import com.foodya.backend.application.ports.out.RouteDistancePort;
 import com.foodya.backend.infrastructure.integration.GoongMapsAdapter;
 import org.springframework.stereotype.Component;
 

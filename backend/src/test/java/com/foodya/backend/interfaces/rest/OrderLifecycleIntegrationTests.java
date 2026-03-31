@@ -1,16 +1,17 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.GeoService;
-import com.foodya.backend.application.service.TokenService;
-import com.foodya.backend.domain.model.OrderStatus;
-import com.foodya.backend.domain.model.PaymentMethod;
-import com.foodya.backend.domain.model.PaymentStatus;
-import com.foodya.backend.domain.model.RestaurantStatus;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
-import com.foodya.backend.domain.persistence.Order;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.PaymentMethod;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.DeliveryTrackingPointRepository;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
@@ -26,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -73,10 +76,10 @@ class OrderLifecycleIntegrationTests {
     private CartRepository cartRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @Autowired
-    private GeoService geoService;
+    private GeoPort geoService;
 
     @BeforeEach
     void setUp() {
@@ -98,7 +101,7 @@ class OrderLifecycleIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Cancel Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
 
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/customer/orders")
                         .header("Authorization", "Bearer " + customerToken))
@@ -107,7 +110,7 @@ class OrderLifecycleIntegrationTests {
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/cancel", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"reason\":\"change plan\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("CANCELLED"));
@@ -121,8 +124,8 @@ class OrderLifecycleIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Delivery Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.ACCEPTED);
 
-        String deliveryToken = tokenService.issueAccessToken(delivery, UUID.randomUUID().toString());
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String deliveryToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(delivery), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/delivery/orders/{id}/accept", order.getId())
                         .header("Authorization", "Bearer " + deliveryToken))
@@ -131,7 +134,7 @@ class OrderLifecycleIntegrationTests {
 
         mockMvc.perform(post("/api/v1/delivery/orders/{id}/tracking-points", order.getId())
                         .header("Authorization", "Bearer " + deliveryToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"lat\":10.7800000,\"lng\":106.7000000,\"recordedAt\":\"2026-03-31T00:00:00Z\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.lat").value(10.78));

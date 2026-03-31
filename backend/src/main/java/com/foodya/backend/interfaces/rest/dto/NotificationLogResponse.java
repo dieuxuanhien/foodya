@@ -13,6 +13,7 @@ public record NotificationLogResponse(
         String status,
         UUID orderId,
         OffsetDateTime sentAt,
+        OffsetDateTime readAt,
         OffsetDateTime createdAt
 ) {
 }

@@ -37,10 +37,11 @@ applyTo: "backend/**"
 
 ## Architecture Rules
 
-- Use Controller -> Service -> Repository flow.
+- Enforce strict 4-layer Clean Architecture with inward dependency rule.
 - Keep DTO and Mapper concerns separate.
 - Isolate the domain layer from framework and infrastructure details.
 - Prefer configuration-driven behavior over hardcoded logic.
+- Treat architecture violations as blockers, not style issues.
 
 Target layered structure: unclebob's clean architecture.
 
@@ -60,15 +61,41 @@ backend/src/main/java/com/foodya/backend
 ├── infrastructure
 │   ├── persistence
 │   └── repositories
-└── interfaces
-		└── rest
-				├── controllers
-				└── dto
+└── presentation
+    ├── controllers
+    └── dto
 ```
 
 Note:
 - Existing code may still use legacy package names (`domain.model`, `domain.persistence`, `application.service`, etc.).
 - When touching a legacy module, refactor toward this canonical split without breaking SRS behavior.
+- If `interfaces/rest` already exists, treat it as the presentation layer but do not create new mixed/ambiguous layers.
+
+## Strict Clean Architecture Contract (Non-Negotiable)
+
+- Dependency direction must be strictly inward: `presentation -> application -> domain` and `infrastructure -> application -> domain`.
+- Domain and application layers must never import infrastructure or presentation classes.
+- Repository and gateway interfaces (ports) live only in `application/ports`.
+- Infrastructure implements ports and contains all technical details (DB, framework, SDK, messaging, file IO).
+- Presentation controllers are thin orchestrators: request parsing, DTO mapping, use case invocation, response mapping.
+- Business rules and invariants must be encoded in domain entities/value objects, not controllers/adapters.
+
+### Allowed Dependency Matrix (Hard Rule)
+
+- `domain` may depend on: JDK only.
+- `application` may depend on: `domain`, `application.ports`, JDK.
+- `infrastructure` may depend on: `application`, `domain`, frameworks/libraries.
+- `presentation` may depend on: `application`, `domain` (read-only DTO mapping support), framework web libs.
+- Forbidden: any inward layer importing outward layer types.
+
+### Forbidden Anti-Patterns (Hard Fail)
+
+- Anemic domain model where all business rules are in services/controllers.
+- Use case classes importing JPA repositories, SQL clients, HTTP controllers, or framework adapters.
+- Controllers performing validation/state transition rules that belong to domain.
+- Ports declared in infrastructure.
+- Field injection; use constructor injection only.
+- Cross-layer cyclic dependencies.
 
 ## Layer-by-Layer Mandatory Rules
 
@@ -77,6 +104,8 @@ Note:
 - Domain entities and value objects must contain business invariants and state transition rules.
 - Domain must not import Spring, Jakarta, ORM annotations, web types, or infrastructure classes.
 - Domain must not depend on any other layer.
+- Domain entities must expose behavior methods that protect invariants (not setter-only anemic models).
+- Invalid state transitions must fail fast with explicit domain exceptions/errors.
 
 ### 2) Application Layer (Use Cases + Ports)
 
@@ -84,18 +113,22 @@ Note:
 - Repository interfaces (ports) must be defined in `application.ports`.
 - Application code must not import HTTP/controller classes, SQL/ORM implementation details, or infrastructure adapters.
 - DTOs in application are use-case boundary contracts, not REST framework artifacts.
+- Each use case should represent one clear business capability/responsibility.
+- Use cases orchestrate domain behavior and ports; they do not hold persistence/web implementation details.
 
 ### 3) Infrastructure Layer (Adapters)
 
 - Infrastructure implements application ports.
 - Infrastructure may use Spring/JPA/SQL/file/cache/external SDKs.
 - Infrastructure must never be imported by domain/application.
+- Infrastructure repositories/adapters must map persistence models to domain objects explicitly.
 
 ### 4) Interface/Presentation Layer (Delivery)
 
 - Controllers only: parse request, map DTO, call use case, map response.
 - Controllers must not contain business rules, domain invariants, or persistence logic.
 - Interface layer must depend on application boundaries, not concrete infrastructure implementations.
+- Presentation DTOs are transport contracts only and must not leak persistence entities.
 
 ## SRS-to-Architecture Mapping (Critical)
 
@@ -112,10 +145,13 @@ Note:
 - Use case has no DB/controller/framework-coupled dependency.
 - Repository interface is in `application.ports`.
 - Infrastructure implements port interfaces.
-- Dependency direction is inward only (interfaces/infrastructure -> application -> domain).
+- Dependency direction is inward only (presentation/interfaces and infrastructure -> application -> domain).
 - Dependency injection is used at boundaries (no hardcoded concrete dependencies).
 - Controller has no business logic.
 - SRS FR/BR mapping is explicit and validated.
+- Constructor injection is used (no field injection).
+- No cyclic dependencies across layers.
+- Domain invariants are enforced in entities/value objects and covered by tests.
 
 
 
@@ -181,12 +217,30 @@ Note:
 9. Run architecture checklist and refactor for boundary compliance.
 10. Validate output against SRS requirements and API documentation completeness.
 
+## Mandatory Delivery Artifacts for Major Features/Refactors
+
+- Source code implementing the 4-layer split.
+- Clean Architecture diagram (component or package-level).
+- Short technical report (2-3 pages) summarizing dependency rule compliance, key domain invariants, and trade-offs/limitations.
+
+## Evaluation Rubric (Strict Internal Scoring)
+
+- Architecture design and dependency rule: 30 points.
+- Domain and business logic quality: 25 points.
+- Application/use case purity and responsibility split: 20 points.
+- Presentation/infrastructure correctness and DI usage: 15 points.
+- Documentation and explanation quality: 10 points.
+
+Passing threshold for acceptance in major tasks: 85/100.
+
 ## Never Do
 
 - Never hardcode API keys.
 - Never ignore SRS requirements.
 - Never write monolithic classes.
 - Never skip abstraction layers where boundaries are needed.
+- Never bypass ports to call infrastructure directly from application/domain.
+- Never place business rules in controllers.
 
 ## Output Style
 

@@ -1,8 +1,8 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.OrderLifecycleService;
+import com.foodya.backend.application.usecases.OrderLifecycleService;
 import com.foodya.backend.application.exception.ValidationException;
-import com.foodya.backend.domain.model.OrderStatus;
+import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.DeliveryLocationUpdateRestRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
@@ -13,6 +13,8 @@ import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleRestMapper;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +38,7 @@ public class DeliveryOrderController {
         this.orderLifecycleService = orderLifecycleService;
     }
 
-    @GetMapping("/assignments")
+    @GetMapping({"/assignments", "/assigned"})
     public ApiSuccessResponse<List<OrderSummaryResponse>> assignments(HttpServletRequest request) {
         List<OrderSummaryResponse> data = orderLifecycleService.deliveryAssignments().stream()
                 .map(OrderLifecycleRestMapper::toSummary)
@@ -68,6 +70,17 @@ public class DeliveryOrderController {
                 orderLifecycleService.addTrackingPoint(orderId, updateRequest.lat(), updateRequest.lng(), updateRequest.recordedAt())
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
+    }
+
+    @PostMapping("/{orderId}/locations")
+    public ResponseEntity<ApiSuccessResponse<OrderTrackingPointResponse>> addLocationPoint(@PathVariable UUID orderId,
+                                                                                             @Valid @RequestBody DeliveryLocationUpdateRestRequest updateRequest,
+                                                                                             HttpServletRequest request) {
+        OrderTrackingPointResponse data = OrderLifecycleRestMapper.toTrackingPoint(
+                orderLifecycleService.addTrackingPoint(orderId, updateRequest.lat(), updateRequest.lng(), updateRequest.recordedAt())
+        );
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiSuccessResponse.of(data, RequestTrace.from(request)));
     }
 
     private static OrderStatus parseStatus(String rawStatus) {

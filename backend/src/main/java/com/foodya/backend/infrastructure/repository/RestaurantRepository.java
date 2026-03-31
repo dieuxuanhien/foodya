@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.model.RestaurantStatus;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

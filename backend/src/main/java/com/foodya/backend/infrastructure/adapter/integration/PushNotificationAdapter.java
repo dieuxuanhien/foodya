@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter.integration;
 
-import com.foodya.backend.application.port.out.PushNotificationPort;
+import com.foodya.backend.application.ports.out.PushNotificationPort;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;

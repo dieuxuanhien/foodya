@@ -1,10 +1,10 @@
 package com.foodya.backend.interfaces.rest.mapper;
 
-import com.foodya.backend.domain.persistence.MenuCategory;
-import com.foodya.backend.domain.persistence.MenuItem;
-import com.foodya.backend.domain.persistence.Restaurant;
-import com.foodya.backend.domain.persistence.SystemParameter;
-import com.foodya.backend.domain.persistence.UserAccount;
+import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.MenuCategoryModel;
+import com.foodya.backend.application.dto.MenuItemModel;
+import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.SystemParameterModel;
 import com.foodya.backend.interfaces.rest.dto.MeResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
@@ -16,7 +16,7 @@ public final class RestDtoMapper {
     private RestDtoMapper() {
     }
 
-    public static MeResponse toMeResponse(UserAccount user) {
+    public static MeResponse toMeResponse(UserAccountModel user) {
         return new MeResponse(
                 user.getId().toString(),
                 user.getUsername(),
@@ -29,7 +29,7 @@ public final class RestDtoMapper {
         );
     }
 
-    public static MenuCategoryResponse toMenuCategoryResponse(MenuCategory category) {
+    public static MenuCategoryResponse toMenuCategoryResponse(MenuCategoryModel category) {
         return new MenuCategoryResponse(
                 category.getId().toString(),
                 category.getRestaurantId().toString(),
@@ -39,7 +39,7 @@ public final class RestDtoMapper {
         );
     }
 
-    public static MenuItemResponse toMenuItemResponse(MenuItem item) {
+    public static MenuItemResponse toMenuItemResponse(MenuItemModel item) {
         return new MenuItemResponse(
                 item.getId().toString(),
                 item.getRestaurantId().toString(),
@@ -52,7 +52,7 @@ public final class RestDtoMapper {
         );
     }
 
-    public static RestaurantDetailResponse toRestaurantDetailResponse(Restaurant restaurant) {
+    public static RestaurantDetailResponse toRestaurantDetailResponse(RestaurantModel restaurant) {
         return new RestaurantDetailResponse(
                 restaurant.getId().toString(),
                 restaurant.getName(),
@@ -70,7 +70,7 @@ public final class RestDtoMapper {
         );
     }
 
-    public static SystemParameterResponse toSystemParameterResponse(SystemParameter parameter) {
+    public static SystemParameterResponse toSystemParameterResponse(SystemParameterModel parameter) {
         return new SystemParameterResponse(
                 parameter.getKey(),
                 parameter.getValueType(),

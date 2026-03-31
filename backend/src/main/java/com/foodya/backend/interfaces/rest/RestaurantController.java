@@ -1,9 +1,9 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.CatalogService;
+import com.foodya.backend.application.usecases.CatalogService;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantSearchResponse;
-import com.foodya.backend.domain.persistence.MenuItem;
+import com.foodya.backend.application.dto.MenuItemModel;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMeta;
@@ -93,7 +93,7 @@ public class RestaurantController {
                                                                                             @RequestParam(required = false) Integer size,
                                                                                             HttpServletRequest httpServletRequest) {
         UUID restaurantId = parseUuid(id, "id");
-        PaginatedResult<MenuItem> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);
+        PaginatedResult<MenuItemModel> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items().stream().map(RestDtoMapper::toMenuItemResponse).toList(),
                 new PageMeta(result.page(), result.size(), result.totalElements(), result.totalPages()),

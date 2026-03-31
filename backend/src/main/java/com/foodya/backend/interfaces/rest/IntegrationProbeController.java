@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.IntegrationProbeService;
+import com.foodya.backend.application.usecases.IntegrationProbeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

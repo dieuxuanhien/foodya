@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.service.OrderLifecycleService;
+import com.foodya.backend.application.usecases.OrderLifecycleService;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.CancelOrderRestRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;

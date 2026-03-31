@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 public class GoogleAiStudioAdapter {
@@ -33,7 +34,7 @@ public class GoogleAiStudioAdapter {
                         .path("/v1beta/models/gemini-1.5-flash:generateContent")
                         .queryParam("key", apiKey)
                         .build())
-                .body(payload)
+                .body(Objects.requireNonNull(payload))
                 .retrieve()
                 .body(String.class);
     }

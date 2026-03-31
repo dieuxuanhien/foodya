@@ -1,17 +1,17 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodya.backend.application.service.TokenService;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
-import com.foodya.backend.domain.persistence.UserAccount;
-import com.foodya.backend.domain.model.UserRole;
-import com.foodya.backend.domain.model.UserStatus;
+import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+
+import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -63,7 +65,7 @@ class MerchantCatalogIntegrationTests {
         private OrderRepository orderRepository;
 
     @Autowired
-    private TokenService tokenService;
+    private TokenPort tokenService;
 
     @BeforeEach
     void setUp() {
@@ -95,7 +97,7 @@ class MerchantCatalogIntegrationTests {
 
         String restaurantResponse = mockMvc.perform(post("/api/v1/merchant/restaurants")
                         .header("Authorization", "Bearer " + merchantToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content(createRestaurantBody))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.name").value("Bun Bo Hub"))
@@ -105,7 +107,7 @@ class MerchantCatalogIntegrationTests {
 
         String categoryResponse = mockMvc.perform(post("/api/v1/merchant/restaurants/{id}/menu-categories", restaurantId)
                         .header("Authorization", "Bearer " + merchantToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{" +
                                 "\"name\":\"Noodle\"," +
                                 "\"sortOrder\":1," +
@@ -117,7 +119,7 @@ class MerchantCatalogIntegrationTests {
 
         String menuItemResponse = mockMvc.perform(post("/api/v1/merchant/restaurants/{id}/menu-items", restaurantId)
                         .header("Authorization", "Bearer " + merchantToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{" +
                                 "\"categoryId\":\"" + categoryId + "\"," +
                                 "\"name\":\"Bun Bo\"," +
@@ -132,7 +134,7 @@ class MerchantCatalogIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/merchant/menu-items/{id}/availability", menuItemId)
                         .header("Authorization", "Bearer " + merchantToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"isAvailable\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.available").value(false));
@@ -149,7 +151,7 @@ class MerchantCatalogIntegrationTests {
 
         String restaurantResponse = mockMvc.perform(post("/api/v1/merchant/restaurants")
                         .header("Authorization", "Bearer " + ownerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("""
                                 {
                                   "name":"Secret Kitchen",
@@ -169,7 +171,7 @@ class MerchantCatalogIntegrationTests {
 
         mockMvc.perform(patch("/api/v1/merchant/restaurants/{id}", restaurantId)
                         .header("Authorization", "Bearer " + attackerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("""
                                 {
                                   "name":"Hijacked",
@@ -196,6 +198,6 @@ class MerchantCatalogIntegrationTests {
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
         UserAccount saved = userAccountRepository.save(user);
-        return tokenService.issueAccessToken(saved, UUID.randomUUID().toString());
+        return tokenService.issueAccessToken(AuthPersistenceMapper.toModel(saved), UUID.randomUUID().toString());
     }
 }

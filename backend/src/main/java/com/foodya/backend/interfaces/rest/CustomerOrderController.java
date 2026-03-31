@@ -2,7 +2,7 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.CreateOrderRequest;
 import com.foodya.backend.application.dto.OrderCreatedView;
-import com.foodya.backend.application.service.OrderCheckoutService;
+import com.foodya.backend.application.usecases.OrderCheckoutService;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderCreatedResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderRestMapper;

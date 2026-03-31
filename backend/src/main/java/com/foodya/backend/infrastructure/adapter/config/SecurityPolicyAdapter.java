@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter.config;
 
-import com.foodya.backend.application.port.out.SecurityPolicyPort;
+import com.foodya.backend.application.ports.out.SecurityPolicyPort;
 import com.foodya.backend.infrastructure.config.SecurityProperties;
 import org.springframework.stereotype.Component;
 
