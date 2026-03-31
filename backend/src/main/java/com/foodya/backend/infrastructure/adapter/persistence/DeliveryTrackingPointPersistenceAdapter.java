@@ -5,6 +5,7 @@ import com.foodya.backend.domain.persistence.DeliveryTrackingPoint;
 import com.foodya.backend.infrastructure.repository.DeliveryTrackingPointRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,5 +26,10 @@ public class DeliveryTrackingPointPersistenceAdapter implements DeliveryTracking
     @Override
     public List<DeliveryTrackingPoint> findByOrderIdOrderByRecordedAtAsc(UUID orderId) {
         return repository.findByOrderIdOrderByRecordedAtAsc(orderId);
+    }
+
+    @Override
+    public long deleteByRecordedAtBefore(OffsetDateTime cutoff) {
+        return repository.deleteByRecordedAtBefore(cutoff);
     }
 }

@@ -5,6 +5,8 @@ import com.foodya.backend.domain.persistence.AuditLog;
 import com.foodya.backend.infrastructure.repository.AuditLogRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
+
 @Component
 public class AuditLogPersistenceAdapter implements AuditLogPort {
 
@@ -17,5 +19,10 @@ public class AuditLogPersistenceAdapter implements AuditLogPort {
     @Override
     public AuditLog save(AuditLog auditLog) {
         return repository.save(auditLog);
+    }
+
+    @Override
+    public long deleteByCreatedAtBefore(OffsetDateTime cutoff) {
+        return repository.deleteByCreatedAtBefore(cutoff);
     }
 }

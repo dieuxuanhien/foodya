@@ -3,6 +3,7 @@ package com.foodya.backend.application.service;
 import com.foodya.backend.application.dto.OrderDetailView;
 import com.foodya.backend.application.dto.OrderSummaryView;
 import com.foodya.backend.application.dto.OrderTrackingPointView;
+import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -13,6 +14,7 @@ import com.foodya.backend.domain.model.OrderStatus;
 import com.foodya.backend.domain.persistence.DeliveryTrackingPoint;
 import com.foodya.backend.domain.persistence.Order;
 import com.foodya.backend.domain.persistence.Restaurant;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +32,16 @@ public class OrderLifecycleService {
     private final OrderManagementPort orderManagementPort;
     private final RestaurantPort restaurantPort;
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
-                                 DeliveryTrackingPointPort deliveryTrackingPointPort) {
+                                 DeliveryTrackingPointPort deliveryTrackingPointPort,
+                                 ApplicationEventPublisher applicationEventPublisher) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -70,8 +75,9 @@ public class OrderLifecycleService {
         if (cancelReason != null && !cancelReason.isBlank()) {
             order.setCustomerNote(cancelReason.trim());
         }
-
-        return toDetail(orderManagementPort.save(order));
+        Order saved = orderManagementPort.save(order);
+        publishOrderEvent(saved, "ORDER_CANCELLED", "Order " + saved.getOrderCode() + " cancelled");
+        return toDetail(saved);
     }
 
     @Transactional(readOnly = true)
@@ -96,11 +102,15 @@ public class OrderLifecycleService {
         OrderStatus current = order.getStatus();
         if (current == OrderStatus.PENDING && targetStatus == OrderStatus.ACCEPTED) {
             order.setStatus(targetStatus);
-            return toDetail(orderManagementPort.save(order));
+            Order saved = orderManagementPort.save(order);
+            publishOrderEvent(saved, "ORDER_ACCEPTED", "Order " + saved.getOrderCode() + " accepted");
+            return toDetail(saved);
         }
         if (current == OrderStatus.ASSIGNED && targetStatus == OrderStatus.PREPARING) {
             order.setStatus(targetStatus);
-            return toDetail(orderManagementPort.save(order));
+            Order saved = orderManagementPort.save(order);
+            publishOrderEvent(saved, "ORDER_PREPARING", "Order " + saved.getOrderCode() + " is being prepared");
+            return toDetail(saved);
         }
 
         throw new ValidationException("invalid merchant status transition",
@@ -122,7 +132,9 @@ public class OrderLifecycleService {
             throw new ValidationException("order is not assignable", Map.of("status", "must be ACCEPTED"));
         }
         order.setStatus(OrderStatus.ASSIGNED);
-        return toDetail(orderManagementPort.save(order));
+        Order saved = orderManagementPort.save(order);
+        publishOrderEvent(saved, "ORDER_ASSIGNED", "Order " + saved.getOrderCode() + " assigned to delivery");
+        return toDetail(saved);
     }
 
     @Transactional
@@ -132,12 +144,20 @@ public class OrderLifecycleService {
 
         if (current == OrderStatus.ASSIGNED && targetStatus == OrderStatus.DELIVERING) {
             order.setStatus(targetStatus);
-            return toDetail(orderManagementPort.save(order));
+            Order saved = orderManagementPort.save(order);
+            publishOrderEvent(saved, "ORDER_DELIVERING", "Order " + saved.getOrderCode() + " is delivering");
+            return toDetail(saved);
         }
 
         if (current == OrderStatus.DELIVERING && (targetStatus == OrderStatus.SUCCESS || targetStatus == OrderStatus.FAILED)) {
             order.setStatus(targetStatus);
-            return toDetail(orderManagementPort.save(order));
+            Order saved = orderManagementPort.save(order);
+            publishOrderEvent(
+                    saved,
+                    targetStatus == OrderStatus.SUCCESS ? "ORDER_SUCCESS" : "ORDER_FAILED",
+                    "Order " + saved.getOrderCode() + " completed with status " + targetStatus.name()
+            );
+            return toDetail(saved);
         }
 
         throw new ValidationException("invalid delivery status transition",
@@ -187,6 +207,21 @@ public class OrderLifecycleService {
         return orderManagementPort.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("order not found"));
     }
+
+        private void publishOrderEvent(Order order, String eventType, String message) {
+        Restaurant restaurant = restaurantPort.findById(order.getRestaurantId())
+            .orElseThrow(() -> new NotFoundException("restaurant not found"));
+        applicationEventPublisher.publishEvent(new OrderNotificationEvent(
+            order.getId(),
+            order.getOrderCode(),
+            order.getCustomerUserId(),
+            restaurant.getOwnerUserId(),
+            order.getStatus(),
+            eventType,
+            "Order update " + order.getOrderCode(),
+            message
+        ));
+        }
 
     private OrderSummaryView toSummary(Order order) {
         return new OrderSummaryView(

@@ -9,16 +9,10 @@ import com.foodya.backend.domain.model.RestaurantStatus;
 import com.foodya.backend.domain.model.UserRole;
 import com.foodya.backend.domain.model.UserStatus;
 import com.foodya.backend.domain.persistence.Order;
-import com.foodya.backend.domain.persistence.OrderReview;
 import com.foodya.backend.domain.persistence.Restaurant;
 import com.foodya.backend.domain.persistence.UserAccount;
-import com.foodya.backend.infrastructure.repository.OrderManagementRepository;
+import com.foodya.backend.infrastructure.repository.NotificationLogRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
-import com.foodya.backend.infrastructure.repository.OrderReviewRepository;
-import com.foodya.backend.infrastructure.repository.CartItemRepository;
-import com.foodya.backend.infrastructure.repository.CartRepository;
-import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
-import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +28,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,10 +35,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class OrderReviewIntegrationTests {
+class AdminNotificationIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private TokenService tokenService;
 
     @Autowired
     private UserAccountRepository userAccountRepository;
@@ -57,105 +53,41 @@ class OrderReviewIntegrationTests {
     private OrderRepository orderRepository;
 
     @Autowired
-    private MenuItemRepository menuItemRepository;
-
-    @Autowired
-    private MenuCategoryRepository menuCategoryRepository;
-
-    @Autowired
-    private OrderManagementRepository orderManagementRepository;
-
-    @Autowired
-    private OrderReviewRepository orderReviewRepository;
-
-    @Autowired
-    private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private CartRepository cartRepository;
-
-    @Autowired
-    private TokenService tokenService;
+    private NotificationLogRepository notificationLogRepository;
 
     @Autowired
     private GeoService geoService;
 
     @BeforeEach
     void setUp() {
-        orderReviewRepository.deleteAll();
-        orderManagementRepository.deleteAll();
+        notificationLogRepository.deleteAll();
         orderRepository.deleteAll();
-        cartItemRepository.deleteAll();
-        cartRepository.deleteAll();
-        menuItemRepository.deleteAll();
-        menuCategoryRepository.deleteAll();
         restaurantRepository.deleteAll();
         userAccountRepository.deleteAll();
     }
 
     @Test
-    void customerCanCreateReviewAndRestaurantCanListReviews() throws Exception {
-        UserAccount customer = seedUser("customer-r1", UserRole.CUSTOMER);
-        UserAccount merchant = seedUser("merchant-r1", UserRole.MERCHANT);
-        Restaurant restaurant = seedRestaurant(merchant, "Review Store");
-        Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
+    void adminCanListNotificationLogsGeneratedByOrderEvents() throws Exception {
+        UserAccount admin = seedUser("admin-noti", UserRole.ADMIN);
+        UserAccount customer = seedUser("customer-noti", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-noti", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Notify Store");
+        Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
 
         String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String adminToken = tokenService.issueAccessToken(admin, UUID.randomUUID().toString());
 
-        mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
+        mockMvc.perform(post("/api/v1/customer/orders/{id}/cancel", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"stars\":5,\"comment\":\"Great meal\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.orderId").value(order.getId().toString()))
-                .andExpect(jsonPath("$.data.stars").value(5));
-
-        mockMvc.perform(get("/api/v1/restaurants/{id}/reviews", restaurant.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].comment").value("Great meal"));
-    }
-
-    @Test
-    void merchantCanRespondToOwnedReview() throws Exception {
-        UserAccount customer = seedUser("customer-r2", UserRole.CUSTOMER);
-        UserAccount merchant = seedUser("merchant-r2", UserRole.MERCHANT);
-        Restaurant restaurant = seedRestaurant(merchant, "Response Store");
-        Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
-
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
-        String merchantToken = tokenService.issueAccessToken(merchant, UUID.randomUUID().toString());
-
-        mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"stars\":4,\"comment\":\"Nice\"}"))
+                        .content("{\"reason\":\"changed mind\"}"))
                 .andExpect(status().isOk());
 
-        OrderReview review = orderReviewRepository.findByOrderId(order.getId()).orElseThrow();
-
-        mockMvc.perform(patch("/api/v1/merchant/reviews/{id}/response", review.getId())
-                        .header("Authorization", "Bearer " + merchantToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"response\":\"Thank you\"}"))
+        mockMvc.perform(get("/api/v1/admin/notifications")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.merchantResponse").value("Thank you"));
-    }
-
-    @Test
-    void customerCannotReviewNonSuccessOrder() throws Exception {
-        UserAccount customer = seedUser("customer-r3", UserRole.CUSTOMER);
-        UserAccount merchant = seedUser("merchant-r3", UserRole.MERCHANT);
-        Restaurant restaurant = seedRestaurant(merchant, "Blocked Store");
-        Order order = seedOrder(customer, restaurant, OrderStatus.DELIVERING);
-
-        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
-
-        mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"stars\":5,\"comment\":\"Soon\"}"))
-                .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.message").value("review is allowed only for SUCCESS orders"));
+                .andExpect(jsonPath("$.meta.totalElements").value(2))
+                .andExpect(jsonPath("$.data[0].eventType").value("ORDER_CANCELLED"));
     }
 
     private UserAccount seedUser(String stem, UserRole role) {

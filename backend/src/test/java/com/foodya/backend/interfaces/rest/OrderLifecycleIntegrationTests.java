@@ -12,6 +12,10 @@ import com.foodya.backend.domain.persistence.Order;
 import com.foodya.backend.domain.persistence.Restaurant;
 import com.foodya.backend.domain.persistence.UserAccount;
 import com.foodya.backend.infrastructure.repository.DeliveryTrackingPointRepository;
+import com.foodya.backend.infrastructure.repository.CartItemRepository;
+import com.foodya.backend.infrastructure.repository.CartRepository;
+import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
+import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderManagementRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
@@ -51,10 +55,22 @@ class OrderLifecycleIntegrationTests {
     private OrderRepository orderRepository;
 
     @Autowired
+    private MenuItemRepository menuItemRepository;
+
+    @Autowired
+    private MenuCategoryRepository menuCategoryRepository;
+
+    @Autowired
     private OrderManagementRepository orderManagementRepository;
 
     @Autowired
     private DeliveryTrackingPointRepository deliveryTrackingPointRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
 
     @Autowired
     private TokenService tokenService;
@@ -67,6 +83,10 @@ class OrderLifecycleIntegrationTests {
         deliveryTrackingPointRepository.deleteAll();
         orderManagementRepository.deleteAll();
         orderRepository.deleteAll();
+        cartItemRepository.deleteAll();
+        cartRepository.deleteAll();
+        menuItemRepository.deleteAll();
+        menuCategoryRepository.deleteAll();
         restaurantRepository.deleteAll();
         userAccountRepository.deleteAll();
     }

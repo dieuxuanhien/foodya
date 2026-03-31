@@ -11,6 +11,10 @@ import com.foodya.backend.domain.persistence.Order;
 import com.foodya.backend.domain.persistence.Restaurant;
 import com.foodya.backend.domain.persistence.UserAccount;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
+import com.foodya.backend.infrastructure.repository.CartItemRepository;
+import com.foodya.backend.infrastructure.repository.CartRepository;
+import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
+import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,12 +56,28 @@ class AdminUserGovernanceIntegrationTests {
     @Autowired
     private OrderRepository orderRepository;
 
+        @Autowired
+        private CartItemRepository cartItemRepository;
+
+        @Autowired
+        private CartRepository cartRepository;
+
+        @Autowired
+        private MenuItemRepository menuItemRepository;
+
+        @Autowired
+        private MenuCategoryRepository menuCategoryRepository;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void cleanData() {
         orderRepository.deleteAll();
+                cartItemRepository.deleteAll();
+                cartRepository.deleteAll();
+                menuItemRepository.deleteAll();
+                menuCategoryRepository.deleteAll();
         restaurantRepository.deleteAll();
         userAccountRepository.deleteAll();
     }

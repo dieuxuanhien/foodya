@@ -13,6 +13,7 @@ import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
+import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +62,9 @@ class CustomerCartIntegrationTests {
     private CartRepository cartRepository;
 
     @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
     private TokenService tokenService;
 
     @Autowired
@@ -68,6 +72,7 @@ class CustomerCartIntegrationTests {
 
     @BeforeEach
     void setUp() {
+        orderRepository.deleteAll();
         cartItemRepository.deleteAll();
         cartRepository.deleteAll();
         menuItemRepository.deleteAll();

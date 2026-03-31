@@ -3,6 +3,7 @@ package com.foodya.backend.application.service;
 import com.foodya.backend.application.dto.CreateOrderItemRequest;
 import com.foodya.backend.application.dto.CreateOrderRequest;
 import com.foodya.backend.application.dto.OrderCreatedView;
+import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.port.out.MenuItemPort;
@@ -24,6 +25,7 @@ import com.foodya.backend.domain.persistence.Restaurant;
 import com.foodya.backend.domain.persistence.SystemParameter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -44,6 +46,7 @@ public class OrderCheckoutService {
     private final MenuItemPort menuItemPort;
     private final RouteDistancePort routeDistancePort;
     private final SystemParameterPort systemParameterPort;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public OrderCheckoutService(OrderPort orderPort,
                                 OrderItemPort orderItemPort,
@@ -51,7 +54,8 @@ public class OrderCheckoutService {
                                 RestaurantPort restaurantPort,
                                 MenuItemPort menuItemPort,
                                 RouteDistancePort routeDistancePort,
-                                SystemParameterPort systemParameterPort) {
+                                SystemParameterPort systemParameterPort,
+                                ApplicationEventPublisher applicationEventPublisher) {
         this.orderPort = orderPort;
         this.orderItemPort = orderItemPort;
         this.orderPaymentPort = orderPaymentPort;
@@ -59,6 +63,7 @@ public class OrderCheckoutService {
         this.menuItemPort = menuItemPort;
         this.routeDistancePort = routeDistancePort;
         this.systemParameterPort = systemParameterPort;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -171,6 +176,17 @@ public class OrderCheckoutService {
         payment.setPaymentStatus(PaymentStatus.UNPAID);
         payment.setAmount(savedOrder.getTotalAmount());
         orderPaymentPort.save(payment);
+
+        applicationEventPublisher.publishEvent(new OrderNotificationEvent(
+            savedOrder.getId(),
+            savedOrder.getOrderCode(),
+            savedOrder.getCustomerUserId(),
+            restaurant.getOwnerUserId(),
+            savedOrder.getStatus(),
+            "ORDER_CREATED",
+            "New order " + savedOrder.getOrderCode(),
+            "Order placed and awaiting merchant acceptance"
+        ));
 
         return toView(savedOrder);
     }
