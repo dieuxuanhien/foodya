@@ -23,6 +23,8 @@ public final class SystemParameterCatalog {
         rules.put("search.nearby.max_radius_km", ParameterRule.number("10.0", true, new NumberConstraint(BigDecimal.ZERO, null, true)));
         rules.put("search.default_page_size", ParameterRule.number("20", true, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(100))));
         rules.put("search.max_page_size", ParameterRule.number("100", true, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(200))));
+        rules.put("catalog.menu_item_price_min", ParameterRule.number("1000", true, new NumberConstraint(BigDecimal.ZERO, null, true)));
+        rules.put("catalog.menu_item_price_max", ParameterRule.number("10000000", true, new NumberConstraint(BigDecimal.ONE, null, true)));
 
         rules.put("finance.commission_rate_percent", ParameterRule.number("10.0", true, new NumberConstraint(BigDecimal.ZERO, BigDecimal.valueOf(100))));
         rules.put("finance.shipping_margin_rate_percent", ParameterRule.number("0.0", true, new NumberConstraint(BigDecimal.ZERO, BigDecimal.valueOf(100))));
@@ -43,10 +45,10 @@ public final class SystemParameterCatalog {
         rules.put("retention.customer_data_days", ParameterRule.number("365", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
         rules.put("retention.order_history_days", ParameterRule.number("730", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
         rules.put("retention.audit_logs_days", ParameterRule.number("365", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
-        rules.put("retention.tracking_points_days", ParameterRule.number("730", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
-        rules.put("retention.ai_chat_days", ParameterRule.number("365", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
-        rules.put("ops.backup.rpo_minutes", ParameterRule.number("15", false, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(1440))));
-        rules.put("ops.backup.rto_minutes", ParameterRule.number("60", false, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(2880))));
+        rules.put("retention.tracking_points_days", ParameterRule.number("30", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
+        rules.put("retention.ai_chat_days", ParameterRule.number("90", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
+        rules.put("ops.backup.rpo_minutes", ParameterRule.number("15", false, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(15))));
+        rules.put("ops.backup.rto_minutes", ParameterRule.number("60", false, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(60))));
         return rules;
     }
 

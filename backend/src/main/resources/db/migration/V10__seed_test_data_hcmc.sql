@@ -175,11 +175,13 @@ VALUES
 ('finance.shipping_margin_rate_percent', 'NUMBER', '0.0', true, 1, 'Margin rate percentage on delivery fee', 'SYSTEM', CURRENT_TIMESTAMP),
 ('search.default_page_size', 'NUMBER', '20', true, 1, 'Default page size for search results', 'SYSTEM', CURRENT_TIMESTAMP),
 ('search.max_page_size', 'NUMBER', '100', true, 1, 'Maximum page size for search results', 'SYSTEM', CURRENT_TIMESTAMP),
+('catalog.menu_item_price_min', 'NUMBER', '1000', true, 1, 'Minimum allowed menu item price', 'SYSTEM', CURRENT_TIMESTAMP),
+('catalog.menu_item_price_max', 'NUMBER', '10000000', true, 1, 'Maximum allowed menu item price', 'SYSTEM', CURRENT_TIMESTAMP),
 ('retention.customer_data_days', 'NUMBER', '365', false, 1, 'Days to retain customer data', 'SYSTEM', CURRENT_TIMESTAMP),
 ('retention.order_history_days', 'NUMBER', '730', false, 1, 'Days to retain order history', 'SYSTEM', CURRENT_TIMESTAMP),
 ('retention.audit_logs_days', 'NUMBER', '365', false, 1, 'Days to retain audit logs', 'SYSTEM', CURRENT_TIMESTAMP),
-('retention.tracking_points_days', 'NUMBER', '730', false, 1, 'Days to retain delivery tracking points', 'SYSTEM', CURRENT_TIMESTAMP),
-('retention.ai_chat_days', 'NUMBER', '365', false, 1, 'Days to retain AI chat history', 'SYSTEM', CURRENT_TIMESTAMP),
+('retention.tracking_points_days', 'NUMBER', '30', false, 1, 'Days to retain delivery tracking points', 'SYSTEM', CURRENT_TIMESTAMP),
+('retention.ai_chat_days', 'NUMBER', '90', false, 1, 'Days to retain AI chat history', 'SYSTEM', CURRENT_TIMESTAMP),
 ('ops.backup.rpo_minutes', 'NUMBER', '15', false, 1, 'Recovery Point Objective in minutes', 'SYSTEM', CURRENT_TIMESTAMP),
 ('ops.backup.rto_minutes', 'NUMBER', '60', false, 1, 'Recovery Time Objective in minutes', 'SYSTEM', CURRENT_TIMESTAMP)
 ;
