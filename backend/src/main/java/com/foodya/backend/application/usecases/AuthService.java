@@ -15,6 +15,7 @@ import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.UnauthorizedException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.out.PasswordHashPort;
+import com.foodya.backend.application.ports.out.OtpDeliveryPort;
 import com.foodya.backend.application.ports.out.PasswordResetChallengePort;
 import com.foodya.backend.application.ports.out.RefreshTokenPort;
 import com.foodya.backend.application.ports.out.SecurityPolicyPort;
@@ -41,6 +42,7 @@ public class AuthService {
     private final PasswordHashPort passwordHashPort;
     private final TokenPort tokenPort;
     private final SecurityPolicyPort securityPolicyPort;
+    private final OtpDeliveryPort otpDeliveryPort;
 
     public AuthService(UserAccountPort userAccountPort,
                        RefreshTokenPort refreshTokenPort,
@@ -48,7 +50,8 @@ public class AuthService {
                        AuditLogService auditLogService,
                        PasswordHashPort passwordHashPort,
                        TokenPort tokenPort,
-                       SecurityPolicyPort securityPolicyPort) {
+                       SecurityPolicyPort securityPolicyPort,
+                       OtpDeliveryPort otpDeliveryPort) {
         this.userAccountPort = userAccountPort;
         this.refreshTokenPort = refreshTokenPort;
         this.passwordResetChallengePort = passwordResetChallengePort;
@@ -56,6 +59,7 @@ public class AuthService {
         this.passwordHashPort = passwordHashPort;
         this.tokenPort = tokenPort;
         this.securityPolicyPort = securityPolicyPort;
+        this.otpDeliveryPort = otpDeliveryPort;
     }
 
     @Transactional
@@ -160,9 +164,10 @@ public class AuthService {
         challenge.setOtpHash(passwordHashPort.encode(otp));
         challenge.setExpiresAt(OffsetDateTime.now().plusMinutes(securityPolicyPort.otpExpiryMinutes()));
         passwordResetChallengePort.save(challenge);
+        otpDeliveryPort.sendPasswordResetOtp(user.getEmail(), otp);
         auditLogService.securityEvent(user.getId().toString(), "AUTH_FORGOT_PASSWORD", "USER", user.getId().toString(), null, challengeToken);
 
-        String hint = maskEmail(user.getEmail()) + " (dev-otp:" + otp + ")";
+        String hint = maskEmail(user.getEmail());
         return new ForgotPasswordResponse(challengeToken, hint);
     }
 
