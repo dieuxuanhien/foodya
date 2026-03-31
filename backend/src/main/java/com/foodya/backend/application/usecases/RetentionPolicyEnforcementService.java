@@ -41,12 +41,12 @@ public class RetentionPolicyEnforcementService {
 
     @Transactional
     public RetentionCleanupResult enforceRetentionPolicies(OffsetDateTime now) {
-        int customerDataDays = intParamWithFallback(RETENTION_CUSTOMER_DATA_DAYS, RETENTION_AUDIT_LOGS_DAYS, 365);
-        int orderHistoryDays = intParamWithFallback(RETENTION_ORDER_HISTORY_DAYS, RETENTION_TRACKING_POINTS_DAYS, 730);
-        int aiChatDays = intParamWithFallback(RETENTION_AI_CHAT_DAYS, RETENTION_CUSTOMER_DATA_DAYS, 365);
+        int auditLogsDays = intParamWithFallback(RETENTION_AUDIT_LOGS_DAYS, RETENTION_CUSTOMER_DATA_DAYS, 365);
+        int trackingPointsDays = intParamWithFallback(RETENTION_TRACKING_POINTS_DAYS, RETENTION_ORDER_HISTORY_DAYS, 30);
+        int aiChatDays = intParamWithFallback(RETENTION_AI_CHAT_DAYS, RETENTION_CUSTOMER_DATA_DAYS, 90);
 
-        OffsetDateTime auditCutoff = now.minusDays(customerDataDays);
-        OffsetDateTime trackingCutoff = now.minusDays(orderHistoryDays);
+        OffsetDateTime auditCutoff = now.minusDays(auditLogsDays);
+        OffsetDateTime trackingCutoff = now.minusDays(trackingPointsDays);
         OffsetDateTime aiChatCutoff = now.minusDays(aiChatDays);
 
         long deletedAuditLogs = auditLogPort.deleteByCreatedAtBefore(auditCutoff);

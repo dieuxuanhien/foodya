@@ -26,8 +26,8 @@ class RetentionPolicyEnforcementServiceTests {
         DeliveryTrackingPointPort trackingPointPort = mock(DeliveryTrackingPointPort.class);
         AiChatHistoryPort aiChatHistoryPort = mock(AiChatHistoryPort.class);
 
-        when(systemParameterPort.findById("retention.customer_data_days")).thenReturn(Optional.of(numberParam("7")));
-        when(systemParameterPort.findById("retention.order_history_days")).thenReturn(Optional.of(numberParam("10")));
+        when(systemParameterPort.findById("retention.audit_logs_days")).thenReturn(Optional.of(numberParam("7")));
+        when(systemParameterPort.findById("retention.tracking_points_days")).thenReturn(Optional.of(numberParam("10")));
         when(systemParameterPort.findById("retention.ai_chat_days")).thenReturn(Optional.of(numberParam("15")));
 
         when(auditLogPort.deleteByCreatedAtBefore(any())).thenReturn(11L);
@@ -63,10 +63,10 @@ class RetentionPolicyEnforcementServiceTests {
         DeliveryTrackingPointPort trackingPointPort = mock(DeliveryTrackingPointPort.class);
         AiChatHistoryPort aiChatHistoryPort = mock(AiChatHistoryPort.class);
 
-        when(systemParameterPort.findById("retention.customer_data_days")).thenReturn(Optional.of(numberParam("invalid")));
-        when(systemParameterPort.findById("retention.order_history_days")).thenReturn(Optional.of(numberParam("-1")));
-        when(systemParameterPort.findById("retention.audit_logs_days")).thenReturn(Optional.empty());
-        when(systemParameterPort.findById("retention.tracking_points_days")).thenReturn(Optional.empty());
+        when(systemParameterPort.findById("retention.audit_logs_days")).thenReturn(Optional.of(numberParam("invalid")));
+        when(systemParameterPort.findById("retention.tracking_points_days")).thenReturn(Optional.of(numberParam("-1")));
+        when(systemParameterPort.findById("retention.customer_data_days")).thenReturn(Optional.empty());
+        when(systemParameterPort.findById("retention.order_history_days")).thenReturn(Optional.empty());
         when(systemParameterPort.findById("retention.ai_chat_days")).thenReturn(Optional.empty());
 
         when(auditLogPort.deleteByCreatedAtBefore(any())).thenReturn(1L);
@@ -84,8 +84,8 @@ class RetentionPolicyEnforcementServiceTests {
         RetentionPolicyEnforcementService.RetentionCleanupResult result = service.enforceRetentionPolicies(now);
 
         assertEquals(now.minusDays(365), result.auditCutoff());
-        assertEquals(now.minusDays(730), result.trackingCutoff());
-        assertEquals(now.minusDays(365), result.aiChatCutoff());
+        assertEquals(now.minusDays(30), result.trackingCutoff());
+        assertEquals(now.minusDays(90), result.aiChatCutoff());
     }
 
     @Test
