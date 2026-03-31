@@ -72,4 +72,34 @@ class SystemParameterServiceTests {
                 "admin-user-1"
         ));
     }
+
+    @Test
+    void patchRejectsRuntimeApplicableMismatch() {
+        assertThrows(ValidationException.class, () -> systemParameterService.patch(
+                "currency.code",
+                new SystemParameterPatchRequest(null, "VND", true, "invalid runtime flag"),
+                "ADMIN",
+                "admin-user-1"
+        ));
+    }
+
+    @Test
+    void patchRejectsBackupSloBeyondPolicy() {
+        assertThrows(ValidationException.class, () -> systemParameterService.patch(
+                "ops.backup.rpo_minutes",
+                new SystemParameterPatchRequest(null, "16", null, "invalid rpo"),
+                "ADMIN",
+                "admin-user-1"
+        ));
+    }
+
+    @Test
+    void patchRejectsNonRuntimeParameterUpdate() {
+        assertThrows(ValidationException.class, () -> systemParameterService.patch(
+                "ops.backup.rto_minutes",
+                new SystemParameterPatchRequest(null, "60", null, "non-runtime update"),
+                "ADMIN",
+                "admin-user-1"
+        ));
+    }
 }

@@ -65,8 +65,13 @@ public class SystemParameterService {
         assertAdmin(actorRole);
 
         SystemParameterCatalog.ParameterRule rule = requiredRule(key);
+        assertRuntimeApplicable(key, rule);
         if (request.valueType() != rule.type()) {
             throw new ValidationException("valueType does not match parameter schema", Map.of("valueType", "expected " + rule.type()));
+        }
+        if (request.runtimeApplicable() != null && request.runtimeApplicable() != rule.runtimeApplicable()) {
+            throw new ValidationException("runtimeApplicable does not match parameter schema",
+                    Map.of("runtimeApplicable", "expected " + rule.runtimeApplicable()));
         }
 
         validateByType(key, request.valueType(), request.value());
@@ -75,7 +80,7 @@ public class SystemParameterService {
 
         existing.setValueType(request.valueType());
         existing.setValue(normalizeValue(request.valueType(), request.value()));
-        existing.setRuntimeApplicable(request.runtimeApplicable());
+        existing.setRuntimeApplicable(rule.runtimeApplicable());
         existing.setDescription(request.description());
         existing.setVersion(existing.getVersion() + 1);
         existing.setUpdatedByActor(actorId);
@@ -90,10 +95,15 @@ public class SystemParameterService {
         assertAdmin(actorRole);
         SystemParameter existing = requiredParameter(key);
         SystemParameterCatalog.ParameterRule rule = requiredRule(key);
+        assertRuntimeApplicable(key, rule);
         String oldSnapshot = snapshot(existing);
 
         if (request.valueType() != null && request.valueType() != rule.type()) {
             throw new ValidationException("valueType does not match parameter schema", Map.of("valueType", "expected " + rule.type()));
+        }
+        if (request.runtimeApplicable() != null && request.runtimeApplicable() != rule.runtimeApplicable()) {
+            throw new ValidationException("runtimeApplicable does not match parameter schema",
+                    Map.of("runtimeApplicable", "expected " + rule.runtimeApplicable()));
         }
 
         if (request.value() != null) {
@@ -102,9 +112,7 @@ public class SystemParameterService {
             existing.setValue(normalizeValue(incomingType, request.value()));
             existing.setValueType(incomingType);
         }
-        if (request.runtimeApplicable() != null) {
-            existing.setRuntimeApplicable(request.runtimeApplicable());
-        }
+        existing.setRuntimeApplicable(rule.runtimeApplicable());
         if (request.description() != null) {
             existing.setDescription(request.description());
         }
@@ -134,6 +142,15 @@ public class SystemParameterService {
             throw new ValidationException("unknown parameter key", Map.of("key", key));
         }
         return rule;
+    }
+
+    private void assertRuntimeApplicable(String key, SystemParameterCatalog.ParameterRule rule) {
+        if (!rule.runtimeApplicable()) {
+            throw new ValidationException(
+                    "parameter requires controlled restart",
+                    Map.of("key", key + " is non-runtime; update via controlled restart/redeploy process")
+            );
+        }
     }
 
     private void validateByType(String key, ParameterValueType type, String value) {
