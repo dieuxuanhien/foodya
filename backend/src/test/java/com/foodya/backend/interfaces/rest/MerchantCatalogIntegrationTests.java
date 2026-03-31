@@ -188,6 +188,53 @@ class MerchantCatalogIntegrationTests {
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
 
+    @Test
+    void merchantMenuItemPriceMustRespectConfiguredBounds() throws Exception {
+        String merchantToken = merchantAccessToken("merchant-b", "merchant-b@example.com", "+84900111114");
+
+        String restaurantResponse = mockMvc.perform(post("/api/v1/merchant/restaurants")
+                        .header("Authorization", "Bearer " + merchantToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("""
+                                {
+                                  "name":"Price Bound Kitchen",
+                                  "cuisineType":"Vietnamese",
+                                  "description":"Bounds",
+                                  "addressLine":"4 Le Loi",
+                                  "latitude":10.7771,
+                                  "longitude":106.7001,
+                                  "maxDeliveryKm":5,
+                                  "isOpen":true
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String restaurantId = objectMapper.readTree(restaurantResponse).path("data").path("id").asText();
+
+        String categoryResponse = mockMvc.perform(post("/api/v1/merchant/restaurants/{id}/menu-categories", restaurantId)
+                        .header("Authorization", "Bearer " + merchantToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"name\":\"Noodle\",\"sortOrder\":1,\"isActive\":true}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String categoryId = objectMapper.readTree(categoryResponse).path("data").path("id").asText();
+
+        mockMvc.perform(post("/api/v1/merchant/restaurants/{id}/menu-items", restaurantId)
+                        .header("Authorization", "Bearer " + merchantToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{" +
+                                "\"categoryId\":\"" + categoryId + "\"," +
+                                "\"name\":\"Invalid Cheap Item\"," +
+                                "\"description\":\"Cheap\"," +
+                                "\"price\":500," +
+                                "\"isActive\":true," +
+                                "\"isAvailable\":true}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
     private String merchantAccessToken(String username, String email, String phoneNumber) {
         UserAccount user = new UserAccount();
         user.setUsername(username);

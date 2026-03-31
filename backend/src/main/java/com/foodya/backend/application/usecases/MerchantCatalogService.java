@@ -240,9 +240,24 @@ public class MerchantCatalogService {
         }
     }
 
-    private static void validatePrice(BigDecimal price) {
+    private void validatePrice(BigDecimal price) {
+        BigDecimal minPrice = systemParameterPort.findById("catalog.menu_item_price_min")
+                .map(SystemParameter::getValue)
+                .map(BigDecimal::new)
+                .orElse(BigDecimal.ONE);
+        BigDecimal maxPrice = systemParameterPort.findById("catalog.menu_item_price_max")
+                .map(SystemParameter::getValue)
+                .map(BigDecimal::new)
+                .orElse(new BigDecimal("10000000"));
+
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ValidationException("invalid menu item price", Map.of("price", "must be > 0"));
+        }
+        if (price.compareTo(minPrice) < 0 || price.compareTo(maxPrice) > 0) {
+            throw new ValidationException(
+                    "invalid menu item price",
+                    Map.of("price", "must be between " + minPrice.toPlainString() + " and " + maxPrice.toPlainString())
+            );
         }
     }
 
