@@ -30,20 +30,11 @@ public class CustomerReviewController {
         this.orderReviewService = orderReviewService;
     }
 
-    @PostMapping("/{orderId}/review")
-    public ApiSuccessResponse<OrderReviewResponse> createReview(Authentication authentication,
-                                                                @PathVariable UUID orderId,
-                                                                @Valid @RequestBody CreateOrderReviewRequest request,
-                                                                HttpServletRequest httpServletRequest) {
-        OrderReviewResponse data = createReviewData(authentication, orderId, request);
-        return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
-    }
-
     @PostMapping("/{orderId}/reviews")
-    public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> createReviewContract(Authentication authentication,
-                                                                                         @PathVariable UUID orderId,
-                                                                                         @Valid @RequestBody CreateOrderReviewRequest request,
-                                                                                         HttpServletRequest httpServletRequest) {
+    public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> createReview(Authentication authentication,
+                                                                                 @PathVariable UUID orderId,
+                                                                                 @Valid @RequestBody CreateOrderReviewRequest request,
+                                                                                 HttpServletRequest httpServletRequest) {
         OrderReviewResponse data = createReviewData(authentication, orderId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest)));

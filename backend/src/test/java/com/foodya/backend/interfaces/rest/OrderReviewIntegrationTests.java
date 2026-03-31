@@ -105,11 +105,11 @@ class OrderReviewIntegrationTests {
 
         String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
-        mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
+        mockMvc.perform(post("/api/v1/customer/orders/{id}/reviews", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"stars\":5,\"comment\":\"Great meal\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.orderId").value(order.getId().toString()))
                 .andExpect(jsonPath("$.data.stars").value(5));
 
@@ -128,11 +128,11 @@ class OrderReviewIntegrationTests {
         String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
         String merchantToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(merchant), UUID.randomUUID().toString());
 
-        mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
+        mockMvc.perform(post("/api/v1/customer/orders/{id}/reviews", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"stars\":4,\"comment\":\"Nice\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         OrderReview review = orderReviewRepository.findByOrderId(order.getId()).orElseThrow();
 
@@ -153,7 +153,7 @@ class OrderReviewIntegrationTests {
 
         String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
 
-        mockMvc.perform(post("/api/v1/customer/orders/{id}/review", order.getId())
+        mockMvc.perform(post("/api/v1/customer/orders/{id}/reviews", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"stars\":5,\"comment\":\"Soon\"}"))

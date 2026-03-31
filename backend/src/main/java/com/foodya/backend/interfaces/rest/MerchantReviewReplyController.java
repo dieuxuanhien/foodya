@@ -20,11 +20,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/merchant/review-replies")
-public class MerchantReviewReplyAliasController {
+public class MerchantReviewReplyController {
 
     private final OrderReviewService orderReviewService;
 
-    public MerchantReviewReplyAliasController(OrderReviewService orderReviewService) {
+    public MerchantReviewReplyController(OrderReviewService orderReviewService) {
         this.orderReviewService = orderReviewService;
     }
 

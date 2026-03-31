@@ -31,11 +31,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @Tag(name = "Admin Users", description = "Admin governance for user lifecycle")
-public class AdminUserAdminController {
+public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
-    public AdminUserAdminController(AdminUserService adminUserService) {
+    public AdminUserController(AdminUserService adminUserService) {
         this.adminUserService = adminUserService;
     }
 
