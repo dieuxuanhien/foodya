@@ -3,21 +3,28 @@ package com.foodya.backend.domain.entities;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Table(name = "orders")
+/**
+ * DOMAIN ENTITY: Order
+ * 
+ * This is a PURE domain entity with NO framework dependencies or annotations.
+ * - All business logic and state transitions are here
+ * - No persistence concerns (JPA, database mapping)
+ * - Fully unit-testable without any framework
+ * - Framework-independent and reusable across technologies
+ * 
+ * Persistence mapping is handled by:
+ * - OrderPersistenceModel (in infrastructure/persistence/models/)
+ * - OrderMapper (in infrastructure/persistence/mappers/)
+ * 
+ * This separation follows Clean Architecture's inward dependency principle:
+ * Domain → no outer layer (framework) dependencies.
+ */
 public class Order {
 
     private static final List<OrderStatus> CANCELLABLE_BY_CUSTOMER = List.of(
@@ -26,73 +33,48 @@ public class Order {
             OrderStatus.ASSIGNED
     );
 
-    @Id
     private UUID id;
 
-    @Column(name = "order_code", nullable = false, length = 30, unique = true)
     private String orderCode;
 
-    @Column(name = "customer_user_id", nullable = false)
     private UUID customerUserId;
 
-    @Column(name = "idempotency_key", nullable = false, length = 80)
     private String idempotencyKey;
 
-    @Column(name = "restaurant_id", nullable = false)
     private UUID restaurantId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
     private OrderStatus status;
 
-    @Column(name = "delivery_address", nullable = false, columnDefinition = "text")
     private String deliveryAddress;
 
-    @Column(name = "delivery_latitude", nullable = false, precision = 10, scale = 7)
     private BigDecimal deliveryLatitude;
 
-    @Column(name = "delivery_longitude", nullable = false, precision = 10, scale = 7)
     private BigDecimal deliveryLongitude;
 
-    @Column(name = "customer_note", columnDefinition = "text")
     private String customerNote;
 
-    @Column(name = "subtotal_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotalAmount;
 
-    @Column(name = "delivery_fee", nullable = false, precision = 12, scale = 2)
     private BigDecimal deliveryFee;
 
-    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false, length = 16)
     private PaymentMethod paymentMethod;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false, length = 16)
     private PaymentStatus paymentStatus;
 
-    @Column(name = "commission_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal commissionAmount;
 
-    @Column(name = "shipping_fee_margin_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal shippingFeeMarginAmount;
 
-    @Column(name = "platform_profit_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal platformProfitAmount;
 
-    @Column(name = "cancel_reason", length = 255)
     private String cancelReason;
 
-    @Column(name = "placed_at", nullable = false)
     private OffsetDateTime placedAt;
 
-    @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
-    @PrePersist
     void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
@@ -113,6 +95,10 @@ public class Order {
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getOrderCode() {
