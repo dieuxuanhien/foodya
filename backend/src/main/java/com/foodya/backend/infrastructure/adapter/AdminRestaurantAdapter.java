@@ -1,10 +1,11 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.ports.out.AdminRestaurantPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import com.foodya.backend.infrastructure.repository.AdminRestaurantRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,12 +18,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class AdminRestaurantPersistenceAdapter implements AdminRestaurantPort {
+public class AdminRestaurantAdapter implements AdminRestaurantPort {
 
     private final AdminRestaurantRepository repository;
+    private final RestaurantMapper mapper;
 
-    public AdminRestaurantPersistenceAdapter(AdminRestaurantRepository repository) {
+    public AdminRestaurantAdapter(AdminRestaurantRepository repository, RestaurantMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
@@ -32,9 +35,9 @@ public class AdminRestaurantPersistenceAdapter implements AdminRestaurantPort {
 
         Page<Restaurant> result;
         if (status == null) {
-            result = repository.findByNameContainingIgnoreCase(normalized, pageable);
+            result = repository.findByNameContainingIgnoreCase(normalized, pageable).map(mapper::toDomain);
         } else {
-            result = repository.findByStatusAndNameContainingIgnoreCase(status, normalized, pageable);
+            result = repository.findByStatusAndNameContainingIgnoreCase(status, normalized, pageable).map(mapper::toDomain);
         }
 
         return new PaginatedResult<>(
@@ -48,17 +51,20 @@ public class AdminRestaurantPersistenceAdapter implements AdminRestaurantPort {
 
     @Override
     public Optional<Restaurant> findById(UUID restaurantId) {
-        return repository.findById(Objects.requireNonNull(restaurantId));
+        return repository.findById(Objects.requireNonNull(restaurantId)).map(mapper::toDomain);
     }
 
     @Override
+    @SuppressWarnings("null")
     public Restaurant save(Restaurant restaurant) {
-        return repository.save(Objects.requireNonNull(restaurant));
+        var saved = repository.save(mapper.toPersistence(Objects.requireNonNull(restaurant)));
+        return mapper.toDomain(saved);
     }
 
     @Override
+    @SuppressWarnings("null")
     public void delete(Restaurant restaurant) {
-        repository.delete(Objects.requireNonNull(restaurant));
+        repository.delete(mapper.toPersistence(Objects.requireNonNull(restaurant)));
     }
 
     @Override

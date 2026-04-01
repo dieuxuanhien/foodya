@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.HealthCheckPort;
 import org.springframework.jdbc.core.JdbcTemplate;

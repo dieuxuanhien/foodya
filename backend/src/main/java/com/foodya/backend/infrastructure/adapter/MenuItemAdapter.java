@@ -1,8 +1,9 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.MenuItemPort;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.infrastructure.mapper.MenuItemMapper;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,27 +15,36 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class MenuItemPersistenceAdapter implements MenuItemPort {
+public class MenuItemAdapter implements MenuItemPort {
 
     private final MenuItemRepository repository;
+    private final MenuItemMapper mapper;
 
-    public MenuItemPersistenceAdapter(MenuItemRepository repository) {
+    public MenuItemAdapter(MenuItemRepository repository, MenuItemMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
     public List<MenuItem> findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(UUID restaurantId) {
-        return repository.findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(restaurantId);
+        return repository.findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(restaurantId)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public List<MenuItem> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword) {
-        return repository.findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(keyword);
+        return repository.findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(keyword)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public PaginatedResult<MenuItem> findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(UUID restaurantId, int page, int size) {
-        Page<MenuItem> result = repository.findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(restaurantId, PageRequest.of(page, size));
+        Page<MenuItem> result = repository.findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(restaurantId, PageRequest.of(page, size))
+            .map(mapper::toDomain);
         return new PaginatedResult<>(
                 result.getContent(),
                 result.getNumber(),
@@ -46,11 +56,13 @@ public class MenuItemPersistenceAdapter implements MenuItemPort {
 
     @Override
     public Optional<MenuItem> findById(UUID id) {
-        return repository.findById(Objects.requireNonNull(id));
+        return repository.findById(Objects.requireNonNull(id)).map(mapper::toDomain);
     }
 
     @Override
+    @SuppressWarnings("null")
     public MenuItem save(MenuItem menuItem) {
-        return repository.save(Objects.requireNonNull(menuItem));
+        var saved = repository.save(mapper.toPersistence(Objects.requireNonNull(menuItem)));
+        return mapper.toDomain(saved);
     }
 }

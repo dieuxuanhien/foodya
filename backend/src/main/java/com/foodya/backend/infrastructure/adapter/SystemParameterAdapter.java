@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.SystemParameter;
@@ -10,11 +10,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class SystemParameterPersistenceAdapter implements SystemParameterPort {
+public class SystemParameterAdapter implements SystemParameterPort {
 
     private final SystemParameterRepository repository;
 
-    public SystemParameterPersistenceAdapter(SystemParameterRepository repository) {
+    public SystemParameterAdapter(SystemParameterRepository repository) {
         this.repository = repository;
     }
 

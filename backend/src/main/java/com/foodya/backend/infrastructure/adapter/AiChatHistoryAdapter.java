@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.AiChatHistoryModel;
 import com.foodya.backend.application.ports.out.AiChatHistoryPort;
@@ -12,11 +12,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Component
-public class AiChatHistoryPersistenceAdapter implements AiChatHistoryPort {
+public class AiChatHistoryAdapter implements AiChatHistoryPort {
 
     private final AiChatHistoryRepository repository;
 
-    public AiChatHistoryPersistenceAdapter(AiChatHistoryRepository repository) {
+    public AiChatHistoryAdapter(AiChatHistoryRepository repository) {
         this.repository = repository;
     }
 

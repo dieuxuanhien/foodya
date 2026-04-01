@@ -1,8 +1,9 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.MenuCategoryPort;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.infrastructure.mapper.MenuCategoryMapper;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,22 +14,24 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class MenuCategoryPersistenceAdapter implements MenuCategoryPort {
+public class MenuCategoryAdapter implements MenuCategoryPort {
 
     private final MenuCategoryRepository repository;
+    private final MenuCategoryMapper mapper;
 
-    public MenuCategoryPersistenceAdapter(MenuCategoryRepository repository) {
+    public MenuCategoryAdapter(MenuCategoryRepository repository, MenuCategoryMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
     public Optional<MenuCategory> findById(UUID id) {
-        return repository.findById(Objects.requireNonNull(id));
+        return repository.findById(Objects.requireNonNull(id)).map(mapper::toDomain);
     }
 
     @Override
     public Optional<MenuCategory> findByIdAndRestaurantId(UUID id, UUID restaurantId) {
-        return repository.findByIdAndRestaurantId(id, restaurantId);
+        return repository.findByIdAndRestaurantId(id, restaurantId).map(mapper::toDomain);
     }
 
     @Override
@@ -43,7 +46,8 @@ public class MenuCategoryPersistenceAdapter implements MenuCategoryPort {
 
     @Override
     public PaginatedResult<MenuCategory> findByRestaurantIdAndActiveTrue(UUID restaurantId, int page, int size) {
-        Page<MenuCategory> result = repository.findByRestaurantIdAndActiveTrue(restaurantId, PageRequest.of(page, size));
+        Page<MenuCategory> result = repository.findByRestaurantIdAndActiveTrue(restaurantId, PageRequest.of(page, size))
+            .map(mapper::toDomain);
         return new PaginatedResult<>(
                 result.getContent(),
                 result.getNumber(),
@@ -54,12 +58,15 @@ public class MenuCategoryPersistenceAdapter implements MenuCategoryPort {
     }
 
     @Override
+    @SuppressWarnings("null")
     public MenuCategory save(MenuCategory menuCategory) {
-        return repository.save(Objects.requireNonNull(menuCategory));
+        var saved = repository.save(mapper.toPersistence(Objects.requireNonNull(menuCategory)));
+        return mapper.toDomain(saved);
     }
 
     @Override
+    @SuppressWarnings("null")
     public void delete(MenuCategory menuCategory) {
-        repository.delete(Objects.requireNonNull(menuCategory));
+        repository.delete(mapper.toPersistence(Objects.requireNonNull(menuCategory)));
     }
 }

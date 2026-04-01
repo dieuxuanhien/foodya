@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.RevenueReportPort;
 import com.foodya.backend.infrastructure.repository.RevenueReportReadRepository;
@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-public class RevenueReportPersistenceAdapter implements RevenueReportPort {
+public class RevenueReportAdapter implements RevenueReportPort {
 
     private final RevenueReportReadRepository repository;
 
-    public RevenueReportPersistenceAdapter(RevenueReportReadRepository repository) {
+    public RevenueReportAdapter(RevenueReportReadRepository repository) {
         this.repository = repository;
     }
 

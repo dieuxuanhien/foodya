@@ -1,9 +1,9 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.RefreshTokenModel;
 import com.foodya.backend.application.dto.UserAccountModel;
 import com.foodya.backend.application.ports.out.RefreshTokenPort;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.entities.RefreshToken;
 import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.RefreshTokenRepository;
@@ -16,12 +16,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class RefreshTokenPersistenceAdapter implements RefreshTokenPort {
+public class RefreshTokenAdapter implements RefreshTokenPort {
 
     private final RefreshTokenRepository repository;
     private final UserAccountRepository userAccountRepository;
 
-    public RefreshTokenPersistenceAdapter(RefreshTokenRepository repository,
+    public RefreshTokenAdapter(RefreshTokenRepository repository,
                                           UserAccountRepository userAccountRepository) {
         this.repository = repository;
         this.userAccountRepository = userAccountRepository;

@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.AuditLogPort;
 import com.foodya.backend.domain.entities.AuditLog;
@@ -9,17 +9,18 @@ import java.time.OffsetDateTime;
 import java.util.Objects;
 
 @Component
-public class AuditLogPersistenceAdapter implements AuditLogPort {
+public class AuditLogAdapter implements AuditLogPort {
 
     private final AuditLogRepository repository;
 
-    public AuditLogPersistenceAdapter(AuditLogRepository repository) {
+    public AuditLogAdapter(AuditLogRepository repository) {
         this.repository = repository;
     }
 
     @Override
-    public AuditLog save(AuditLog auditLog) {
-        return repository.save(Objects.requireNonNull(auditLog));
+    public void save(AuditLog auditLog) {
+        AuditLog payload = Objects.requireNonNull(auditLog);
+        repository.save(payload);
     }
 
     @Override

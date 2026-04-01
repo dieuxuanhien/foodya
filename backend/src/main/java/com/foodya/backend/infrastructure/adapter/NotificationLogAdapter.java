@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.NotificationLogModel;
@@ -16,11 +16,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class NotificationLogPersistenceAdapter implements NotificationLogPort {
+public class NotificationLogAdapter implements NotificationLogPort {
 
     private final NotificationLogRepository notificationLogRepository;
 
-    public NotificationLogPersistenceAdapter(NotificationLogRepository notificationLogRepository) {
+    public NotificationLogAdapter(NotificationLogRepository notificationLogRepository) {
         this.notificationLogRepository = notificationLogRepository;
     }
 

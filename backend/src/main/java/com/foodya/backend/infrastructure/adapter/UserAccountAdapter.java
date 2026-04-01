@@ -1,8 +1,8 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.UserAccountModel;
 import com.foodya.backend.application.ports.out.UserAccountPort;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import org.springframework.stereotype.Component;
@@ -12,11 +12,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class UserAccountPersistenceAdapter implements UserAccountPort {
+public class UserAccountAdapter implements UserAccountPort {
 
     private final UserAccountRepository repository;
 
-    public UserAccountPersistenceAdapter(UserAccountRepository repository) {
+    public UserAccountAdapter(UserAccountRepository repository) {
         this.repository = repository;
     }
 

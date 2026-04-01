@@ -1,8 +1,8 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.PasswordResetChallengeModel;
 import com.foodya.backend.application.ports.out.PasswordResetChallengePort;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.entities.PasswordResetChallenge;
 import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.repository.PasswordResetChallengeRepository;
@@ -13,12 +13,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class PasswordResetChallengePersistenceAdapter implements PasswordResetChallengePort {
+public class PasswordResetChallengeAdapter implements PasswordResetChallengePort {
 
     private final PasswordResetChallengeRepository repository;
     private final UserAccountRepository userAccountRepository;
 
-    public PasswordResetChallengePersistenceAdapter(PasswordResetChallengeRepository repository,
+    public PasswordResetChallengeAdapter(PasswordResetChallengeRepository repository,
                                                     UserAccountRepository userAccountRepository) {
         this.repository = repository;
         this.userAccountRepository = userAccountRepository;

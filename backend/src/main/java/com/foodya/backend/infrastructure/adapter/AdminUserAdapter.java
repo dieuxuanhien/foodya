@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.ports.out.AdminUserPort;
@@ -16,11 +16,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class AdminUserPersistenceAdapter implements AdminUserPort {
+public class AdminUserAdapter implements AdminUserPort {
 
     private final AdminUserRepository repository;
 
-    public AdminUserPersistenceAdapter(AdminUserRepository repository) {
+    public AdminUserAdapter(AdminUserRepository repository) {
         this.repository = repository;
     }
 

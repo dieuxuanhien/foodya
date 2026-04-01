@@ -1,7 +1,8 @@
-package com.foodya.backend.infrastructure.adapter.persistence;
+package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.CartItemPort;
 import com.foodya.backend.domain.entities.CartItem;
+import com.foodya.backend.infrastructure.mapper.CartItemMapper;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import org.springframework.stereotype.Component;
 
@@ -11,32 +12,37 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class CartItemPersistenceAdapter implements CartItemPort {
+public class CartItemAdapter implements CartItemPort {
 
     private final CartItemRepository repository;
+    private final CartItemMapper mapper;
 
-    public CartItemPersistenceAdapter(CartItemRepository repository) {
+    public CartItemAdapter(CartItemRepository repository, CartItemMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
     public List<CartItem> findByCartId(UUID cartId) {
-        return repository.findByCartId(cartId);
+        return repository.findByCartId(cartId).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public Optional<CartItem> findByCartIdAndMenuItemId(UUID cartId, UUID menuItemId) {
-        return repository.findByCartIdAndMenuItemId(cartId, menuItemId);
+        return repository.findByCartIdAndMenuItemId(cartId, menuItemId).map(mapper::toDomain);
     }
 
     @Override
+    @SuppressWarnings("null")
     public CartItem save(CartItem cartItem) {
-        return repository.save(Objects.requireNonNull(cartItem));
+        var saved = repository.save(mapper.toPersistence(Objects.requireNonNull(cartItem)));
+        return mapper.toDomain(saved);
     }
 
     @Override
+    @SuppressWarnings("null")
     public void delete(CartItem cartItem) {
-        repository.delete(Objects.requireNonNull(cartItem));
+        repository.delete(mapper.toPersistence(Objects.requireNonNull(cartItem)));
     }
 
     @Override
