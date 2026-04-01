@@ -224,54 +224,45 @@ class OpenApiLiveRouteSmokeIntegrationTests {
     }
 
     private AuthContext authenticateSeedUsers() throws Exception {
-                TokenPair admin = issueSeedToken(UUID.fromString(SEEDED_ADMIN_USER_ID), "api_admin", UserRole.ADMIN);
-                TokenPair merchant = issueSeedToken(UUID.fromString(SEEDED_MERCHANT_USER_ID), "api_merchant", UserRole.MERCHANT);
-                TokenPair delivery = issueSeedToken(UUID.fromString(SEEDED_DELIVERY_USER_ID), "api_delivery", UserRole.DELIVERY);
-                TokenPair customer = issueSeedToken(UUID.fromString(SEEDED_CUSTOMER_USER_ID), "api_customer", UserRole.CUSTOMER);
+        TokenPair admin = issueSeedToken(UUID.fromString(SEEDED_ADMIN_USER_ID), "api_admin", UserRole.ADMIN);
+        TokenPair merchant = issueSeedToken(UUID.fromString(SEEDED_MERCHANT_USER_ID), "api_merchant", UserRole.MERCHANT);
+        TokenPair delivery = issueSeedToken(UUID.fromString(SEEDED_DELIVERY_USER_ID), "api_delivery", UserRole.DELIVERY);
+        TokenPair customer = issueSeedToken(UUID.fromString(SEEDED_CUSTOMER_USER_ID), "api_customer", UserRole.CUSTOMER);
         return new AuthContext(
                 admin.accessToken,
                 merchant.accessToken,
                 delivery.accessToken,
                 customer.accessToken,
                 customer.refreshToken,
-                                SEEDED_CUSTOMER_USER_ID
+                SEEDED_CUSTOMER_USER_ID
         );
     }
 
-    private TokenPair login(String username) throws Exception {
-        Response response = request("POST", "/api/v1/auth/login", null,
-                "{\"usernameOrEmail\":\"" + username + "\",\"password\":\"" + PASSWORD + "\"}");
-        assertTrue(response.statusCode < 500, "Login crashed for " + username + " with status " + response.statusCode);
-                String access = response.bodyJson == null ? "" : response.bodyJson.path("data").path("accessToken").asText("");
-                String refresh = response.bodyJson == null ? "" : response.bodyJson.path("data").path("refreshToken").asText("");
+    private TokenPair issueSeedToken(UUID userId, String username, UserRole role) {
+        UserAccountModel user = new UserAccountModel();
+        user.setId(userId);
+        user.setUsername(username);
+        user.setEmail(username + "@foodya.local");
+        user.setPhoneNumber("+84900000000");
+        user.setFullName(username);
+        user.setRole(role);
+        user.setStatus(UserStatus.ACTIVE);
+        String access = tokenPort.issueAccessToken(user, UUID.randomUUID().toString());
+        String refresh = tokenPort.issueRefreshToken(user, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        assertNotNull(access, "Missing access token for " + username);
+        assertNotNull(refresh, "Missing refresh token for " + username);
         return new TokenPair(access, refresh);
     }
 
-        private TokenPair issueSeedToken(UUID userId, String username, UserRole role) {
-                UserAccountModel user = new UserAccountModel();
-                user.setId(userId);
-                user.setUsername(username);
-                user.setEmail(username + "@foodya.local");
-                user.setPhoneNumber("+84900000000");
-                user.setFullName(username);
-                user.setRole(role);
-                user.setStatus(UserStatus.ACTIVE);
-                String access = tokenPort.issueAccessToken(user, UUID.randomUUID().toString());
-                String refresh = tokenPort.issueRefreshToken(user, UUID.randomUUID().toString(), UUID.randomUUID().toString());
-                assertNotNull(access, "Missing access token for " + username);
-                assertNotNull(refresh, "Missing refresh token for " + username);
-                return new TokenPair(access, refresh);
-        }
-
     private Response request(String method, String path, String bearerToken, String jsonBody) throws IOException, InterruptedException {
-                return requestWithHeaders(method, path, bearerToken, jsonBody, Map.of());
-        }
+        return requestWithHeaders(method, path, bearerToken, jsonBody, Map.of());
+    }
 
-        private Response requestWithHeaders(String method,
-                                                                                String path,
-                                                                                String bearerToken,
-                                                                                String jsonBody,
-                                                                                Map<String, String> headers) throws IOException, InterruptedException {
+    private Response requestWithHeaders(String method,
+                                        String path,
+                                        String bearerToken,
+                                        String jsonBody,
+                                        Map<String, String> headers) throws IOException, InterruptedException {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + path))
                 .timeout(Duration.ofSeconds(20))
@@ -283,7 +274,7 @@ class OpenApiLiveRouteSmokeIntegrationTests {
         if (jsonBody != null) {
             builder.header("Content-Type", "application/json");
         }
-                headers.forEach(builder::header);
+        headers.forEach(builder::header);
 
         HttpRequest.BodyPublisher publisher = jsonBody == null
                 ? HttpRequest.BodyPublishers.noBody()
