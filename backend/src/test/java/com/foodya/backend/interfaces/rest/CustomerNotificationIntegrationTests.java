@@ -7,7 +7,7 @@ import com.foodya.backend.domain.value_objects.NotificationReceiverType;
 import com.foodya.backend.domain.value_objects.NotificationStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;

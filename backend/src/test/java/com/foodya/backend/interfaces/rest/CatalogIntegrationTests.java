@@ -15,6 +15,9 @@ import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.mapper.MenuCategoryMapper;
+import com.foodya.backend.infrastructure.mapper.MenuItemMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +63,15 @@ class CatalogIntegrationTests {
 
     @Autowired
     private GeoPort geoService;
+
+    @Autowired
+    private RestaurantMapper restaurantMapper;
+
+    @Autowired
+    private MenuCategoryMapper menuCategoryMapper;
+
+    @Autowired
+    private MenuItemMapper menuItemMapper;
 
     @BeforeEach
     void setUp() {
@@ -157,7 +169,10 @@ class CatalogIntegrationTests {
         restaurant.setStatus(RestaurantStatus.ACTIVE);
         restaurant.setOpen(true);
         restaurant.setMaxDeliveryKm(new BigDecimal("5.0"));
-        return restaurantRepository.save(restaurant);
+        var persistenceModel = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var saved = restaurantRepository.save(persistenceModel);
+        return restaurantMapper.toDomain(saved);
     }
 
     private MenuCategory seedCategory(Restaurant restaurant, String name, int sortOrder) {
@@ -166,7 +181,10 @@ class CatalogIntegrationTests {
         category.setName(name);
         category.setSortOrder(sortOrder);
         category.setActive(true);
-        return menuCategoryRepository.save(category);
+        var persistenceModel = menuCategoryMapper.toPersistence(category);
+        @SuppressWarnings("null")
+        var saved = menuCategoryRepository.save(persistenceModel);
+        return menuCategoryMapper.toDomain(saved);
     }
 
     private MenuItem seedMenuItem(Restaurant restaurant, MenuCategory category, String name, BigDecimal price) {
@@ -178,6 +196,9 @@ class CatalogIntegrationTests {
         item.setPrice(price);
         item.setActive(true);
         item.setAvailable(true);
-        return menuItemRepository.save(item);
+        var persistenceModel = menuItemMapper.toPersistence(item);
+        @SuppressWarnings("null")
+        var saved = menuItemRepository.save(persistenceModel);
+        return menuItemMapper.toDomain(saved);
     }
 }

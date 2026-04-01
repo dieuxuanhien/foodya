@@ -17,6 +17,8 @@ import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.mapper.OrderMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +48,9 @@ class AdminUserGovernanceIntegrationTests {
     private MockMvc mockMvc;
 
     @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
@@ -57,28 +62,31 @@ class AdminUserGovernanceIntegrationTests {
     @Autowired
     private OrderRepository orderRepository;
 
-        @Autowired
-        private CartItemRepository cartItemRepository;
+    @Autowired
+    private CartItemRepository cartItemRepository;
 
-        @Autowired
-        private CartRepository cartRepository;
+    @Autowired
+    private CartRepository cartRepository;
 
-        @Autowired
-        private MenuItemRepository menuItemRepository;
+    @Autowired
+    private MenuItemRepository menuItemRepository;
 
-        @Autowired
-        private MenuCategoryRepository menuCategoryRepository;
+    @Autowired
+    private MenuCategoryRepository menuCategoryRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private RestaurantMapper restaurantMapper;
+
     @BeforeEach
     void cleanData() {
         orderRepository.deleteAll();
-                cartItemRepository.deleteAll();
-                cartRepository.deleteAll();
-                menuItemRepository.deleteAll();
-                menuCategoryRepository.deleteAll();
+        cartItemRepository.deleteAll();
+        cartRepository.deleteAll();
+        menuItemRepository.deleteAll();
+        menuCategoryRepository.deleteAll();
         restaurantRepository.deleteAll();
         userAccountRepository.deleteAll();
     }
@@ -136,7 +144,10 @@ class AdminUserGovernanceIntegrationTests {
         restaurant.setStatus(RestaurantStatus.ACTIVE);
         restaurant.setOpen(true);
         restaurant.setMaxDeliveryKm(new BigDecimal("10.000"));
-        restaurant = restaurantRepository.save(restaurant);
+        var persistenceModelRestaurant = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var savedRestaurant = restaurantRepository.save(persistenceModelRestaurant);
+        restaurant = restaurantMapper.toDomain(savedRestaurant);
 
         Order order = new Order();
         order.setOrderCode("ODR-TEST-0001");
@@ -156,7 +167,9 @@ class AdminUserGovernanceIntegrationTests {
         order.setCommissionAmount(new BigDecimal("10000.00"));
         order.setShippingFeeMarginAmount(new BigDecimal("0.00"));
         order.setPlatformProfitAmount(new BigDecimal("10000.00"));
-        orderRepository.save(order);
+        var persistenceModel = orderMapper.toPersistence(order);
+        @SuppressWarnings({"null", "unused"})
+        var ignore = orderRepository.save(persistenceModel);
 
         String adminToken = login(admin.getUsername(), "Admin@123");
 

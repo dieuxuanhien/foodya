@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.TokenPort;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.domain.entities.MenuCategory;
@@ -17,6 +17,9 @@ import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.mapper.MenuCategoryMapper;
+import com.foodya.backend.infrastructure.mapper.MenuItemMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +75,15 @@ class CustomerCartIntegrationTests {
 
     @Autowired
     private GeoPort geoService;
+
+    @Autowired
+    private RestaurantMapper restaurantMapper;
+
+    @Autowired
+    private MenuCategoryMapper menuCategoryMapper;
+
+    @Autowired
+    private MenuItemMapper menuItemMapper;
 
     @BeforeEach
     void setUp() {
@@ -190,7 +202,10 @@ class CustomerCartIntegrationTests {
         restaurant.setStatus(RestaurantStatus.ACTIVE);
         restaurant.setOpen(true);
         restaurant.setMaxDeliveryKm(new BigDecimal("5.0"));
-        return restaurantRepository.save(restaurant);
+        var persistenceModel = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var saved = restaurantRepository.save(persistenceModel);
+        return restaurantMapper.toDomain(saved);
     }
 
     private MenuCategory seedCategory(Restaurant restaurant, String name, int sortOrder) {
@@ -199,7 +214,10 @@ class CustomerCartIntegrationTests {
         category.setName(name);
         category.setSortOrder(sortOrder);
         category.setActive(true);
-        return menuCategoryRepository.save(category);
+        var persistenceModel = menuCategoryMapper.toPersistence(category);
+        @SuppressWarnings("null")
+        var saved = menuCategoryRepository.save(persistenceModel);
+        return menuCategoryMapper.toDomain(saved);
     }
 
     private MenuItem seedMenuItem(Restaurant restaurant, MenuCategory category, String name, BigDecimal price) {
@@ -211,6 +229,9 @@ class CustomerCartIntegrationTests {
         item.setPrice(price);
         item.setActive(true);
         item.setAvailable(true);
-        return menuItemRepository.save(item);
+        var persistenceModel = menuItemMapper.toPersistence(item);
+        @SuppressWarnings("null")
+        var saved = menuItemRepository.save(persistenceModel);
+        return menuItemMapper.toDomain(saved);
     }
 }

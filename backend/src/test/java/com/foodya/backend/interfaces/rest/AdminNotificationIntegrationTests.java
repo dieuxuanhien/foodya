@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.TokenPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
@@ -21,6 +21,8 @@ import com.foodya.backend.infrastructure.repository.OrderItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.mapper.OrderMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,9 @@ class AdminNotificationIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private OrderMapper orderMapper;
 
     @Autowired
     private TokenPort tokenService;
@@ -80,6 +85,9 @@ class AdminNotificationIntegrationTests {
 
     @Autowired
     private GeoPort geoService;
+
+    @Autowired
+    private RestaurantMapper restaurantMapper;
 
     @BeforeEach
     void setUp() {
@@ -143,7 +151,10 @@ class AdminNotificationIntegrationTests {
         restaurant.setStatus(RestaurantStatus.ACTIVE);
         restaurant.setOpen(true);
         restaurant.setMaxDeliveryKm(new BigDecimal("8.0"));
-        return restaurantRepository.save(restaurant);
+        var persistenceModel = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var saved = restaurantRepository.save(persistenceModel);
+        return restaurantMapper.toDomain(saved);
     }
 
     private Order seedOrder(UserAccount customer, Restaurant restaurant, OrderStatus status) {
@@ -165,6 +176,9 @@ class AdminNotificationIntegrationTests {
         order.setCommissionAmount(new BigDecimal("5000.00"));
         order.setShippingFeeMarginAmount(new BigDecimal("0.00"));
         order.setPlatformProfitAmount(new BigDecimal("5000.00"));
-        return orderRepository.save(order);
+        var persistenceModel = orderMapper.toPersistence(order);
+        @SuppressWarnings("null")
+        var saved = orderRepository.save(persistenceModel);
+        return orderMapper.toDomain(saved);
     }
 }

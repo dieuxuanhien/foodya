@@ -2,7 +2,7 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.out.TokenPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
@@ -22,6 +22,11 @@ import com.foodya.backend.infrastructure.repository.OrderItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.mapper.MenuCategoryMapper;
+import com.foodya.backend.infrastructure.mapper.MenuItemMapper;
+import com.foodya.backend.infrastructure.mapper.OrderItemMapper;
+import com.foodya.backend.infrastructure.mapper.OrderMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,6 +50,9 @@ class RevenueReportingIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private OrderMapper orderMapper;
 
     @Autowired
     private UserAccountRepository userAccountRepository;
@@ -71,6 +80,18 @@ class RevenueReportingIntegrationTests {
 
     @Autowired
     private TokenPort tokenService;
+
+    @Autowired
+    private RestaurantMapper restaurantMapper;
+
+    @Autowired
+    private MenuCategoryMapper menuCategoryMapper;
+
+    @Autowired
+    private MenuItemMapper menuItemMapper;
+
+    @Autowired
+    private OrderItemMapper orderItemMapper;
 
     @BeforeEach
     void setUp() {
@@ -166,7 +187,10 @@ class RevenueReportingIntegrationTests {
         restaurant.setStatus(RestaurantStatus.ACTIVE);
         restaurant.setOpen(true);
         restaurant.setMaxDeliveryKm(new BigDecimal("10.000"));
-        return restaurantRepository.save(restaurant);
+        var persistenceModel = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var saved = restaurantRepository.save(persistenceModel);
+        return restaurantMapper.toDomain(saved);
     }
 
     private Order saveOrder(UserAccount customer,
@@ -193,7 +217,10 @@ class RevenueReportingIntegrationTests {
         order.setCommissionAmount(platformProfit);
         order.setShippingFeeMarginAmount(BigDecimal.ZERO);
         order.setPlatformProfitAmount(platformProfit);
-        return orderRepository.save(order);
+        var persistenceModel = orderMapper.toPersistence(order);
+        @SuppressWarnings("null")
+        var saved = orderRepository.save(persistenceModel);
+        return orderMapper.toDomain(saved);
     }
 
     private MenuCategory saveCategory(Restaurant restaurant, String name) {
@@ -202,7 +229,10 @@ class RevenueReportingIntegrationTests {
         category.setName(name);
         category.setSortOrder(1);
         category.setActive(true);
-        return menuCategoryRepository.save(category);
+        var persistenceModel = menuCategoryMapper.toPersistence(category);
+        @SuppressWarnings("null")
+        var saved = menuCategoryRepository.save(persistenceModel);
+        return menuCategoryMapper.toDomain(saved);
     }
 
     private MenuItem saveMenuItem(Restaurant restaurant, MenuCategory category, String name, BigDecimal price) {
@@ -214,7 +244,10 @@ class RevenueReportingIntegrationTests {
         item.setPrice(price);
         item.setActive(true);
         item.setAvailable(true);
-        return menuItemRepository.save(item);
+        var persistenceModel = menuItemMapper.toPersistence(item);
+        @SuppressWarnings("null")
+        var saved = menuItemRepository.save(persistenceModel);
+        return menuItemMapper.toDomain(saved);
     }
 
     private void saveOrderItem(Order order, MenuItem menuItem, int quantity, BigDecimal lineTotal) {
@@ -225,6 +258,6 @@ class RevenueReportingIntegrationTests {
         item.setUnitPriceSnapshot(lineTotal.divide(BigDecimal.valueOf(quantity), 2, java.math.RoundingMode.HALF_UP));
         item.setQuantity(quantity);
         item.setLineTotal(lineTotal);
-        orderItemRepository.save(item);
+        orderItemRepository.save(Objects.requireNonNull(orderItemMapper.toPersistence(item)));
     }
 }

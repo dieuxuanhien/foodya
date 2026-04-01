@@ -20,6 +20,10 @@ import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
+import com.foodya.backend.infrastructure.mapper.MenuCategoryMapper;
+import com.foodya.backend.infrastructure.mapper.MenuItemMapper;
+import com.foodya.backend.infrastructure.mapper.OrderMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +81,18 @@ class AdminGovernanceIntegrationTests {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private RestaurantMapper restaurantMapper;
+
+    @Autowired
+    private MenuCategoryMapper menuCategoryMapper;
+
+    @Autowired
+    private MenuItemMapper menuItemMapper;
 
     @BeforeEach
     void cleanData() {
@@ -241,7 +257,10 @@ class AdminGovernanceIntegrationTests {
         restaurant.setStatus(status);
         restaurant.setOpen(true);
         restaurant.setMaxDeliveryKm(new BigDecimal("10.000"));
-        return restaurantRepository.save(restaurant);
+        var persistenceModel = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var saved = restaurantRepository.save(persistenceModel);
+        return restaurantMapper.toDomain(saved);
     }
 
     private Order saveOrder(UserAccount customer, Restaurant restaurant, OrderStatus status, String orderCode) {
@@ -263,7 +282,10 @@ class AdminGovernanceIntegrationTests {
         order.setCommissionAmount(new BigDecimal("10000.00"));
         order.setShippingFeeMarginAmount(new BigDecimal("0.00"));
         order.setPlatformProfitAmount(new BigDecimal("10000.00"));
-        return orderRepository.save(order);
+        var persistenceModel = orderMapper.toPersistence(order);
+        @SuppressWarnings("null")
+        var saved = orderRepository.save(persistenceModel);
+        return orderMapper.toDomain(saved);
     }
 
     private MenuCategory saveCategory(Restaurant restaurant, String name) {
@@ -272,7 +294,10 @@ class AdminGovernanceIntegrationTests {
         category.setName(name);
         category.setSortOrder(1);
         category.setActive(true);
-        return menuCategoryRepository.save(category);
+        var persistenceModel = menuCategoryMapper.toPersistence(category);
+        @SuppressWarnings("null")
+        var saved = menuCategoryRepository.save(persistenceModel);
+        return menuCategoryMapper.toDomain(saved);
     }
 
     private MenuItem saveMenuItem(Restaurant restaurant, MenuCategory category, String name) {
@@ -284,7 +309,10 @@ class AdminGovernanceIntegrationTests {
         menuItem.setPrice(new BigDecimal("50000.00"));
         menuItem.setActive(true);
         menuItem.setAvailable(true);
-        return menuItemRepository.save(menuItem);
+        var persistenceModel = menuItemMapper.toPersistence(menuItem);
+        @SuppressWarnings("null")
+        var saved = menuItemRepository.save(persistenceModel);
+        return menuItemMapper.toDomain(saved);
     }
 
     private String login(String username, String password) throws Exception {

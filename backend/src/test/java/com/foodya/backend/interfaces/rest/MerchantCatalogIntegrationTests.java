@@ -2,7 +2,7 @@ package com.foodya.backend.interfaces.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodya.backend.application.ports.out.TokenPort;
-import com.foodya.backend.infrastructure.adapter.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
