@@ -1,8 +1,8 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.domain.entities.AuditLog;
 import com.foodya.backend.domain.value_objects.ParameterValueType;
 import com.foodya.backend.domain.entities.SystemParameter;
+import com.foodya.backend.domain.entities.AuditLog;
 import com.foodya.backend.application.dto.SystemParameterModel;
 import com.foodya.backend.application.dto.SystemParameterPatchRequest;
 import com.foodya.backend.application.dto.SystemParameterPutRequest;
@@ -86,7 +86,8 @@ public class SystemParameterService {
         existing.setUpdatedByActor(actorId);
 
         SystemParameter saved = systemParameterPort.save(existing);
-        auditLogPort.save(AuditLog.parameterUpdate(actorId, key, oldSnapshot, snapshot(saved)));
+        AuditLog auditLog = AuditLog.parameterUpdate(actorId, key, oldSnapshot, snapshot(saved));
+        auditLogPort.save(auditLog);
         return toModel(saved);
     }
 
@@ -121,7 +122,8 @@ public class SystemParameterService {
         existing.setUpdatedByActor(actorId);
 
         SystemParameter saved = systemParameterPort.save(existing);
-        auditLogPort.save(AuditLog.parameterUpdate(actorId, key, oldSnapshot, snapshot(saved)));
+        AuditLog auditLog = AuditLog.parameterUpdate(actorId, key, oldSnapshot, snapshot(saved));
+        auditLogPort.save(auditLog);
         return toModel(saved);
     }
 

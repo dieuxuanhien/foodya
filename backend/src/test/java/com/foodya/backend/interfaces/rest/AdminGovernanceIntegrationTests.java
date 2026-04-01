@@ -159,13 +159,49 @@ class AdminGovernanceIntegrationTests {
                 .andExpect(jsonPath("$.data.status").value("ACCEPTED"));
 
         mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
+                .header("Authorization", "Bearer " + adminToken)
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content("""
+                    {"status":"ASSIGNED"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("ASSIGNED"));
+
+        mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
+                .header("Authorization", "Bearer " + adminToken)
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content("""
+                    {"status":"DELIVERING"}
+                    """))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+
+        mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
+                .header("Authorization", "Bearer " + adminToken)
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content("""
+                    {"status":"PREPARING"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("PREPARING"));
+
+        mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
+                .header("Authorization", "Bearer " + adminToken)
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content("""
+                    {"status":"DELIVERING"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("DELIVERING"));
+
+        mockMvc.perform(patch("/api/v1/admin/orders/{id}/status", order.getId())
                         .header("Authorization", "Bearer " + adminToken)
             .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("""
                                 {"status":"SUCCESS"}
                                 """))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("SUCCESS"));
 
         mockMvc.perform(delete("/api/v1/admin/orders/{id}", order.getId())
                         .header("Authorization", "Bearer " + adminToken))

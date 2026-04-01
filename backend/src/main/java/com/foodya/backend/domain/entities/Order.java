@@ -345,7 +345,6 @@ public class Order {
             case PENDING -> target == OrderStatus.ACCEPTED || target == OrderStatus.CANCELLED || target == OrderStatus.FAILED;
             case ACCEPTED -> target == OrderStatus.ASSIGNED || target == OrderStatus.CANCELLED || target == OrderStatus.FAILED;
             case ASSIGNED -> target == OrderStatus.PREPARING
-                    || target == OrderStatus.DELIVERING
                     || target == OrderStatus.CANCELLED
                     || target == OrderStatus.FAILED;
             case PREPARING -> target == OrderStatus.DELIVERING || target == OrderStatus.CANCELLED || target == OrderStatus.FAILED;

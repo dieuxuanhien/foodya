@@ -19,6 +19,8 @@ public class AuditLogService {
                               String targetId,
                               String oldValue,
                               String newValue) {
-        auditLogPort.save(AuditLog.securityEvent(actor, action, targetType, targetId, oldValue, newValue));
+        // Application layer maps to domain entity before crossing port boundary
+        AuditLog auditLog = AuditLog.securityEvent(actor, action, targetType, targetId, oldValue, newValue);
+        auditLogPort.save(auditLog);
     }
 }
