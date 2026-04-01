@@ -1,4 +1,4 @@
-package com.foodya.backend.infrastructure.adapter.mapper;
+package com.foodya.backend.infrastructure.mapper;
 
 import com.foodya.backend.application.dto.OrderItemModel;
 import com.foodya.backend.application.dto.OrderModel;
