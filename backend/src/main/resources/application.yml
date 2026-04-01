@@ -43,7 +43,7 @@ foodya:
   secrets:
     json-file: ${FOODYA_SECRETS_JSON_FILE:config/api-keys.json}
   security:
-    jwt-secret: ${FOODYA_JWT_SECRET:foodya-dev-secret-key-please-change-32-bytes-minimum}
+    jwt-secret: ${FOODYA_JWT_SECRET:}
     access-token-minutes: ${FOODYA_ACCESS_TOKEN_MINUTES:15}
     refresh-token-days: ${FOODYA_REFRESH_TOKEN_DAYS:30}
     reset-token-minutes: ${FOODYA_RESET_TOKEN_MINUTES:10}

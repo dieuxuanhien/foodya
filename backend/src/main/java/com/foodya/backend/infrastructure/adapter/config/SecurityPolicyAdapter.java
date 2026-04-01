@@ -15,7 +15,14 @@ public class SecurityPolicyAdapter implements SecurityPolicyPort {
 
     @Override
     public String jwtSecret() {
-        return securityProperties.getJwtSecret();
+        String secret = securityProperties.getJwtSecret();
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("foodya.security.jwt-secret must be configured");
+        }
+        if (secret.length() < 32) {
+            throw new IllegalStateException("foodya.security.jwt-secret must be at least 32 characters");
+        }
+        return secret;
     }
 
     @Override
