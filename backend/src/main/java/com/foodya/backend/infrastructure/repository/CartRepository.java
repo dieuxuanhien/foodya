@@ -1,13 +1,13 @@
 package com.foodya.backend.infrastructure.repository;
 
 import com.foodya.backend.domain.value_objects.CartStatus;
-import com.foodya.backend.domain.entities.Cart;
+import com.foodya.backend.infrastructure.persistence.models.CartPersistenceModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface CartRepository extends JpaRepository<Cart, UUID> {
+public interface CartRepository extends JpaRepository<CartPersistenceModel, UUID> {
 
-    Optional<Cart> findByCustomerUserIdAndStatus(UUID customerUserId, CartStatus status);
+    Optional<CartPersistenceModel> findByCustomerUserIdAndStatus(UUID customerUserId, CartStatus status);
 }

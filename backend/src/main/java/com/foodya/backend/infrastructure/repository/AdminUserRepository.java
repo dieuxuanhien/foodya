@@ -23,7 +23,7 @@ public interface AdminUserRepository extends JpaRepository<UserAccount, UUID> {
 
     @Query("""
             SELECT (COUNT(o) > 0)
-            FROM Order o
+                                                FROM OrderPersistenceModel o
             WHERE o.customerUserId = :userId
               AND o.status IN :statuses
             """)
@@ -32,7 +32,7 @@ public interface AdminUserRepository extends JpaRepository<UserAccount, UUID> {
 
     @Query("""
             SELECT (COUNT(o) > 0)
-            FROM Order o, Restaurant r
+                                                FROM OrderPersistenceModel o, RestaurantPersistenceModel r
             WHERE o.restaurantId = r.id
               AND r.ownerUserId = :userId
               AND o.status IN :statuses

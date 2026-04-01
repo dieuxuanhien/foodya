@@ -1,5 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
+import com.foodya.backend.infrastructure.persistence.models.OrderPersistenceModel;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
@@ -10,7 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public interface RevenueReportReadRepository extends Repository<com.foodya.backend.domain.entities.Order, UUID> {
+public interface RevenueReportReadRepository extends Repository<OrderPersistenceModel, UUID> {
 
     @Query(value = """
             SELECT

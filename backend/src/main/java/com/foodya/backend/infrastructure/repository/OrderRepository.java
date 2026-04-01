@@ -1,12 +1,16 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.infrastructure.persistence.models.OrderPersistenceModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface OrderRepository extends JpaRepository<Order, UUID> {
+/**
+ * Raw JPA repository for OrderPersistenceModel.
+ * This is INTERNAL to infrastructure layer — always use adapter.
+ */
+public interface OrderRepository extends JpaRepository<OrderPersistenceModel, UUID> {
 
-    Optional<Order> findByCustomerUserIdAndIdempotencyKey(UUID customerUserId, String idempotencyKey);
+    Optional<OrderPersistenceModel> findByCustomerUserIdAndIdempotencyKey(UUID customerUserId, String idempotencyKey);
 }

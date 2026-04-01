@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.infrastructure.persistence.models.MenuItemPersistenceModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,18 +10,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
+public interface MenuItemRepository extends JpaRepository<MenuItemPersistenceModel, UUID> {
 
-    Page<MenuItem> findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(UUID restaurantId, Pageable pageable);
+    Page<MenuItemPersistenceModel> findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(UUID restaurantId, Pageable pageable);
 
-    Page<MenuItem> findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(UUID restaurantId, Pageable pageable);
+    Page<MenuItemPersistenceModel> findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(UUID restaurantId, Pageable pageable);
 
-    List<MenuItem> findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(UUID restaurantId);
+    List<MenuItemPersistenceModel> findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(UUID restaurantId);
 
-    List<MenuItem> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword);
+    List<MenuItemPersistenceModel> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword);
 
-    List<MenuItem> findByRestaurantIdInAndActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(Collection<UUID> restaurantIds,
-                                                                                                    String keyword);
+    List<MenuItemPersistenceModel> findByRestaurantIdInAndActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(Collection<UUID> restaurantIds,
+                                                                                                                    String keyword);
 
-    Optional<MenuItem> findByIdAndRestaurantIdAndDeletedAtIsNull(UUID id, UUID restaurantId);
+    Optional<MenuItemPersistenceModel> findByIdAndRestaurantIdAndDeletedAtIsNull(UUID id, UUID restaurantId);
 }
