@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.dto.AdminUserSummaryView;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.exception.ValidationException;
-import com.foodya.backend.application.usecases.AdminUserService;
+import com.foodya.backend.application.ports.in.AdminUserUseCase;
 import com.foodya.backend.interfaces.rest.dto.AdminUserResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMeta;
@@ -33,9 +33,9 @@ import java.util.UUID;
 @Tag(name = "Admin Users", description = "Admin governance for user lifecycle")
 public class AdminUserController {
 
-    private final AdminUserService adminUserService;
+    private final AdminUserUseCase adminUserService;
 
-    public AdminUserController(AdminUserService adminUserService) {
+    public AdminUserController(AdminUserUseCase adminUserService) {
         this.adminUserService = adminUserService;
     }
 

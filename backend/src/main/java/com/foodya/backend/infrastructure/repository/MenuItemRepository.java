@@ -20,6 +20,8 @@ public interface MenuItemRepository extends JpaRepository<MenuItemPersistenceMod
 
     List<MenuItemPersistenceModel> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword);
 
+    List<MenuItemPersistenceModel> findByActiveTrueAndAvailableTrueAndDeletedAtIsNull();
+
     List<MenuItemPersistenceModel> findByRestaurantIdInAndActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(Collection<UUID> restaurantIds,
                                                                                                                     String keyword);
 

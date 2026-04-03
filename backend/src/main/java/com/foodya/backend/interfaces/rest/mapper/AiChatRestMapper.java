@@ -38,6 +38,8 @@ public final class AiChatRestMapper {
                 item.restaurantId(),
                 item.restaurantName(),
                 item.price(),
+            item.distanceKm(),
+            item.restaurantRating(),
                 item.reason()
         );
     }

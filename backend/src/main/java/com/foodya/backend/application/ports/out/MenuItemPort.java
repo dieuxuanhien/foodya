@@ -13,6 +13,8 @@ public interface MenuItemPort {
 
     List<MenuItem> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword);
 
+    List<MenuItem> findByActiveTrueAndAvailableTrueAndDeletedAtIsNull();
+
     PaginatedResult<MenuItem> findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(UUID restaurantId, int page, int size);
 
     Optional<MenuItem> findById(UUID id);

@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.OrderLifecycleService;
+import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.CancelOrderRestRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
@@ -25,9 +25,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/customer/orders")
 public class CustomerOrderLifecycleController {
 
-    private final OrderLifecycleService orderLifecycleService;
+    private final OrderLifecycleUseCase orderLifecycleService;
 
-    public CustomerOrderLifecycleController(OrderLifecycleService orderLifecycleService) {
+    public CustomerOrderLifecycleController(OrderLifecycleUseCase orderLifecycleService) {
         this.orderLifecycleService = orderLifecycleService;
     }
 

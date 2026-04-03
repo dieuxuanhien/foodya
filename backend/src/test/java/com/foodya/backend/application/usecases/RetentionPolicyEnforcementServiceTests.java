@@ -4,6 +4,7 @@ import com.foodya.backend.application.ports.out.AiChatHistoryPort;
 import com.foodya.backend.application.ports.out.AuditLogPort;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
+import com.foodya.backend.application.usecases.policy.RetentionPolicyEnforcementUseCase;
 import com.foodya.backend.domain.value_objects.ParameterValueType;
 import com.foodya.backend.domain.entities.SystemParameter;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(22L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(33L);
 
-        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
+        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -42,7 +43,7 @@ class RetentionPolicyEnforcementServiceTests {
         );
 
         OffsetDateTime now = OffsetDateTime.parse("2026-03-31T00:00:00Z");
-        RetentionPolicyEnforcementService.RetentionCleanupResult result = service.enforceRetentionPolicies(now);
+        var result = service.enforceRetentionPolicies(now);
 
         assertEquals(11L, result.deletedAuditLogs());
         assertEquals(22L, result.deletedTrackingPoints());
@@ -73,7 +74,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(2L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(3L);
 
-        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
+        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -81,7 +82,7 @@ class RetentionPolicyEnforcementServiceTests {
         );
 
         OffsetDateTime now = OffsetDateTime.parse("2026-03-31T12:00:00Z");
-        RetentionPolicyEnforcementService.RetentionCleanupResult result = service.enforceRetentionPolicies(now);
+        var result = service.enforceRetentionPolicies(now);
 
         assertEquals(now.minusDays(365), result.auditCutoff());
         assertEquals(now.minusDays(30), result.trackingCutoff());
@@ -105,7 +106,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(2L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(3L);
 
-        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
+        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -113,7 +114,7 @@ class RetentionPolicyEnforcementServiceTests {
         );
 
         OffsetDateTime now = OffsetDateTime.parse("2026-03-31T12:00:00Z");
-        RetentionPolicyEnforcementService.RetentionCleanupResult result = service.enforceRetentionPolicies(now);
+        var result = service.enforceRetentionPolicies(now);
 
         assertEquals(now.minusDays(40), result.auditCutoff());
         assertEquals(now.minusDays(50), result.trackingCutoff());
@@ -135,7 +136,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(2L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(3L);
 
-        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
+        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -143,7 +144,7 @@ class RetentionPolicyEnforcementServiceTests {
         );
 
         OffsetDateTime now = OffsetDateTime.parse("2026-03-31T12:00:00Z");
-        RetentionPolicyEnforcementService.RetentionCleanupResult result = service.enforceRetentionPolicies(now);
+        var result = service.enforceRetentionPolicies(now);
 
         assertEquals(now.minusDays(21), result.aiChatCutoff());
     }

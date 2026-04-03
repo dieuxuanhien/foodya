@@ -6,6 +6,7 @@ import com.foodya.backend.application.dto.OrderCreatedView;
 import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.application.dto.MenuItemModel;
 import com.foodya.backend.application.dto.OrderItemModel;
 import com.foodya.backend.application.dto.OrderModel;
@@ -31,7 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class OrderCheckoutService {
+public class OrderCheckoutService implements OrderCheckoutUseCase {
 
     private final OrderCheckoutPort orderCheckoutPort;
     private final RouteDistancePort routeDistancePort;

@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.RevenueBucketView;
 import com.foodya.backend.application.dto.RevenueReportView;
 import com.foodya.backend.application.dto.TopSellingItemView;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.RevenueReportUseCase;
 import com.foodya.backend.application.ports.out.RevenueReportPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class RevenueReportService {
+public class RevenueReportService implements RevenueReportUseCase {
 
     private static final int DEFAULT_TOP_ITEMS = 5;
     private static final int MAX_TOP_ITEMS = 20;

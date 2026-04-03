@@ -1,6 +1,7 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.ports.out.SystemParameterPort;
+import com.foodya.backend.application.usecases.policy.BackupPolicyEnforcementUseCase;
 import com.foodya.backend.domain.entities.SystemParameter;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +20,8 @@ class BackupPolicyEnforcementServiceTests {
         when(systemParameterPort.findById("ops.backup.rpo_minutes")).thenReturn(Optional.of(numberParam("15")));
         when(systemParameterPort.findById("ops.backup.rto_minutes")).thenReturn(Optional.of(numberParam("60")));
 
-        BackupPolicyEnforcementService service = new BackupPolicyEnforcementService(systemParameterPort);
-        BackupPolicyEnforcementService.BackupPolicyStatus status = service.verifyBackupObjectives();
+        BackupPolicyEnforcementUseCase service = new BackupPolicyEnforcementUseCase(systemParameterPort);
+        var status = service.verifyBackupObjectives();
 
         assertEquals(15, status.rpoMinutes());
         assertEquals(60, status.rtoMinutes());
@@ -32,7 +33,7 @@ class BackupPolicyEnforcementServiceTests {
         when(systemParameterPort.findById("ops.backup.rpo_minutes")).thenReturn(Optional.of(numberParam("20")));
         when(systemParameterPort.findById("ops.backup.rto_minutes")).thenReturn(Optional.of(numberParam("80")));
 
-        BackupPolicyEnforcementService service = new BackupPolicyEnforcementService(systemParameterPort);
+        BackupPolicyEnforcementUseCase service = new BackupPolicyEnforcementUseCase(systemParameterPort);
         assertThrows(IllegalStateException.class, service::verifyBackupObjectives);
     }
 

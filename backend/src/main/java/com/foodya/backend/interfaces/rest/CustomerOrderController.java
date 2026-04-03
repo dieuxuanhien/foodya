@@ -2,7 +2,7 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.CreateOrderRequest;
 import com.foodya.backend.application.dto.OrderCreatedView;
-import com.foodya.backend.application.usecases.OrderCheckoutService;
+import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderCreatedResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderRestMapper;
@@ -28,9 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Customer Orders", description = "Customer checkout and order creation")
 public class CustomerOrderController {
 
-    private final OrderCheckoutService orderCheckoutService;
+    private final OrderCheckoutUseCase orderCheckoutService;
 
-    public CustomerOrderController(OrderCheckoutService orderCheckoutService) {
+    public CustomerOrderController(OrderCheckoutUseCase orderCheckoutService) {
         this.orderCheckoutService = orderCheckoutService;
     }
 

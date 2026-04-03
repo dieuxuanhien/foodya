@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.ActiveCartView;
 import com.foodya.backend.application.dto.CartItemView;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.CartUseCase;
 import com.foodya.backend.application.ports.out.CartItemPort;
 import com.foodya.backend.application.ports.out.CartPort;
 import com.foodya.backend.application.ports.out.MenuItemPort;
@@ -20,7 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class CartService {
+public class CartService implements CartUseCase {
 
     private final CartPort cartPort;
     private final CartItemPort cartItemPort;

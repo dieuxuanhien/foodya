@@ -1,6 +1,7 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.domain.value_objects.ParameterValueType;
+import com.foodya.backend.domain.catalog.SystemParameterCatalog;
 import com.foodya.backend.domain.entities.SystemParameter;
 import com.foodya.backend.domain.entities.AuditLog;
 import com.foodya.backend.application.dto.SystemParameterModel;
@@ -9,6 +10,7 @@ import com.foodya.backend.application.dto.SystemParameterPutRequest;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.SystemParameterUseCase;
 import com.foodya.backend.application.ports.out.AuditLogPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import jakarta.annotation.PostConstruct;
@@ -19,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class SystemParameterService {
+public class SystemParameterService implements SystemParameterUseCase {
 
     private static final String ADMIN_ROLE = "ADMIN";
 

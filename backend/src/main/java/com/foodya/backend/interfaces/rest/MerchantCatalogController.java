@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.MerchantCatalogService;
+import com.foodya.backend.application.ports.in.MerchantCatalogUseCase;
 import com.foodya.backend.application.dto.CreateMenuCategoryRequest;
 import com.foodya.backend.application.dto.CreateMenuItemRequest;
 import com.foodya.backend.application.dto.MenuCategoryModel;
@@ -45,9 +45,9 @@ import java.util.UUID;
 @Tag(name = "Merchant Catalog", description = "Merchant restaurant, category, and menu item management")
 public class MerchantCatalogController {
 
-    private final MerchantCatalogService merchantCatalogService;
+    private final MerchantCatalogUseCase merchantCatalogService;
 
-    public MerchantCatalogController(MerchantCatalogService merchantCatalogService) {
+    public MerchantCatalogController(MerchantCatalogUseCase merchantCatalogService) {
         this.merchantCatalogService = merchantCatalogService;
     }
 

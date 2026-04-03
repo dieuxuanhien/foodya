@@ -4,6 +4,8 @@ import com.foodya.backend.application.dto.PasswordResetChallengeModel;
 import com.foodya.backend.application.dto.RefreshTokenModel;
 import com.foodya.backend.application.dto.TokenClaims;
 import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.domain.policies.PasswordPolicy;
+import com.foodya.backend.domain.services.PhoneNormalizer;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.application.dto.ForgotPasswordResponse;
@@ -14,6 +16,7 @@ import com.foodya.backend.application.dto.VerifyOtpResponse;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.UnauthorizedException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.AuthUseCase;
 import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.OtpDeliveryPort;
 import com.foodya.backend.application.ports.out.PasswordResetChallengePort;
@@ -33,7 +36,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class AuthService {
+public class AuthService implements AuthUseCase {
 
     private final UserAccountPort userAccountPort;
     private final RefreshTokenPort refreshTokenPort;
@@ -66,7 +69,7 @@ public class AuthService {
     public TokenPairResponse register(RegisterRequest request) {
         validateRole(request.role());
         validateUniqueness(request.username(), request.email(), request.phoneNumber());
-        PasswordPolicy.validate(request.password());
+        validatePassword(request.password());
 
         UserAccountModel user = new UserAccountModel();
         user.setUsername(request.username().trim());
@@ -207,7 +210,7 @@ public class AuthService {
         }
 
         UserAccountModel user = challenge.getUser();
-        PasswordPolicy.validate(newPassword);
+        validatePassword(newPassword);
         if (passwordHashPort.matches(newPassword, user.getPasswordHash())) {
             throw new ValidationException("new password must differ from current password", Map.of("newPassword", "must differ from current password"));
         }
@@ -299,6 +302,17 @@ public class AuthService {
             return PhoneNormalizer.normalize(phone);
         } catch (IllegalArgumentException ex) {
             throw new ValidationException("invalid phone number", Map.of("phoneNumber", ex.getMessage()));
+        }
+    }
+
+    private static void validatePassword(String password) {
+        try {
+            PasswordPolicy.validate(password);
+        } catch (IllegalArgumentException ex) {
+            throw new ValidationException(
+                    "password does not meet complexity requirements",
+                    Map.of("password", ex.getMessage())
+            );
         }
     }
 

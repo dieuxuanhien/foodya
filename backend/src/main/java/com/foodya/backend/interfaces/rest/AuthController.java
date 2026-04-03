@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.AuthService;
+import com.foodya.backend.application.ports.in.AuthUseCase;
 import com.foodya.backend.application.dto.ForgotPasswordResponse;
 import com.foodya.backend.application.dto.LoginRequest;
 import com.foodya.backend.application.dto.RegisterRequest;
@@ -33,9 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Auth", description = "Authentication and session lifecycle")
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthUseCase authService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthUseCase authService) {
         this.authService = authService;
     }
 

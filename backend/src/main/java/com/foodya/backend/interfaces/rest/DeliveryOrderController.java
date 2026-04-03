@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.OrderLifecycleService;
+import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
@@ -32,9 +32,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/delivery/orders")
 public class DeliveryOrderController {
 
-    private final OrderLifecycleService orderLifecycleService;
+    private final OrderLifecycleUseCase orderLifecycleService;
 
-    public DeliveryOrderController(OrderLifecycleService orderLifecycleService) {
+    public DeliveryOrderController(OrderLifecycleUseCase orderLifecycleService) {
         this.orderLifecycleService = orderLifecycleService;
     }
 

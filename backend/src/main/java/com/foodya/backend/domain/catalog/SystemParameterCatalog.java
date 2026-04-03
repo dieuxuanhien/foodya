@@ -1,4 +1,4 @@
-package com.foodya.backend.application.usecases;
+package com.foodya.backend.domain.catalog;
 
 import com.foodya.backend.domain.value_objects.ParameterValueType;
 

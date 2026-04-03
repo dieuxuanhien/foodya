@@ -42,6 +42,14 @@ public class MenuItemAdapter implements MenuItemPort {
     }
 
     @Override
+    public List<MenuItem> findByActiveTrueAndAvailableTrueAndDeletedAtIsNull() {
+        return repository.findByActiveTrueAndAvailableTrueAndDeletedAtIsNull()
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public PaginatedResult<MenuItem> findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(UUID restaurantId, int page, int size) {
         Page<MenuItem> result = repository.findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(restaurantId, PageRequest.of(page, size))
             .map(mapper::toDomain);

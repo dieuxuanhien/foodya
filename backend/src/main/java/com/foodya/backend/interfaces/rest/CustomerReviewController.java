@@ -1,7 +1,7 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.CreateOrderReviewRequest;
-import com.foodya.backend.application.usecases.OrderReviewService;
+import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderReviewRestMapper;
@@ -24,9 +24,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/customer/orders")
 public class CustomerReviewController {
 
-    private final OrderReviewService orderReviewService;
+    private final OrderReviewUseCase orderReviewService;
 
-    public CustomerReviewController(OrderReviewService orderReviewService) {
+    public CustomerReviewController(OrderReviewUseCase orderReviewService) {
         this.orderReviewService = orderReviewService;
     }
 

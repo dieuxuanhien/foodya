@@ -4,8 +4,10 @@ import com.foodya.backend.application.dto.NotificationLogView;
 import com.foodya.backend.application.dto.NotificationLogModel;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.exception.NotFoundException;
+import com.foodya.backend.application.ports.in.NotificationUseCase;
 import com.foodya.backend.application.ports.out.NotificationLogPort;
 import com.foodya.backend.application.ports.out.PushNotificationPort;
+import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.NotificationReceiverType;
 import com.foodya.backend.domain.value_objects.NotificationStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
@@ -16,18 +18,18 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
-public class NotificationService {
+public class NotificationService implements NotificationUseCase {
 
     private final NotificationLogPort notificationLogPort;
     private final PushNotificationPort pushNotificationPort;
-    private final PaginationPolicyService paginationPolicyService;
+    private final PaginationPolicy paginationPolicy;
 
     public NotificationService(NotificationLogPort notificationLogPort,
                                PushNotificationPort pushNotificationPort,
-                               PaginationPolicyService paginationPolicyService) {
+                               PaginationPolicy paginationPolicy) {
         this.notificationLogPort = notificationLogPort;
         this.pushNotificationPort = pushNotificationPort;
-        this.paginationPolicyService = paginationPolicyService;
+        this.paginationPolicy = paginationPolicy;
     }
 
     @Transactional
@@ -60,7 +62,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public PaginatedResult<NotificationLogView> list(Integer page, Integer size) {
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<NotificationLogModel> result = notificationLogPort.list(spec.page(), spec.size());
 
         return new PaginatedResult<>(
@@ -74,7 +76,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public PaginatedResult<NotificationLogView> listForUser(UUID receiverUserId, Integer page, Integer size) {
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<NotificationLogModel> result = notificationLogPort.listByReceiver(receiverUserId, spec.page(), spec.size());
 
         return new PaginatedResult<>(

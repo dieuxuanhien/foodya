@@ -19,11 +19,13 @@ import com.foodya.backend.application.dto.UpdateRestaurantRequest;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.MerchantCatalogUseCase;
 import com.foodya.backend.application.ports.out.MenuCategoryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.MenuItemPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
+import com.foodya.backend.application.support.PaginationPolicy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,26 +35,26 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class MerchantCatalogService {
+public class MerchantCatalogService implements MerchantCatalogUseCase {
 
     private final RestaurantPort restaurantPort;
     private final MenuCategoryPort menuCategoryPort;
     private final MenuItemPort menuItemPort;
     private final SystemParameterPort systemParameterPort;
-    private final PaginationPolicyService paginationPolicyService;
+    private final PaginationPolicy paginationPolicy;
     private final GeoPort geoPort;
 
     public MerchantCatalogService(RestaurantPort restaurantPort,
                                   MenuCategoryPort menuCategoryPort,
                                   MenuItemPort menuItemPort,
                                   SystemParameterPort systemParameterPort,
-                                  PaginationPolicyService paginationPolicyService,
+                                  PaginationPolicy paginationPolicy,
                                   GeoPort geoPort) {
         this.restaurantPort = restaurantPort;
         this.menuCategoryPort = menuCategoryPort;
         this.menuItemPort = menuItemPort;
         this.systemParameterPort = systemParameterPort;
-        this.paginationPolicyService = paginationPolicyService;
+        this.paginationPolicy = paginationPolicy;
         this.geoPort = geoPort;
     }
 
@@ -109,7 +111,7 @@ public class MerchantCatalogService {
     @Transactional(readOnly = true)
     public PaginatedResult<MenuCategoryModel> listCategories(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
         ownedRestaurant(merchantUserId, restaurantId);
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<MenuCategory> result = menuCategoryPort.findByRestaurantIdAndActiveTrue(restaurantId, spec.page(), spec.size());
         return new PaginatedResult<>(
                 result.items().stream().map(this::toMenuCategoryModel).toList(),
@@ -166,7 +168,7 @@ public class MerchantCatalogService {
     @Transactional(readOnly = true)
     public PaginatedResult<MenuItemModel> listMenuItems(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
         ownedRestaurant(merchantUserId, restaurantId);
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<MenuItem> result = menuItemPort.findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(restaurantId, spec.page(), spec.size());
         return new PaginatedResult<>(
                 result.items().stream().map(this::toMenuItemModel).toList(),

@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.OrderReviewView;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
 import com.foodya.backend.application.ports.out.OrderReviewPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
@@ -20,7 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class OrderReviewService {
+public class OrderReviewService implements OrderReviewUseCase {
 
     private final OrderManagementPort orderManagementPort;
     private final OrderReviewPort orderReviewPort;

@@ -9,6 +9,8 @@ public record AiRecommendationItemResponse(
         UUID restaurantId,
         String restaurantName,
         BigDecimal price,
+        BigDecimal distanceKm,
+        BigDecimal restaurantRating,
         String reason
 ) {
 }

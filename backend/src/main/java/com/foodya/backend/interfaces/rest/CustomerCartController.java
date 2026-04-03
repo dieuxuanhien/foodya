@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.dto.ActiveCartView;
 import com.foodya.backend.application.dto.AddCartItemRequest;
 import com.foodya.backend.application.dto.UpdateCartItemRequest;
-import com.foodya.backend.application.usecases.CartService;
+import com.foodya.backend.application.ports.in.CartUseCase;
 import com.foodya.backend.interfaces.rest.dto.ActiveCartResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.mapper.CartRestMapper;
@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Customer Cart", description = "Customer cart management lifecycle")
 public class CustomerCartController {
 
-    private final CartService cartService;
+    private final CartUseCase cartService;
 
-    public CustomerCartController(CartService cartService) {
+    public CustomerCartController(CartUseCase cartService) {
         this.cartService = cartService;
     }
 

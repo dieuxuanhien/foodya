@@ -4,7 +4,7 @@ import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.OrderModel;
 import com.foodya.backend.application.dto.RestaurantModel;
 import com.foodya.backend.application.exception.ValidationException;
-import com.foodya.backend.application.usecases.AdminGovernanceService;
+import com.foodya.backend.application.ports.in.AdminGovernanceUseCase;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
@@ -39,9 +39,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/admin")
 public class AdminGovernanceController {
 
-    private final AdminGovernanceService adminGovernanceService;
+    private final AdminGovernanceUseCase adminGovernanceService;
 
-    public AdminGovernanceController(AdminGovernanceService adminGovernanceService) {
+    public AdminGovernanceController(AdminGovernanceUseCase adminGovernanceService) {
         this.adminGovernanceService = adminGovernanceService;
     }
 

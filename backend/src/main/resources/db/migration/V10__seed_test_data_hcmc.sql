@@ -7,15 +7,15 @@
 
 INSERT INTO users (id, username, email, phone_number, full_name, avatar_url, role, status, password_hash, created_at, updated_at)
 VALUES
-('11111111-1111-1111-1111-111111111111', 'admin_foodya', 'admin@foodya.local', '+84912345670', 'System Administrator', NULL, 'ADMIN', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('22222222-2222-2222-2222-222222222222', 'merchant_pho', 'merchant_pho@foodya.local', '+84912345671', 'Pho Vietnam Restaurant Owner', NULL, 'MERCHANT', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('33333333-3333-3333-3333-333333333333', 'merchant_pizza', 'merchant_pizza@foodya.local', '+84912345672', 'Pizza Paradise Manager', NULL, 'MERCHANT', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('44444444-4444-4444-4444-444444444444', 'merchant_sushi', 'merchant_sushi@foodya.local', '+84912345673', 'Sushi Master Restaurant', NULL, 'MERCHANT', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('55555555-5555-5555-5555-555555555555', 'delivery_user', 'delivery@foodya.local', '+84912345674', 'Delivery Agent', NULL, 'DELIVERY', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('66666666-6666-6666-6666-666666666666', 'customer_alice', 'alice@foodya.local', '+84912345675', 'Alice Nguyen', NULL, 'CUSTOMER', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('77777777-7777-7777-7777-777777777777', 'customer_bob', 'bob@foodya.local', '+84912345676', 'Bob Tran', NULL, 'CUSTOMER', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('88888888-8888-8888-8888-888888888888', 'customer_carol', 'carol@foodya.local', '+84912345677', 'Carol Dang', NULL, 'CUSTOMER', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('99999999-9999-9999-9999-999999999999', 'customer_david', 'david@foodya.local', '+84912345678', 'David Ho', NULL, 'CUSTOMER', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+('11111111-1111-1111-1111-111111111111', 'admin_foodya', 'admin@foodya.local', '+84912345670', 'System Administrator', NULL, 'ADMIN', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('22222222-2222-2222-2222-222222222222', 'merchant_pho', 'merchant_pho@foodya.local', '+84912345671', 'Pho Vietnam Restaurant Owner', NULL, 'MERCHANT', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('33333333-3333-3333-3333-333333333333', 'merchant_pizza', 'merchant_pizza@foodya.local', '+84912345672', 'Pizza Paradise Manager', NULL, 'MERCHANT', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('44444444-4444-4444-4444-444444444444', 'merchant_sushi', 'merchant_sushi@foodya.local', '+84912345673', 'Sushi Master Restaurant', NULL, 'MERCHANT', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('55555555-5555-5555-5555-555555555555', 'delivery_user', 'delivery@foodya.local', '+84912345674', 'Delivery Agent', NULL, 'DELIVERY', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('66666666-6666-6666-6666-666666666666', 'customer_alice', 'alice@foodya.local', '+84912345675', 'Alice Nguyen', NULL, 'CUSTOMER', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('77777777-7777-7777-7777-777777777777', 'customer_bob', 'bob@foodya.local', '+84912345676', 'Bob Tran', NULL, 'CUSTOMER', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('88888888-8888-8888-8888-888888888888', 'customer_carol', 'carol@foodya.local', '+84912345677', 'Carol Dang', NULL, 'CUSTOMER', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('99999999-9999-9999-9999-999999999999', 'customer_david', 'david@foodya.local', '+84912345678', 'David Ho', NULL, 'CUSTOMER', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ;
 
 -- ============================================================================

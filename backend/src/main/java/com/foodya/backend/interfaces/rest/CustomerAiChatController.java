@@ -1,7 +1,7 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.CreateAiChatRequest;
-import com.foodya.backend.application.usecases.AiRecommendationService;
+import com.foodya.backend.application.ports.in.AiRecommendationUseCase;
 import com.foodya.backend.interfaces.rest.dto.AiChatHistoryResponse;
 import com.foodya.backend.interfaces.rest.dto.AiChatResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
@@ -28,9 +28,9 @@ import java.util.List;
 @Tag(name = "Customer AI", description = "Customer contextual recommendation chat")
 public class CustomerAiChatController {
 
-    private final AiRecommendationService aiRecommendationService;
+    private final AiRecommendationUseCase aiRecommendationService;
 
-    public CustomerAiChatController(AiRecommendationService aiRecommendationService) {
+    public CustomerAiChatController(AiRecommendationUseCase aiRecommendationService) {
         this.aiRecommendationService = aiRecommendationService;
     }
 

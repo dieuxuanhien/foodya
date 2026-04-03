@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.ProfileService;
+import com.foodya.backend.application.ports.in.ProfileUseCase;
 import com.foodya.backend.application.dto.UserAccountModel;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Profile", description = "Authenticated profile endpoints")
 public class ProfileController {
 
-    private final ProfileService profileService;
+    private final ProfileUseCase profileService;
 
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileUseCase profileService) {
         this.profileService = profileService;
     }
 

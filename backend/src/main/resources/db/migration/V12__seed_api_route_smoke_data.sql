@@ -2,11 +2,11 @@
 -- Credentials for all api_* users: Strong@123
 
 INSERT INTO users (id, username, email, phone_number, full_name, avatar_url, role, status, password_hash, created_at, updated_at)
-VALUES
-('12121212-1212-1212-1212-121212121212', 'api_admin', 'api_admin@foodya.local', '+84910000001', 'API Admin', NULL, 'ADMIN', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('13131313-1313-1313-1313-131313131313', 'api_merchant', 'api_merchant@foodya.local', '+84910000002', 'API Merchant', NULL, 'MERCHANT', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('14141414-1414-1414-1414-141414141414', 'api_delivery', 'api_delivery@foodya.local', '+84910000003', 'API Delivery', NULL, 'DELIVERY', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('15151515-1515-1515-1515-151515151515', 'api_customer', 'api_customer@foodya.local', '+84910000004', 'API Customer', NULL, 'CUSTOMER', 'ACTIVE', '$2a$10$slYQmyNdGzin7olVMznqOeMRE/s5/Ej8KkBPFYHEKj3J1g5e7fEH2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+VALUES                                                                                                                                                                                                                                              
+('12121212-1212-1212-1212-121212121212', 'api_admin', 'api_admin@foodya.local', '+84910000001', 'API Admin', NULL, 'ADMIN', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('13131313-1313-1313-1313-131313131313', 'api_merchant', 'api_merchant@foodya.local', '+84910000002', 'API Merchant', NULL, 'MERCHANT', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('14141414-1414-1414-1414-141414141414', 'api_delivery', 'api_delivery@foodya.local', '+84910000003', 'API Delivery', NULL, 'DELIVERY', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('15151515-1515-1515-1515-151515151515', 'api_customer', 'api_customer@foodya.local', '+84910000004', 'API Customer', NULL, 'CUSTOMER', 'ACTIVE', '$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO restaurants (id, owner_user_id, name, cuisine_type, description, address_line, latitude, longitude, h3_index_res9, avg_rating, review_count, status, is_open, max_delivery_km, created_at, updated_at)
 VALUES

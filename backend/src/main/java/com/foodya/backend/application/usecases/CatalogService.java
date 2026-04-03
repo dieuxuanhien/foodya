@@ -10,6 +10,7 @@ import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.out.CatalogQueryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
+import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import org.springframework.stereotype.Service;
 
@@ -31,16 +32,16 @@ public class CatalogService {
 
     private final CatalogQueryPort catalogQueryPort;
     private final SystemParameterPort systemParameterPort;
-    private final PaginationPolicyService paginationPolicyService;
+    private final PaginationPolicy paginationPolicy;
     private final GeoPort geoPort;
 
     public CatalogService(CatalogQueryPort catalogQueryPort,
                           SystemParameterPort systemParameterPort,
-                          PaginationPolicyService paginationPolicyService,
+                          PaginationPolicy paginationPolicy,
                           GeoPort geoPort) {
         this.catalogQueryPort = catalogQueryPort;
         this.systemParameterPort = systemParameterPort;
-        this.paginationPolicyService = paginationPolicyService;
+        this.paginationPolicy = paginationPolicy;
         this.geoPort = geoPort;
     }
 
@@ -54,7 +55,7 @@ public class CatalogService {
                                                                        BigDecimal lat,
                                                                        BigDecimal lng,
                                                                        BigDecimal radiusKm) {
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String keyword = q == null ? "" : q.trim();
 
         Map<UUID, List<MenuItemModel>> matchedItemsByRestaurant = matchedItemsByRestaurant(keyword);
@@ -101,7 +102,7 @@ public class CatalogService {
             throw new ValidationException("invalid nearby parameters", Map.of("lat/lng/radiusKm", "must be provided"));
         }
 
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         Set<String> ring = h3Ring(lat.doubleValue(), lng.doubleValue(), radiusKm.doubleValue());
         List<RestaurantModel> prefiltered = catalogQueryPort.findRestaurantsByH3IndexAndStatus(ring, PUBLIC_STATUSES);
         List<RestaurantModel> candidates = applyNearbyFilter(prefiltered, lat.doubleValue(), lng.doubleValue(), radiusKm.doubleValue());
@@ -133,7 +134,7 @@ public class CatalogService {
                                                           String sort,
                                                           Integer page,
                                                           Integer size) {
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         restaurantDetail(restaurantId);
 
         List<MenuItemModel> filtered = catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId)

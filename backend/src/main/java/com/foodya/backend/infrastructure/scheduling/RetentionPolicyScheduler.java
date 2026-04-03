@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.scheduling;
 
-import com.foodya.backend.application.usecases.RetentionPolicyEnforcementService;
-import com.foodya.backend.application.usecases.RetentionPolicyEnforcementService.RetentionCleanupResult;
+import com.foodya.backend.application.ports.in.RetentionPolicyEnforcementUseCase;
+import com.foodya.backend.application.ports.in.RetentionPolicyEnforcementUseCase.RetentionCleanupResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,15 +12,15 @@ public class RetentionPolicyScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(RetentionPolicyScheduler.class);
 
-    private final RetentionPolicyEnforcementService retentionPolicyEnforcementService;
+    private final RetentionPolicyEnforcementUseCase retentionPolicyEnforcementUseCase;
 
-    public RetentionPolicyScheduler(RetentionPolicyEnforcementService retentionPolicyEnforcementService) {
-        this.retentionPolicyEnforcementService = retentionPolicyEnforcementService;
+    public RetentionPolicyScheduler(RetentionPolicyEnforcementUseCase retentionPolicyEnforcementUseCase) {
+        this.retentionPolicyEnforcementUseCase = retentionPolicyEnforcementUseCase;
     }
 
     @Scheduled(cron = "${foodya.jobs.retention.cron:0 30 2 * * *}")
     public void purgeExpiredData() {
-        RetentionCleanupResult result = retentionPolicyEnforcementService.enforceRetentionPolicies();
+        RetentionCleanupResult result = retentionPolicyEnforcementUseCase.enforceRetentionPolicies();
         log.info(
                 "Retention cleanup completed: deletedAuditLogs={}, deletedTrackingPoints={}, deletedAiChats={}, auditCutoff={}, trackingCutoff={}, aiChatCutoff={}",
                 result.deletedAuditLogs(),

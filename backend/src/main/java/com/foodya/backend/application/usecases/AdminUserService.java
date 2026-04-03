@@ -4,7 +4,9 @@ import com.foodya.backend.application.dto.AdminUserSummaryView;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.exception.ConflictException;
 import com.foodya.backend.application.exception.NotFoundException;
+import com.foodya.backend.application.ports.in.AdminUserUseCase;
 import com.foodya.backend.application.ports.out.AdminUserPort;
+import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.domain.entities.UserAccount;
@@ -15,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class AdminUserService {
+public class AdminUserService implements AdminUserUseCase {
 
     private static final List<OrderStatus> BLOCKING_DELETE_STATUSES = List.of(
             OrderStatus.PENDING,
@@ -26,20 +28,20 @@ public class AdminUserService {
     );
 
     private final AdminUserPort adminUserPort;
-    private final PaginationPolicyService paginationPolicyService;
+    private final PaginationPolicy paginationPolicy;
     private final AuditLogService auditLogService;
 
     public AdminUserService(AdminUserPort adminUserPort,
-                            PaginationPolicyService paginationPolicyService,
+                            PaginationPolicy paginationPolicy,
                             AuditLogService auditLogService) {
         this.adminUserPort = adminUserPort;
-        this.paginationPolicyService = paginationPolicyService;
+        this.paginationPolicy = paginationPolicy;
         this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
     public PaginatedResult<AdminUserSummaryView> list(String keyword, Integer page, Integer size) {
-        PaginationPolicyService.PaginationSpec spec = paginationPolicyService.page(page, size);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<UserAccount> users = adminUserPort.search(keyword, spec.page(), spec.size());
 
         return new PaginatedResult<>(

@@ -7,6 +7,7 @@ import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
@@ -25,7 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class OrderLifecycleService {
+public class OrderLifecycleService implements OrderLifecycleUseCase {
 
     private final OrderManagementPort orderManagementPort;
     private final RestaurantPort restaurantPort;

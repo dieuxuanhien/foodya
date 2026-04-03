@@ -166,6 +166,137 @@ class CustomerAiChatIntegrationTests {
                 .andExpect(jsonPath("$.data[1].prompt").value("first request"));
     }
 
+            @Test
+            void createChatForNearbyRestaurantsRespectsShippingDistance() throws Exception {
+            UserAccount customer = seedUser("ai-customer-nearby", UserRole.CUSTOMER);
+            UserAccount merchant = seedUser("ai-merchant-nearby", UserRole.MERCHANT);
+
+            Restaurant near = seedRestaurant(merchant, "Near Pho");
+            MenuCategory nearCategory = seedCategory(near, "Main", 1);
+            seedMenuItem(near, nearCategory, "Pho Gan Day", new BigDecimal("65000"), true);
+
+            Restaurant far = seedRestaurant(merchant, "Far Noodles");
+            far.setLatitude(new BigDecimal("11.0200000"));
+            far.setLongitude(new BigDecimal("107.0200000"));
+            var farEntity = restaurantMapper.toPersistence(far);
+            @SuppressWarnings("null")
+            var savedFar = restaurantRepository.save(farEntity);
+            far = restaurantMapper.toDomain(savedFar);
+            MenuCategory farCategory = seedCategory(far, "Main", 1);
+            seedMenuItem(far, farCategory, "Pho Xa", new BigDecimal("70000"), true);
+
+            String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+
+            mockMvc.perform(post("/api/v1/customer/ai/chats")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                    .content("""
+                        {
+                          "prompt":"Nha hang nao gan day",
+                          "lat":10.77,
+                          "lng":106.70
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.responseSummary")
+                    .value(Objects.requireNonNull(org.hamcrest.Matchers.containsString("Nearby"))))
+                .andExpect(jsonPath("$.data.recommendations[*].restaurantName")
+                    .value(Objects.requireNonNull(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Far Noodles")))));
+            }
+
+            @Test
+            void createChatWithNonSpicyIntentExcludesSpicyItems() throws Exception {
+            UserAccount customer = seedUser("ai-customer-non-spicy", UserRole.CUSTOMER);
+            UserAccount merchant = seedUser("ai-merchant-non-spicy", UserRole.MERCHANT);
+            Restaurant restaurant = seedRestaurant(merchant, "Hue Kitchen");
+            MenuCategory category = seedCategory(restaurant, "Main", 1);
+
+            seedMenuItem(restaurant, category, "Bun Bo Hue cay", new BigDecimal("70000"), true);
+            seedMenuItem(restaurant, category, "Pho Ga Thanh Dam", new BigDecimal("65000"), true);
+
+            String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+
+            mockMvc.perform(post("/api/v1/customer/ai/chats")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                    .content("""
+                        {
+                          "prompt":"toi muon mon khong cay"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.recommendations[*].menuItemName")
+                    .value(Objects.requireNonNull(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Bun Bo Hue cay")))));
+            }
+
+                        @Test
+                        void createChatWithPriceBudgetFiltersExpensiveItems() throws Exception {
+                        UserAccount customer = seedUser("ai-customer-budget", UserRole.CUSTOMER);
+                        UserAccount merchant = seedUser("ai-merchant-budget", UserRole.MERCHANT);
+                        Restaurant restaurant = seedRestaurant(merchant, "Budget Kitchen");
+                        MenuCategory category = seedCategory(restaurant, "Main", 1);
+
+                        seedMenuItem(restaurant, category, "Com Ga 45k", new BigDecimal("45000"), true);
+                        seedMenuItem(restaurant, category, "Steak Premium 150k", new BigDecimal("150000"), true);
+
+                        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+
+                        mockMvc.perform(post("/api/v1/customer/ai/chats")
+                                        .header("Authorization", "Bearer " + token)
+                                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                        .content("""
+                                                {
+                                                    "prompt":"toi muon mon tam 50k do lai"
+                                                }
+                                                """))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.recommendations[*].menuItemName")
+                                        .value(Objects.requireNonNull(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Steak Premium 150k")))));
+                        }
+
+                        @Test
+                        void createChatWithRangeBudgetForTwoPeopleAndMinRating() throws Exception {
+                        UserAccount customer = seedUser("ai-customer-range-budget", UserRole.CUSTOMER);
+                        UserAccount merchant = seedUser("ai-merchant-range-budget", UserRole.MERCHANT);
+
+                        Restaurant highRated = seedRestaurant(merchant, "High Rated Bistro");
+                        highRated.setAvgRating(new BigDecimal("4.7"));
+                        var highRatedEntity = restaurantMapper.toPersistence(highRated);
+                        @SuppressWarnings("null")
+                        var savedHighRated = restaurantRepository.save(highRatedEntity);
+                        highRated = restaurantMapper.toDomain(savedHighRated);
+
+                        MenuCategory highRatedCategory = seedCategory(highRated, "Main", 1);
+                        seedMenuItem(highRated, highRatedCategory, "Com Suon 50k", new BigDecimal("50000"), true);
+                        seedMenuItem(highRated, highRatedCategory, "Steak 95k", new BigDecimal("95000"), true);
+
+                        Restaurant lowRated = seedRestaurant(merchant, "Low Rated Eatery");
+                        lowRated.setAvgRating(new BigDecimal("3.8"));
+                        var lowRatedEntity = restaurantMapper.toPersistence(lowRated);
+                        @SuppressWarnings("null")
+                        var savedLowRated = restaurantRepository.save(lowRatedEntity);
+                        lowRated = restaurantMapper.toDomain(savedLowRated);
+
+                        MenuCategory lowRatedCategory = seedCategory(lowRated, "Main", 1);
+                        seedMenuItem(lowRated, lowRatedCategory, "Com Binh Dan 45k", new BigDecimal("45000"), true);
+
+                        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+
+                        mockMvc.perform(post("/api/v1/customer/ai/chats")
+                                        .header("Authorization", "Bearer " + token)
+                                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                        .content("""
+                                                {
+                                                    "prompt":"toi can mon khoang 80-120k cho 2 nguoi, rating tu 4.5 tro len"
+                                                }
+                                                """))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.recommendations[*].menuItemName")
+                                        .value(Objects.requireNonNull(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Steak 95k")))))
+                                .andExpect(jsonPath("$.data.recommendations[*].restaurantName")
+                                        .value(Objects.requireNonNull(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Low Rated Eatery")))));
+                        }
+
     private UserAccount seedUser(String stem, UserRole role) {
         UserAccount user = new UserAccount();
         user.setUsername(stem);

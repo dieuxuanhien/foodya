@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.SystemParameterService;
+import com.foodya.backend.application.ports.in.SystemParameterUseCase;
 import com.foodya.backend.application.dto.SystemParameterModel;
 import com.foodya.backend.application.dto.SystemParameterPatchRequest;
 import com.foodya.backend.application.dto.SystemParameterPutRequest;
@@ -36,9 +36,9 @@ import java.util.List;
 @Tag(name = "Admin System Parameters", description = "Global runtime parameter management")
 public class SystemParameterAdminController {
 
-    private final SystemParameterService systemParameterService;
+    private final SystemParameterUseCase systemParameterService;
 
-    public SystemParameterAdminController(SystemParameterService systemParameterService) {
+    public SystemParameterAdminController(SystemParameterUseCase systemParameterService) {
         this.systemParameterService = systemParameterService;
     }
 

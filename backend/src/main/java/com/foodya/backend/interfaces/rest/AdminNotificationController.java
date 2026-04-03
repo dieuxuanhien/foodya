@@ -2,7 +2,7 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.NotificationLogView;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.usecases.NotificationService;
+import com.foodya.backend.application.ports.in.NotificationUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.NotificationLogResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMeta;
@@ -20,9 +20,9 @@ import java.util.List;
 @RequestMapping("/api/v1/admin/notifications")
 public class AdminNotificationController {
 
-    private final NotificationService notificationService;
+    private final NotificationUseCase notificationService;
 
-    public AdminNotificationController(NotificationService notificationService) {
+    public AdminNotificationController(NotificationUseCase notificationService) {
         this.notificationService = notificationService;
     }
 

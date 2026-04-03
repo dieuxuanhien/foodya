@@ -5,8 +5,11 @@ import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.ProfileUseCase;
 import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
+import com.foodya.backend.domain.policies.PasswordPolicy;
+import com.foodya.backend.domain.services.PhoneNormalizer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class ProfileService {
+public class ProfileService implements ProfileUseCase {
 
     private final UserAccountPort userAccountPort;
     private final PasswordHashPort passwordHashPort;
@@ -74,7 +77,14 @@ public class ProfileService {
             throw new ValidationException("confirmPassword does not match", Map.of("confirmPassword", "must equal newPassword"));
         }
 
-        PasswordPolicy.validate(request.newPassword());
+        try {
+            PasswordPolicy.validate(request.newPassword());
+        } catch (IllegalArgumentException ex) {
+            throw new ValidationException(
+                    "password does not meet complexity requirements",
+                    Map.of("password", ex.getMessage())
+            );
+        }
         if (passwordHashPort.matches(request.newPassword(), user.getPasswordHash())) {
             throw new ValidationException("new password must differ from current password", Map.of("newPassword", "must differ from current password"));
         }

@@ -1,4 +1,4 @@
-package com.foodya.backend.application.usecases;
+package com.foodya.backend.application.usecases.policy;
 
 import com.foodya.backend.application.ports.out.AiChatHistoryPort;
 import com.foodya.backend.application.ports.out.AuditLogPort;
@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 
 @Service
-public class RetentionPolicyEnforcementService {
+public class RetentionPolicyEnforcementUseCase implements com.foodya.backend.application.ports.in.RetentionPolicyEnforcementUseCase {
 
     private static final String RETENTION_CUSTOMER_DATA_DAYS = "retention.customer_data_days";
     private static final String RETENTION_ORDER_HISTORY_DAYS = "retention.order_history_days";
@@ -24,7 +24,7 @@ public class RetentionPolicyEnforcementService {
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
     private final AiChatHistoryPort aiChatHistoryPort;
 
-    public RetentionPolicyEnforcementService(SystemParameterPort systemParameterPort,
+    public RetentionPolicyEnforcementUseCase(SystemParameterPort systemParameterPort,
                                              AuditLogPort auditLogPort,
                                              DeliveryTrackingPointPort deliveryTrackingPointPort,
                                              AiChatHistoryPort aiChatHistoryPort) {
@@ -35,11 +35,13 @@ public class RetentionPolicyEnforcementService {
     }
 
     @Transactional
+    @Override
     public RetentionCleanupResult enforceRetentionPolicies() {
         return enforceRetentionPolicies(OffsetDateTime.now());
     }
 
     @Transactional
+    @Override
     public RetentionCleanupResult enforceRetentionPolicies(OffsetDateTime now) {
         int auditLogsDays = intParamWithFallback(RETENTION_AUDIT_LOGS_DAYS, RETENTION_CUSTOMER_DATA_DAYS, 365);
         int trackingPointsDays = intParamWithFallback(RETENTION_TRACKING_POINTS_DAYS, RETENTION_ORDER_HISTORY_DAYS, 30);
@@ -81,15 +83,5 @@ public class RetentionPolicyEnforcementService {
                     }
                 })
                 .filter(v -> v != null && v > 0);
-    }
-
-    public record RetentionCleanupResult(
-            long deletedAuditLogs,
-            long deletedTrackingPoints,
-            long deletedAiChats,
-            OffsetDateTime auditCutoff,
-            OffsetDateTime trackingCutoff,
-            OffsetDateTime aiChatCutoff
-    ) {
     }
 }

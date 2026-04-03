@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.RevenueReportService;
+import com.foodya.backend.application.ports.in.RevenueReportUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.RevenueReportResponse;
 import com.foodya.backend.interfaces.rest.mapper.RevenueReportRestMapper;
@@ -25,9 +25,9 @@ import java.time.LocalDate;
 @RequestMapping("/api/v1/admin/reports")
 public class AdminRevenueReportController {
 
-    private final RevenueReportService revenueReportService;
+    private final RevenueReportUseCase revenueReportService;
 
-    public AdminRevenueReportController(RevenueReportService revenueReportService) {
+    public AdminRevenueReportController(RevenueReportUseCase revenueReportService) {
         this.revenueReportService = revenueReportService;
     }
 

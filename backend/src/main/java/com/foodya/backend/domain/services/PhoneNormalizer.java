@@ -1,4 +1,4 @@
-package com.foodya.backend.application.usecases;
+package com.foodya.backend.domain.services;
 
 public final class PhoneNormalizer {
 
