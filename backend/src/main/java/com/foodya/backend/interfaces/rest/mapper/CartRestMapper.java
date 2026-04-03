@@ -14,6 +14,7 @@ public final class CartRestMapper {
         return new ActiveCartResponse(
                 view.cartId() == null ? null : view.cartId().toString(),
                 view.restaurantId() == null ? null : view.restaurantId().toString(),
+                view.restaurantName(),
                 view.subtotal(),
                 view.itemCount(),
                 view.items().stream().map(CartRestMapper::toItemResponse).toList()
@@ -23,8 +24,9 @@ public final class CartRestMapper {
     private static CartItemResponse toItemResponse(CartItemView item) {
         return new CartItemResponse(
                 item.menuItemId().toString(),
-                item.quantity(),
+                item.menuItemName(),
                 item.unitPriceSnapshot(),
+                item.quantity(),
                 item.lineTotal(),
                 item.note()
         );

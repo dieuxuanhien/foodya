@@ -4,6 +4,12 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * DOMAIN ENTITY: MenuItem
+ *
+ * Represents a menu item offered by a restaurant.
+ * Contains business logic for orderability validation and price management.
+ */
 public class MenuItem {
 
     private UUID id;
@@ -114,5 +120,55 @@ public class MenuItem {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Checks if this menu item is orderable by customers.
+     * A menu item is orderable if it's active, available, and not soft-deleted.
+     *
+     * @return true if orderable, false otherwise
+     */
+    public boolean isOrderable() {
+        return active && available && deletedAt == null;
+    }
+
+    /**
+     * Updates the price with validation.
+     *
+     * @param newPrice the new price (must be positive)
+     * @throws IllegalArgumentException if price is not positive
+     */
+    public void updatePrice(BigDecimal newPrice) {
+        if (newPrice == null || newPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("price must be positive");
+        }
+        this.price = newPrice;
+    }
+
+    /**
+     * Marks this menu item as deleted (soft delete).
+     */
+    public void softDelete() {
+        if (this.deletedAt == null) {
+            this.deletedAt = OffsetDateTime.now();
+            this.active = false;
+            this.available = false;
+        }
+    }
+
+    /**
+     * Marks this menu item as unavailable (e.g., out of stock).
+     */
+    public void markUnavailable() {
+        this.available = false;
+    }
+
+    /**
+     * Marks this menu item as available.
+     */
+    public void markAvailable() {
+        if (deletedAt == null && active) {
+            this.available = true;
+        }
     }
 }
