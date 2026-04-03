@@ -25,6 +25,12 @@ Spring Boot backend scaffold for Foodya with integration-ready configuration for
 mvn spring-boot:run
 ```
 
+## Re-run Migrations + Seed
+
+```bash
+cd backend && set -a && source .env && set +a && mvn -Dflyway.cleanDisabled=false -Dflyway.url="$SPRING_DATASOURCE_URL" -Dflyway.user="$SPRING_DATASOURCE_USERNAME" -Dflyway.password="$SPRING_DATASOURCE_PASSWORD" -Dflyway.locations=filesystem:src/main/resources/db/migration org.flywaydb:flyway-maven-plugin:11.7.2:clean org.flywaydb:flyway-maven-plugin:11.7.2:migrate
+```
+
 ## Verify
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
