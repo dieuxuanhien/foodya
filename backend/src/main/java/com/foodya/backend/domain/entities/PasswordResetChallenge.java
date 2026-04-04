@@ -1,46 +1,45 @@
 package com.foodya.backend.domain.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "password_reset_challenges")
+/**
+ * DOMAIN ENTITY: PasswordResetChallenge
+ *
+ * This is a PURE domain entity with NO framework dependencies or annotations.
+ * - All business logic and state transitions are here
+ * - No persistence concerns (JPA, database mapping)
+ * - Fully unit-testable without any framework
+ * - Framework-independent and reusable across technologies
+ *
+ * Persistence mapping is handled by:
+ * - PasswordResetChallengePersistenceModel (in infrastructure/persistence/models/)
+ * - AuthPersistenceMapper (in infrastructure/mapper/)
+ *
+ * This separation follows Clean Architecture's inward dependency principle:
+ * Domain → no outer layer (framework) dependencies.
+ *
+ * Note: This domain entity references UserAccount by ID only, not by JPA relationship.
+ * The persistence model handles the @ManyToOne relationship.
+ */
 public class PasswordResetChallenge {
 
-    @Id
     private UUID id;
 
-    @Column(name = "challenge_token", nullable = false, length = 128, unique = true)
     private String challengeToken;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserAccount user;
+    private UUID userId;
 
-    @Column(name = "otp_hash", nullable = false, length = 255)
     private String otpHash;
 
-    @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
 
-    @Column(name = "verified_at")
     private OffsetDateTime verifiedAt;
 
-    @Column(name = "consumed_at")
     private OffsetDateTime consumedAt;
 
-    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @PrePersist
     void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
@@ -52,6 +51,10 @@ public class PasswordResetChallenge {
         return id;
     }
 
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
     public String getChallengeToken() {
         return challengeToken;
     }
@@ -60,12 +63,12 @@ public class PasswordResetChallenge {
         this.challengeToken = challengeToken;
     }
 
-    public UserAccount getUser() {
-        return user;
+    public UUID getUserId() {
+        return userId;
     }
 
-    public void setUser(UserAccount user) {
-        this.user = user;
+    public void setUserId(UUID userId) {
+        this.userId = userId;
     }
 
     public String getOtpHash() {
@@ -98,5 +101,13 @@ public class PasswordResetChallenge {
 
     public void setConsumedAt(OffsetDateTime consumedAt) {
         this.consumedAt = consumedAt;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.repository;
 
 import com.foodya.backend.domain.value_objects.OrderStatus;
-import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,9 +11,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.UUID;
 
-public interface AdminUserRepository extends JpaRepository<UserAccount, UUID> {
+public interface AdminUserRepository extends JpaRepository<UserAccountPersistenceModel, UUID> {
 
-    Page<UserAccount> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFullNameContainingIgnoreCaseOrPhoneNumberContainingIgnoreCase(
+    Page<UserAccountPersistenceModel> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFullNameContainingIgnoreCaseOrPhoneNumberContainingIgnoreCase(
             String username,
             String email,
             String fullName,

@@ -1,51 +1,73 @@
-package com.foodya.backend.domain.entities;
+package com.foodya.backend.infrastructure.persistence.models;
 
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * DOMAIN ENTITY: UserAccount
+ * PERSISTENCE MODEL — JPA-annotated version of UserAccount domain entity.
  *
- * This is a PURE domain entity with NO framework dependencies or annotations.
- * - All business logic and state transitions are here
- * - No persistence concerns (JPA, database mapping)
- * - Fully unit-testable without any framework
- * - Framework-independent and reusable across technologies
+ * This class handles ONLY database mapping concerns. All business logic
+ * stays in the domain entity (UserAccount). Mappers convert between this model
+ * and the domain entity at adapter boundaries.
  *
- * Persistence mapping is handled by:
- * - UserAccountPersistenceModel (in infrastructure/persistence/models/)
- * - UserAccountMapper (in infrastructure/mapper/)
+ * REASON: Clean Architecture principle — domain layer must not depend on
+ * persistence framework. This separation makes the domain reusable across
+ * technologies and testable independently.
  *
- * This separation follows Clean Architecture's inward dependency principle:
- * Domain → no outer layer (framework) dependencies.
+ * Invariant: Always convert to/from UserAccount domain entity at infrastructure
+ * boundaries via UserAccountMapper.
  */
-public class UserAccount {
+@Entity
+@Table(name = "users")
+public class UserAccountPersistenceModel {
 
+    @Id
     private UUID id;
 
+    @Column(nullable = false, length = 64, unique = true)
     private String username;
 
+    @Column(nullable = false, length = 255, unique = true)
     private String email;
 
+    @Column(name = "phone_number", nullable = false, length = 32, unique = true)
     private String phoneNumber;
 
+    @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
 
+    @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
     private UserStatus status;
 
+    @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @PrePersist
     void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
@@ -54,10 +76,12 @@ public class UserAccount {
         updatedAt = createdAt;
     }
 
+    @PreUpdate
     void onUpdate() {
         updatedAt = OffsetDateTime.now();
     }
 
+    // Getters and Setters
     public UUID getId() {
         return id;
     }
