@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.NotificationLogModel;
 import com.foodya.backend.application.ports.out.NotificationLogPort;
 import com.foodya.backend.domain.entities.NotificationLog;
+import com.foodya.backend.infrastructure.mapper.NotificationLogMapper;
 import com.foodya.backend.infrastructure.repository.NotificationLogRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,24 +20,31 @@ import java.util.UUID;
 public class NotificationLogAdapter implements NotificationLogPort {
 
     private final NotificationLogRepository notificationLogRepository;
+    private final NotificationLogMapper mapper;
 
-    public NotificationLogAdapter(NotificationLogRepository notificationLogRepository) {
+    public NotificationLogAdapter(NotificationLogRepository notificationLogRepository, NotificationLogMapper mapper) {
         this.notificationLogRepository = notificationLogRepository;
+        this.mapper = mapper;
     }
 
     @Override
     public NotificationLogModel save(NotificationLogModel notificationLog) {
-        NotificationLog saved = notificationLogRepository.save(Objects.requireNonNull(toEntity(Objects.requireNonNull(notificationLog))));
-        return toModel(saved);
+        var entity = toEntity(Objects.requireNonNull(notificationLog));
+        var model = mapper.toPersistence(entity);
+        var saved = notificationLogRepository.save(model);
+        return toModel(mapper.toDomain(saved));
     }
 
     @Override
     public PaginatedResult<NotificationLogModel> list(int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<NotificationLog> result = notificationLogRepository.findAll(pageable);
+        var result = notificationLogRepository.findAll(pageable);
 
         return new PaginatedResult<>(
-                result.getContent().stream().map(this::toModel).toList(),
+                result.getContent().stream()
+                        .map(mapper::toDomain)
+                        .map(this::toModel)
+                        .toList(),
                 result.getNumber(),
                 result.getSize(),
                 result.getTotalElements(),
@@ -47,9 +55,12 @@ public class NotificationLogAdapter implements NotificationLogPort {
     @Override
     public PaginatedResult<NotificationLogModel> listByReceiver(UUID receiverUserId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<NotificationLog> result = notificationLogRepository.findByReceiverUserId(receiverUserId, pageable);
+        var result = notificationLogRepository.findByReceiverUserId(receiverUserId, pageable);
         return new PaginatedResult<>(
-                result.getContent().stream().map(this::toModel).toList(),
+                result.getContent().stream()
+                        .map(mapper::toDomain)
+                        .map(this::toModel)
+                        .toList(),
                 result.getNumber(),
                 result.getSize(),
                 result.getTotalElements(),
@@ -60,9 +71,12 @@ public class NotificationLogAdapter implements NotificationLogPort {
     @Override
     public Optional<NotificationLogModel> markAsRead(UUID receiverUserId, UUID notificationId, OffsetDateTime readAt) {
         return notificationLogRepository.findByIdAndReceiverUserId(notificationId, receiverUserId)
-                .map(entity -> {
-                    entity.setReadAt(readAt);
-                    return toModel(notificationLogRepository.save(entity));
+                .map(persistenceModel -> {
+                    var domain = mapper.toDomain(persistenceModel);
+                    domain.setReadAt(readAt);
+                    var updated = mapper.toPersistence(domain);
+                    var saved = notificationLogRepository.save(updated);
+                    return toModel(mapper.toDomain(saved));
                 });
     }
 

@@ -3,6 +3,7 @@ package com.foodya.backend.infrastructure.adapter;
 import com.foodya.backend.application.dto.AiChatHistoryModel;
 import com.foodya.backend.application.ports.out.AiChatHistoryPort;
 import com.foodya.backend.domain.entities.AiChatHistory;
+import com.foodya.backend.infrastructure.mapper.AiChatHistoryMapper;
 import com.foodya.backend.infrastructure.repository.AiChatHistoryRepository;
 import org.springframework.stereotype.Component;
 
@@ -15,21 +16,26 @@ import java.util.UUID;
 public class AiChatHistoryAdapter implements AiChatHistoryPort {
 
     private final AiChatHistoryRepository repository;
+    private final AiChatHistoryMapper mapper;
 
-    public AiChatHistoryAdapter(AiChatHistoryRepository repository) {
+    public AiChatHistoryAdapter(AiChatHistoryRepository repository, AiChatHistoryMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
     public AiChatHistoryModel save(AiChatHistoryModel chatHistory) {
-        AiChatHistory saved = repository.save(Objects.requireNonNull(toEntity(Objects.requireNonNull(chatHistory))));
-        return toModel(saved);
+        var entity = toEntity(Objects.requireNonNull(chatHistory));
+        var model = mapper.toPersistence(entity);
+        var saved = repository.save(model);
+        return toModel(mapper.toDomain(saved));
     }
 
     @Override
     public List<AiChatHistoryModel> findByUserIdOrderByCreatedAtDesc(UUID userId) {
         return repository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
+                .map(mapper::toDomain)
                 .map(this::toModel)
                 .toList();
     }
