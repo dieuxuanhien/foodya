@@ -3,6 +3,12 @@ package com.foodya.backend.domain.entities;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * DOMAIN ENTITY: CartItem
+ *
+ * Represents a single line item in a customer's shopping cart.
+ * Contains business logic for quantity management and line total calculation.
+ */
 public class CartItem {
 
     private UUID id;
@@ -63,5 +69,42 @@ public class CartItem {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    /**
+     * Calculates the line total for this cart item.
+     * Line total = unit price × quantity
+     */
+    public BigDecimal calculateLineTotal() {
+        if (unitPriceSnapshot == null) {
+            return BigDecimal.ZERO;
+        }
+        return unitPriceSnapshot.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    /**
+     * Updates the quantity with validation.
+     *
+     * @param newQuantity the new quantity (must be positive)
+     * @throws IllegalArgumentException if quantity is not positive
+     */
+    public void updateQuantity(int newQuantity) {
+        if (newQuantity <= 0) {
+            throw new IllegalArgumentException("quantity must be positive");
+        }
+        this.quantity = newQuantity;
+    }
+
+    /**
+     * Increases the quantity by the specified amount.
+     *
+     * @param additionalQuantity amount to add (must be positive)
+     * @throws IllegalArgumentException if additionalQuantity is not positive
+     */
+    public void increaseQuantity(int additionalQuantity) {
+        if (additionalQuantity <= 0) {
+            throw new IllegalArgumentException("additionalQuantity must be positive");
+        }
+        this.quantity += additionalQuantity;
     }
 }

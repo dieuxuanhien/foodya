@@ -57,10 +57,7 @@ public class CartService implements CartUseCase {
                 .orElseGet(() -> createActiveCart(customerUserId, menuItem.getRestaurantId()));
 
         // BR29: active cart must be scoped to a single restaurant.
-        if (!cart.getRestaurantId().equals(menuItem.getRestaurantId())) {
-            throw new ValidationException("cart restaurant scope violation",
-                    Map.of("restaurantId", "active cart contains another restaurant"));
-        }
+        cart.validateRestaurantScope(menuItem.getRestaurantId());
 
         CartItem line = cartItemPort.findByCartIdAndMenuItemId(cart.getId(), menuItemId)
                 .orElseGet(() -> {
@@ -72,7 +69,7 @@ public class CartService implements CartUseCase {
                     return item;
                 });
 
-        line.setQuantity(line.getQuantity() + quantity);
+        line.increaseQuantity(quantity);
         line.setNote(note);
         cartItemPort.save(line);
 
@@ -81,16 +78,13 @@ public class CartService implements CartUseCase {
 
     @Transactional
     public ActiveCartView updateItem(UUID customerUserId, String menuItemIdRaw, int quantity, String note) {
-        if (quantity <= 0) {
-            throw new ValidationException("invalid quantity", Map.of("quantity", "must be > 0"));
-        }
         UUID menuItemId = parseUuid(menuItemIdRaw, "menuItemId");
 
         Cart cart = requiredActiveCart(customerUserId);
         CartItem line = cartItemPort.findByCartIdAndMenuItemId(cart.getId(), menuItemId)
                 .orElseThrow(() -> new NotFoundException("cart item not found"));
 
-        line.setQuantity(quantity);
+        line.updateQuantity(quantity);
         line.setNote(note);
         cartItemPort.save(line);
 
@@ -129,19 +123,24 @@ public class CartService implements CartUseCase {
 
     private ActiveCartView toView(Cart cart) {
         List<CartItemView> items = cartItemPort.findByCartId(cart.getId()).stream()
-                .map(item -> {
-                    BigDecimal lineTotal = item.getUnitPriceSnapshot().multiply(BigDecimal.valueOf(item.getQuantity()));
-                    return new CartItemView(item.getMenuItemId(), item.getQuantity(), item.getUnitPriceSnapshot(), lineTotal, item.getNote());
-                })
+                .map(item -> new CartItemView(
+                        item.getMenuItemId(),
+                        item.getQuantity(),
+                        item.getUnitPriceSnapshot(),
+                        item.calculateLineTotal(),
+                        item.getNote()))
                 .toList();
 
-        BigDecimal subtotal = items.stream()
-                .map(CartItemView::lineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Load items into cart for domain calculations
+        cart.setItems(cartItemPort.findByCartId(cart.getId()));
 
-        int itemCount = items.stream().mapToInt(CartItemView::quantity).sum();
-
-        return new ActiveCartView(cart.getId(), cart.getRestaurantId(), subtotal, itemCount, items);
+        return new ActiveCartView(
+                cart.getId(),
+                cart.getRestaurantId(),
+                cart.calculateSubtotal(),
+                cart.getTotalItemCount(),
+                items
+        );
     }
 
     private static UUID parseUuid(String raw, String field) {
@@ -153,7 +152,7 @@ public class CartService implements CartUseCase {
     }
 
     private static void assertMenuItemOrderable(MenuItem menuItem) {
-        if (!menuItem.isActive() || !menuItem.isAvailable() || menuItem.getDeletedAt() != null) {
+        if (!menuItem.isOrderable()) {
             throw new ValidationException("menu item is not orderable", Map.of("menuItemId", "inactive or unavailable"));
         }
     }
