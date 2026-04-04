@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.NotificationLogModel;
 import com.foodya.backend.application.ports.out.NotificationLogPort;
 import com.foodya.backend.domain.entities.NotificationLog;
+import com.foodya.backend.infrastructure.mapper.NotificationLogMapper;
 import com.foodya.backend.infrastructure.repository.NotificationLogRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,21 +20,28 @@ import java.util.UUID;
 public class NotificationLogAdapter implements NotificationLogPort {
 
     private final NotificationLogRepository notificationLogRepository;
+    private final NotificationLogMapper notificationLogMapper;
 
-    public NotificationLogAdapter(NotificationLogRepository notificationLogRepository) {
+    public NotificationLogAdapter(NotificationLogRepository notificationLogRepository,
+                                  NotificationLogMapper notificationLogMapper) {
         this.notificationLogRepository = notificationLogRepository;
+        this.notificationLogMapper = notificationLogMapper;
     }
 
     @Override
     public NotificationLogModel save(NotificationLogModel notificationLog) {
-        NotificationLog saved = notificationLogRepository.save(Objects.requireNonNull(toEntity(Objects.requireNonNull(notificationLog))));
+        NotificationLog saved = notificationLogMapper.toDomain(
+            notificationLogRepository.save(
+                Objects.requireNonNull(notificationLogMapper.toPersistence(Objects.requireNonNull(toEntity(Objects.requireNonNull(notificationLog)))))
+            )
+        );
         return toModel(saved);
     }
 
     @Override
     public PaginatedResult<NotificationLogModel> list(int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<NotificationLog> result = notificationLogRepository.findAll(pageable);
+        Page<NotificationLog> result = notificationLogRepository.findAll(pageable).map(notificationLogMapper::toDomain);
 
         return new PaginatedResult<>(
                 result.getContent().stream().map(this::toModel).toList(),
@@ -47,7 +55,8 @@ public class NotificationLogAdapter implements NotificationLogPort {
     @Override
     public PaginatedResult<NotificationLogModel> listByReceiver(UUID receiverUserId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<NotificationLog> result = notificationLogRepository.findByReceiverUserId(receiverUserId, pageable);
+        Page<NotificationLog> result = notificationLogRepository.findByReceiverUserId(receiverUserId, pageable)
+            .map(notificationLogMapper::toDomain);
         return new PaginatedResult<>(
                 result.getContent().stream().map(this::toModel).toList(),
                 result.getNumber(),
@@ -62,7 +71,7 @@ public class NotificationLogAdapter implements NotificationLogPort {
         return notificationLogRepository.findByIdAndReceiverUserId(notificationId, receiverUserId)
                 .map(entity -> {
                     entity.setReadAt(readAt);
-                    return toModel(notificationLogRepository.save(entity));
+                    return toModel(notificationLogMapper.toDomain(notificationLogRepository.save(entity)));
                 });
     }
 
@@ -78,6 +87,8 @@ public class NotificationLogAdapter implements NotificationLogPort {
         entity.setProviderResponse(model.getProviderResponse());
         entity.setSentAt(model.getSentAt());
         entity.setReadAt(model.getReadAt());
+        entity.setId(model.getId());
+        entity.setCreatedAt(model.getCreatedAt());
         return entity;
     }
 

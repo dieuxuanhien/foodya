@@ -2,13 +2,13 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.usecases.CatalogService;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.RestaurantSearchResponse;
+import com.foodya.backend.application.dto.RestaurantSearchView;
 import com.foodya.backend.application.dto.MenuItemModel;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
-import com.foodya.backend.interfaces.rest.dto.PageMeta;
+import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
-import com.foodya.backend.interfaces.rest.mapper.RestDtoMapper;
+import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import com.foodya.backend.application.exception.ValidationException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,7 +37,7 @@ public class RestaurantController {
 
     @GetMapping
     @Operation(summary = "Search restaurants", description = "Grouped restaurant results with matched menu items and optional nearby mode")
-    public ResponseEntity<ApiSuccessResponse<java.util.List<RestaurantSearchResponse>>> search(@RequestParam(required = false) String q,
+    public ResponseEntity<ApiSuccessResponse<java.util.List<RestaurantSearchView>>> search(@RequestParam(required = false) String q,
                                                                                                  @RequestParam(required = false) String cuisine,
                                                                                                  @RequestParam(required = false) BigDecimal minRating,
                                                                                                  @RequestParam(required = false) Boolean openNow,
@@ -48,26 +48,26 @@ public class RestaurantController {
                                                                                                  @RequestParam(required = false) BigDecimal lng,
                                                                                                  @RequestParam(required = false) BigDecimal radiusKm,
                                                                                                  HttpServletRequest httpServletRequest) {
-        PaginatedResult<RestaurantSearchResponse> result = catalogService.searchRestaurants(q, cuisine, minRating, openNow, page, size, sort, lat, lng, radiusKm);
+        PaginatedResult<RestaurantSearchView> result = catalogService.searchRestaurants(q, cuisine, minRating, openNow, page, size, sort, lat, lng, radiusKm);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items(),
-            new PageMeta(result.page(), result.size(), result.totalElements(), result.totalPages()),
+            new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(httpServletRequest)
         ));
     }
 
     @GetMapping("/nearby")
     @Operation(summary = "Nearby restaurants", description = "Nearby list using H3 prefilter and Haversine distance ordering")
-    public ResponseEntity<ApiSuccessResponse<java.util.List<RestaurantSearchResponse>>> nearby(@RequestParam BigDecimal lat,
+    public ResponseEntity<ApiSuccessResponse<java.util.List<RestaurantSearchView>>> nearby(@RequestParam BigDecimal lat,
                                                                                                  @RequestParam BigDecimal lng,
                                                                                                  @RequestParam BigDecimal radiusKm,
                                                                                                  @RequestParam(required = false) Integer page,
                                                                                                  @RequestParam(required = false) Integer size,
                                                                                                  HttpServletRequest httpServletRequest) {
-        PaginatedResult<RestaurantSearchResponse> result = catalogService.nearby(lat, lng, radiusKm, page, size);
+        PaginatedResult<RestaurantSearchView> result = catalogService.nearby(lat, lng, radiusKm, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items(),
-            new PageMeta(result.page(), result.size(), result.totalElements(), result.totalPages()),
+            new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(httpServletRequest)
         ));
     }
@@ -78,7 +78,7 @@ public class RestaurantController {
                                                                                 HttpServletRequest httpServletRequest) {
         UUID restaurantId = parseUuid(id, "id");
         return ResponseEntity.ok(ApiSuccessResponse.of(
-            RestDtoMapper.toRestaurantDetailResponse(catalogService.restaurantDetail(restaurantId)),
+            CommonApiMapper.toRestaurantDetailResponse(catalogService.restaurantDetail(restaurantId)),
                 RequestTrace.from(httpServletRequest)
         ));
     }
@@ -95,8 +95,8 @@ public class RestaurantController {
         UUID restaurantId = parseUuid(id, "id");
         PaginatedResult<MenuItemModel> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
-            result.items().stream().map(RestDtoMapper::toMenuItemResponse).toList(),
-                new PageMeta(result.page(), result.size(), result.totalElements(), result.totalPages()),
+            result.items().stream().map(CommonApiMapper::toMenuItemResponse).toList(),
+                new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(httpServletRequest)
         ));
     }

@@ -5,7 +5,7 @@ import com.foodya.backend.application.ports.in.AiRecommendationUseCase;
 import com.foodya.backend.interfaces.rest.dto.AiChatHistoryResponse;
 import com.foodya.backend.interfaces.rest.dto.AiChatResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.mapper.AiChatRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.AiChatApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,7 +44,7 @@ public class CustomerAiChatController {
     public ApiSuccessResponse<AiChatResponse> create(Authentication authentication,
                                                      @Valid @RequestBody CreateAiChatRequest request,
                                                      HttpServletRequest httpServletRequest) {
-        AiChatResponse data = AiChatRestMapper.toResponse(
+        AiChatResponse data = AiChatApiMapper.toResponse(
                 aiRecommendationService.createChat(CurrentUser.userId(authentication), request)
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
@@ -60,7 +60,7 @@ public class CustomerAiChatController {
                                                                    HttpServletRequest httpServletRequest) {
         List<AiChatHistoryResponse> data = aiRecommendationService.history(CurrentUser.userId(authentication))
                 .stream()
-                .map(AiChatRestMapper::toHistory)
+                .map(AiChatApiMapper::toHistory)
                 .toList();
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
     }

@@ -15,7 +15,6 @@ import com.foodya.backend.domain.entities.MenuItem;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -123,12 +122,19 @@ public class CartService implements CartUseCase {
 
     private ActiveCartView toView(Cart cart) {
         List<CartItemView> items = cartItemPort.findByCartId(cart.getId()).stream()
-                .map(item -> new CartItemView(
-                        item.getMenuItemId(),
-                        item.getQuantity(),
-                        item.getUnitPriceSnapshot(),
-                        item.calculateLineTotal(),
-                        item.getNote()))
+            .map(item -> {
+                String menuItemName = menuItemPort.findById(item.getMenuItemId())
+                    .map(MenuItem::getName)
+                    .orElse("Unknown item");
+
+                return new CartItemView(
+                    item.getMenuItemId(),
+                    menuItemName,
+                    item.getQuantity(),
+                    item.getUnitPriceSnapshot(),
+                    item.calculateLineTotal(),
+                    item.getNote());
+            })
                 .toList();
 
         // Load items into cart for domain calculations
@@ -137,6 +143,7 @@ public class CartService implements CartUseCase {
         return new ActiveCartView(
                 cart.getId(),
                 cart.getRestaurantId(),
+            null,
                 cart.calculateSubtotal(),
                 cart.getTotalItemCount(),
                 items

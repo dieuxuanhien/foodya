@@ -127,7 +127,7 @@ class AdminNotificationIntegrationTests {
     }
 
     private UserAccount seedUser(String stem, UserRole role) {
-        UserAccount user = new UserAccount();
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         user.setUsername(stem);
         user.setEmail(stem + "@test.local");
         user.setPhoneNumber("+8490" + Math.abs(stem.hashCode() % 10000000));
@@ -135,7 +135,7 @@ class AdminNotificationIntegrationTests {
         user.setRole(role);
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        return userAccountRepository.save(user);
+        return new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
     }
 
     private Restaurant seedRestaurant(UserAccount owner, String name) {

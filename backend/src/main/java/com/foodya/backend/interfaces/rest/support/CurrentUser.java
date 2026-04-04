@@ -1,7 +1,7 @@
 package com.foodya.backend.interfaces.rest.support;
 
 import com.foodya.backend.application.exception.UnauthorizedException;
-import com.foodya.backend.application.security.CurrentUserPrincipal;
+import com.foodya.backend.application.security.AuthenticatedUserPrincipal;
 import org.springframework.security.core.Authentication;
 
 import java.util.UUID;
@@ -17,7 +17,7 @@ public final class CurrentUser {
         }
 
         Object principal = authentication.getPrincipal();
-        if (principal instanceof CurrentUserPrincipal currentUserPrincipal) {
+        if (principal instanceof AuthenticatedUserPrincipal currentUserPrincipal) {
             return currentUserPrincipal.userId();
         }
 

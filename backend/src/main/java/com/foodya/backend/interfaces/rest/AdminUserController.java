@@ -6,7 +6,7 @@ import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.AdminUserUseCase;
 import com.foodya.backend.interfaces.rest.dto.AdminUserResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.dto.PageMeta;
+import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,7 +52,7 @@ public class AdminUserController {
                                                                              HttpServletRequest httpServletRequest) {
         PaginatedResult<AdminUserSummaryView> result = adminUserService.list(q, page, size);
         List<AdminUserResponse> data = result.items().stream().map(this::toResponse).toList();
-        PageMeta meta = new PageMeta(result.page(), result.size(), result.totalElements(), result.totalPages());
+        PageMetadata meta = new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages());
 
         return ResponseEntity.ok(ApiSuccessResponse.of(data, meta, RequestTrace.from(httpServletRequest)));
     }

@@ -614,11 +614,6 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     }
 
     private String buildSummary(String aiDraft, List<AiRecommendationItemView> recommendations, RecommendationIntent intent) {
-        String draftText = extractModelText(aiDraft);
-        if (draftText != null && !draftText.isBlank()) {
-            return truncate(draftText.replaceAll("\\s+", " ").trim(), 400);
-        }
-
         if (intent.nearbyRestaurantQuery() && !recommendations.isEmpty()) {
             String nearby = recommendations.stream()
                     .map(item -> item.restaurantName() + " (" + safeDecimal(item.distanceKm()) + " km)")
@@ -627,6 +622,11 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                     .reduce((a, b) -> a + ", " + b)
                     .orElse("none");
             return truncate("Nearby restaurants within delivery range: " + nearby, 400);
+        }
+
+        String draftText = extractModelText(aiDraft);
+        if (draftText != null && !draftText.isBlank()) {
+            return truncate(draftText.replaceAll("\\s+", " ").trim(), 400);
         }
 
         if (recommendations.isEmpty()) {

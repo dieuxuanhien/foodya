@@ -147,7 +147,7 @@ class CatalogIntegrationTests {
         }
 
     private Restaurant seedRestaurant(String name, BigDecimal lat, BigDecimal lng) {
-        UserAccount owner = new UserAccount();
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel owner = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         owner.setUsername("owner-" + name.replace(" ", "-").toLowerCase());
         owner.setEmail(name.replace(" ", "").toLowerCase() + "@example.com");
         owner.setPhoneNumber("+8490" + Math.abs(name.hashCode() % 10000000));
@@ -155,7 +155,7 @@ class CatalogIntegrationTests {
         owner.setRole(UserRole.MERCHANT);
         owner.setStatus(UserStatus.ACTIVE);
         owner.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        UserAccount savedOwner = userAccountRepository.save(owner);
+        UserAccount savedOwner = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(owner));
 
         Restaurant restaurant = new Restaurant();
         restaurant.setOwnerUserId(savedOwner.getId());

@@ -4,7 +4,7 @@ import com.foodya.backend.application.dto.RespondOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderReviewRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,7 +36,7 @@ public class MerchantReviewController {
                                                            @PathVariable UUID reviewId,
                                                            @Valid @RequestBody RespondOrderReviewRequest request,
                                                            HttpServletRequest httpServletRequest) {
-        OrderReviewResponse data = OrderReviewRestMapper.toResponse(
+        OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.merchantRespond(CurrentUser.userId(authentication), reviewId, request.response())
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
@@ -47,7 +47,7 @@ public class MerchantReviewController {
                                                                          @PathVariable UUID reviewId,
                                                                          @Valid @RequestBody RespondOrderReviewRequest request,
                                                                          HttpServletRequest httpServletRequest) {
-        OrderReviewResponse data = OrderReviewRestMapper.toResponse(
+        OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.merchantRespond(CurrentUser.userId(authentication), reviewId, request.response())
         );
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -5,7 +5,7 @@ import com.foodya.backend.application.dto.OrderCreatedView;
 import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderCreatedResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +47,6 @@ public class CustomerOrderController {
                                                                                  HttpServletRequest httpServletRequest) {
         OrderCreatedView view = orderCheckoutService.createOrder(CurrentUser.userId(authentication), idempotencyKey, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiSuccessResponse.of(OrderRestMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+            .body(ApiSuccessResponse.of(OrderApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 }

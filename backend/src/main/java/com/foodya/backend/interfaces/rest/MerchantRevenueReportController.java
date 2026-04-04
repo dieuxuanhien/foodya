@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.in.RevenueReportUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.RevenueReportResponse;
-import com.foodya.backend.interfaces.rest.mapper.RevenueReportRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.RevenueReportApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,7 +54,7 @@ public class MerchantRevenueReportController {
                                                                               @Parameter(description = "Top selling items limit (1..20)")
                                                                               @RequestParam(required = false) Integer topItems,
                                                                               HttpServletRequest request) {
-        RevenueReportResponse data = RevenueReportRestMapper.toResponse(
+        RevenueReportResponse data = RevenueReportApiMapper.toResponse(
                 revenueReportService.merchantRevenueReport(CurrentUser.userId(authentication), from, to, topItems)
         );
         return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(request)));

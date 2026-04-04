@@ -1,5 +1,6 @@
 package com.foodya.backend.domain.entities;
 
+import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.domain.value_objects.CartStatus;
 
 import java.math.BigDecimal;
@@ -7,6 +8,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -97,8 +99,13 @@ public class Cart {
      */
     public void validateRestaurantScope(UUID menuItemRestaurantId) {
         if (!this.restaurantId.equals(menuItemRestaurantId)) {
-            throw new IllegalStateException("cart restaurant scope violation: cart is for restaurant "
-                + restaurantId + " but menu item is from " + menuItemRestaurantId);
+            throw new ValidationException(
+                "cart restaurant scope violation",
+                Map.of(
+                    "restaurantId", String.valueOf(restaurantId),
+                    "menuItemRestaurantId", String.valueOf(menuItemRestaurantId)
+                )
+            );
         }
     }
 

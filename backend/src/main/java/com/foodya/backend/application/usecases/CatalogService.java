@@ -1,10 +1,10 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.dto.MatchedMenuItemResponse;
+import com.foodya.backend.application.dto.MatchedMenuItemView;
 import com.foodya.backend.application.dto.MenuItemModel;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantModel;
-import com.foodya.backend.application.dto.RestaurantSearchResponse;
+import com.foodya.backend.application.dto.RestaurantSearchView;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.out.CatalogQueryPort;
@@ -45,7 +45,7 @@ public class CatalogService {
         this.geoPort = geoPort;
     }
 
-    public PaginatedResult<RestaurantSearchResponse> searchRestaurants(String q,
+    public PaginatedResult<RestaurantSearchView> searchRestaurants(String q,
                                                                        String cuisine,
                                                                        BigDecimal minRating,
                                                                        Boolean openNow,
@@ -78,13 +78,13 @@ public class CatalogService {
         int to = Math.min(sorted.size(), from + spec.size());
         List<RestaurantModel> pageContent = from >= sorted.size() ? List.of() : sorted.subList(from, to);
 
-        List<RestaurantSearchResponse> responses = pageContent.stream()
-                .map(restaurant -> RestaurantSearchResponse.from(
+        List<RestaurantSearchView> responses = pageContent.stream()
+                .map(restaurant -> RestaurantSearchView.from(
                         restaurant,
                         resolvedDistanceByRestaurant.get(restaurant.getId()),
                         matchedItemsByRestaurant.getOrDefault(restaurant.getId(), List.of())
                                 .stream()
-                                .map(MatchedMenuItemResponse::from)
+                                .map(MatchedMenuItemView::from)
                                 .toList()
                 ))
                 .toList();
@@ -93,7 +93,7 @@ public class CatalogService {
         return new PaginatedResult<>(responses, spec.page(), spec.size(), sorted.size(), totalPages);
     }
 
-    public PaginatedResult<RestaurantSearchResponse> nearby(BigDecimal lat,
+    public PaginatedResult<RestaurantSearchView> nearby(BigDecimal lat,
                                                             BigDecimal lng,
                                                             BigDecimal radiusKm,
                                                             Integer page,
@@ -115,8 +115,8 @@ public class CatalogService {
         int to = Math.min(sorted.size(), from + spec.size());
         List<RestaurantModel> pageContent = from >= sorted.size() ? List.of() : sorted.subList(from, to);
 
-        List<RestaurantSearchResponse> responses = pageContent.stream()
-                .map(restaurant -> RestaurantSearchResponse.from(restaurant, distanceByRestaurant.get(restaurant.getId()), List.of()))
+        List<RestaurantSearchView> responses = pageContent.stream()
+                .map(restaurant -> RestaurantSearchView.from(restaurant, distanceByRestaurant.get(restaurant.getId()), List.of()))
                 .toList();
 
         int totalPages = (int) Math.ceil((double) sorted.size() / spec.size());

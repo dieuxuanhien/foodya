@@ -5,7 +5,7 @@ import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.ports.in.NotificationUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.NotificationLogResponse;
-import com.foodya.backend.interfaces.rest.dto.PageMeta;
+import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +35,7 @@ public class AdminNotificationController {
 
         return ResponseEntity.ok(ApiSuccessResponse.of(
                 data,
-                new PageMeta(result.page(), result.size(), result.totalElements(), result.totalPages()),
+                new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(request)
         ));
     }

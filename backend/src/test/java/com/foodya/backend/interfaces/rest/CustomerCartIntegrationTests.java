@@ -167,7 +167,7 @@ class CustomerCartIntegrationTests {
     }
 
     private String customerAccessToken(String username, String email, String phoneNumber) {
-        UserAccount user = new UserAccount();
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         user.setUsername(username);
         user.setEmail(email);
         user.setPhoneNumber(phoneNumber);
@@ -175,12 +175,12 @@ class CustomerCartIntegrationTests {
         user.setRole(UserRole.CUSTOMER);
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        UserAccount saved = userAccountRepository.save(user);
+        UserAccount saved = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
         return tokenService.issueAccessToken(AuthPersistenceMapper.toModel(saved), UUID.randomUUID().toString());
     }
 
     private Restaurant seedRestaurant(String name, BigDecimal lat, BigDecimal lng) {
-        UserAccount owner = new UserAccount();
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel owner = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         owner.setUsername("owner-" + name.toLowerCase());
         owner.setEmail(name.toLowerCase() + "@merchant.test");
         owner.setPhoneNumber("+8490" + Math.abs(name.hashCode() % 10000000));
@@ -188,7 +188,7 @@ class CustomerCartIntegrationTests {
         owner.setRole(UserRole.MERCHANT);
         owner.setStatus(UserStatus.ACTIVE);
         owner.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        UserAccount savedOwner = userAccountRepository.save(owner);
+        UserAccount savedOwner = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(owner));
 
         Restaurant restaurant = new Restaurant();
         restaurant.setOwnerUserId(savedOwner.getId());

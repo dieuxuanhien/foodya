@@ -1,49 +1,30 @@
 package com.foodya.backend.domain.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "ai_chat_histories")
 public class AiChatHistory {
 
-    @Id
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(nullable = false, columnDefinition = "text")
     private String prompt;
 
-    @Column(name = "response_summary", nullable = false, columnDefinition = "text")
     private String responseSummary;
 
-    @Column(name = "context_latitude", precision = 10, scale = 7)
     private BigDecimal contextLatitude;
 
-    @Column(name = "context_longitude", precision = 10, scale = 7)
     private BigDecimal contextLongitude;
 
-    @Column(name = "weather_h3_index_res8", length = 32)
     private String weatherH3IndexRes8;
 
-    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    @PrePersist
-    void onCreate() {
+    public void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
         }
@@ -52,13 +33,16 @@ public class AiChatHistory {
         updatedAt = now;
     }
 
-    @PreUpdate
-    void onUpdate() {
+    public void onUpdate() {
         updatedAt = OffsetDateTime.now();
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public UUID getUserId() {
@@ -111,5 +95,17 @@ public class AiChatHistory {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

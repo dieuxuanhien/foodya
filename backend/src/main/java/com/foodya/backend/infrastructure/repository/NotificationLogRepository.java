@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.repository;
 
-import com.foodya.backend.domain.entities.NotificationLog;
+import com.foodya.backend.infrastructure.persistence.models.NotificationLogPersistenceModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,9 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface NotificationLogRepository extends JpaRepository<NotificationLog, UUID> {
+public interface NotificationLogRepository extends JpaRepository<NotificationLogPersistenceModel, UUID> {
 
-	Page<NotificationLog> findByReceiverUserId(UUID receiverUserId, Pageable pageable);
+	Page<NotificationLogPersistenceModel> findByReceiverUserId(UUID receiverUserId, Pageable pageable);
 
-	Optional<NotificationLog> findByIdAndReceiverUserId(UUID id, UUID receiverUserId);
+	Optional<NotificationLogPersistenceModel> findByIdAndReceiverUserId(UUID id, UUID receiverUserId);
 }

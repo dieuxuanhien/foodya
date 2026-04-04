@@ -2,59 +2,35 @@ package com.foodya.backend.domain.entities;
 
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "users")
 public class UserAccount {
 
-    @Id
     private UUID id;
 
-    @Column(nullable = false, length = 64, unique = true)
     private String username;
 
-    @Column(nullable = false, length = 255, unique = true)
     private String email;
 
-    @Column(name = "phone_number", nullable = false, length = 32, unique = true)
     private String phoneNumber;
 
-    @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
 
-    @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
     private UserRole role;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
     private UserStatus status;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    @PrePersist
-    void onCreate() {
+    public void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
         }
@@ -62,13 +38,16 @@ public class UserAccount {
         updatedAt = createdAt;
     }
 
-    @PreUpdate
-    void onUpdate() {
+    public void onUpdate() {
         updatedAt = OffsetDateTime.now();
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -133,5 +112,21 @@ public class UserAccount {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

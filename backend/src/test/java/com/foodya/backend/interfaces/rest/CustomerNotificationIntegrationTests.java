@@ -1,13 +1,13 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.out.TokenPort;
-import com.foodya.backend.domain.entities.NotificationLog;
 import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.domain.value_objects.NotificationReceiverType;
 import com.foodya.backend.domain.value_objects.NotificationStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
+import com.foodya.backend.infrastructure.persistence.models.NotificationLogPersistenceModel;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
@@ -88,7 +88,7 @@ class CustomerNotificationIntegrationTests {
         UserAccount customer = seedUser("customer-noti-a", UserRole.CUSTOMER);
         UserAccount otherCustomer = seedUser("customer-noti-b", UserRole.CUSTOMER);
 
-        NotificationLog target = seedNotification(customer.getId(), "ORDER_ACCEPTED", "Order accepted");
+        NotificationLogPersistenceModel target = seedNotification(customer.getId(), "ORDER_ACCEPTED", "Order accepted");
         seedNotification(customer.getId(), "ORDER_PREPARING", "Kitchen is preparing your order");
         seedNotification(otherCustomer.getId(), "ORDER_CANCELLED", "Order cancelled");
 
@@ -116,7 +116,7 @@ class CustomerNotificationIntegrationTests {
         UserAccount customer = seedUser("customer-noti-owner", UserRole.CUSTOMER);
         UserAccount otherCustomer = seedUser("customer-noti-other", UserRole.CUSTOMER);
 
-        NotificationLog target = seedNotification(customer.getId(), "ORDER_READY", "Order is ready for pickup");
+        NotificationLogPersistenceModel target = seedNotification(customer.getId(), "ORDER_READY", "Order is ready for pickup");
 
         String otherCustomerToken = tokenService.issueAccessToken(
                 AuthPersistenceMapper.toModel(otherCustomer),
@@ -131,7 +131,7 @@ class CustomerNotificationIntegrationTests {
     }
 
     private UserAccount seedUser(String stem, UserRole role) {
-        UserAccount user = new UserAccount();
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         user.setUsername(stem);
         user.setEmail(stem + "@test.local");
         user.setPhoneNumber("+8490" + Math.abs(stem.hashCode() % 10000000));
@@ -139,11 +139,11 @@ class CustomerNotificationIntegrationTests {
         user.setRole(role);
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        return userAccountRepository.save(user);
+        return new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
     }
 
-    private NotificationLog seedNotification(UUID receiverUserId, String eventType, String title) {
-        NotificationLog log = new NotificationLog();
+    private NotificationLogPersistenceModel seedNotification(UUID receiverUserId, String eventType, String title) {
+        NotificationLogPersistenceModel log = new NotificationLogPersistenceModel();
         log.setReceiverUserId(receiverUserId);
         log.setReceiverType(NotificationReceiverType.CUSTOMER);
         log.setEventType(eventType);

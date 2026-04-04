@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderReviewRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +29,7 @@ public class RestaurantReviewController {
                                                                  HttpServletRequest httpServletRequest) {
         List<OrderReviewResponse> data = orderReviewService.listRestaurantReviews(restaurantId)
                 .stream()
-                .map(OrderReviewRestMapper::toResponse)
+                .map(OrderReviewApiMapper::toResponse)
                 .toList();
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
     }

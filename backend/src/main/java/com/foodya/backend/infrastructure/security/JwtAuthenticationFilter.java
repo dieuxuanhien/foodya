@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            AuthPrincipal principal = new AuthPrincipal(
+            JwtUserPrincipal principal = new JwtUserPrincipal(
                     UUID.fromString(claims.subject()),
                     claims.getString(TokenPort.CLAIM_ROLE)
             );

@@ -1,17 +1,17 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.in.AuthUseCase;
-import com.foodya.backend.application.dto.ForgotPasswordResponse;
+import com.foodya.backend.application.dto.ForgotPasswordResult;
 import com.foodya.backend.application.dto.LoginRequest;
 import com.foodya.backend.application.dto.RegisterRequest;
-import com.foodya.backend.application.dto.TokenPairResponse;
-import com.foodya.backend.application.dto.VerifyOtpResponse;
+import com.foodya.backend.application.dto.TokenPairResult;
+import com.foodya.backend.application.dto.VerifyOtpResult;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.dto.ForgotPasswordRequest;
-import com.foodya.backend.interfaces.rest.dto.LogoutRequest;
-import com.foodya.backend.interfaces.rest.dto.RefreshRequest;
-import com.foodya.backend.interfaces.rest.dto.ResetPasswordRequest;
-import com.foodya.backend.interfaces.rest.dto.VerifyOtpRequest;
+import com.foodya.backend.interfaces.rest.dto.ForgotPasswordApiRequest;
+import com.foodya.backend.interfaces.rest.dto.LogoutApiRequest;
+import com.foodya.backend.interfaces.rest.dto.RefreshApiRequest;
+import com.foodya.backend.interfaces.rest.dto.ResetPasswordApiRequest;
+import com.foodya.backend.interfaces.rest.dto.VerifyOtpApiRequest;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +46,7 @@ public class AuthController {
             @ApiResponse(responseCode = "422", description = "Validation failed"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<TokenPairResponse>> register(@Valid @RequestBody RegisterRequest request,
+    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> register(@Valid @RequestBody RegisterRequest request,
                                                                            HttpServletRequest httpServletRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(authService.register(request), RequestTrace.from(httpServletRequest)));
@@ -60,7 +60,7 @@ public class AuthController {
             @ApiResponse(responseCode = "403", description = "Account not active"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<TokenPairResponse>> login(@Valid @RequestBody LoginRequest request,
+    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> login(@Valid @RequestBody LoginRequest request,
                                                                         HttpServletRequest httpServletRequest) {
         return ResponseEntity.ok(ApiSuccessResponse.of(authService.login(request), RequestTrace.from(httpServletRequest)));
     }
@@ -72,7 +72,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Refresh token invalid/reused"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<TokenPairResponse>> refresh(@Valid @RequestBody RefreshRequest request,
+    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> refresh(@Valid @RequestBody RefreshApiRequest request,
                                                                           HttpServletRequest httpServletRequest) {
         return ResponseEntity.ok(ApiSuccessResponse.of(authService.refresh(request.refreshToken()), RequestTrace.from(httpServletRequest)));
     }
@@ -83,7 +83,7 @@ public class AuthController {
             @ApiResponse(responseCode = "202", description = "OTP challenge issued"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<ForgotPasswordResponse>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+    public ResponseEntity<ApiSuccessResponse<ForgotPasswordResult>> forgotPassword(@Valid @RequestBody ForgotPasswordApiRequest request,
                                                                                       HttpServletRequest httpServletRequest) {
         return ResponseEntity.status(HttpStatus.ACCEPTED)
             .body(ApiSuccessResponse.of(authService.forgotPassword(request.email()), RequestTrace.from(httpServletRequest)));
@@ -96,7 +96,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Challenge/OTP invalid"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<VerifyOtpResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request,
+    public ResponseEntity<ApiSuccessResponse<VerifyOtpResult>> verifyOtp(@Valid @RequestBody VerifyOtpApiRequest request,
                                                                             HttpServletRequest httpServletRequest) {
         return ResponseEntity.ok(ApiSuccessResponse.of(authService.verifyOtp(request.challengeToken(), request.otp()), RequestTrace.from(httpServletRequest)));
     }
@@ -109,7 +109,7 @@ public class AuthController {
             @ApiResponse(responseCode = "422", description = "Password validation failed"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+    public ResponseEntity<ApiSuccessResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordApiRequest request,
                                                                      HttpServletRequest httpServletRequest) {
         authService.resetPassword(request.resetToken(), request.newPassword(), request.confirmPassword());
         return ResponseEntity.ok(ApiSuccessResponse.of("password-reset", RequestTrace.from(httpServletRequest)));
@@ -124,7 +124,7 @@ public class AuthController {
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
     public ResponseEntity<ApiSuccessResponse<String>> logout(Authentication authentication,
-                                                              @Valid @RequestBody LogoutRequest request,
+                                                              @Valid @RequestBody LogoutApiRequest request,
                                                               HttpServletRequest httpServletRequest) {
         authService.logout(request.refreshToken(), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of("logged-out", RequestTrace.from(httpServletRequest)));

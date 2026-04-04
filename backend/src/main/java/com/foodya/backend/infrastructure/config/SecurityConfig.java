@@ -2,8 +2,8 @@ package com.foodya.backend.infrastructure.config;
 
 import com.foodya.backend.infrastructure.security.JwtAuthenticationFilter;
 import com.foodya.backend.infrastructure.security.RateLimitingFilter;
-import com.foodya.backend.infrastructure.security.RestAccessDeniedHandler;
-import com.foodya.backend.infrastructure.security.RestAuthenticationEntryPoint;
+import com.foodya.backend.infrastructure.security.ApiAccessDeniedHandler;
+import com.foodya.backend.infrastructure.security.ApiAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,17 +20,17 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
-    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
-    private final RestAccessDeniedHandler restAccessDeniedHandler;
+    private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
+    private final ApiAccessDeniedHandler apiAccessDeniedHandler;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           RateLimitingFilter rateLimitingFilter,
-                          RestAuthenticationEntryPoint restAuthenticationEntryPoint,
-                          RestAccessDeniedHandler restAccessDeniedHandler) {
+                          ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
+                          ApiAccessDeniedHandler apiAccessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.rateLimitingFilter = rateLimitingFilter;
-        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
-        this.restAccessDeniedHandler = restAccessDeniedHandler;
+        this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
+        this.apiAccessDeniedHandler = apiAccessDeniedHandler;
     }
 
     @Bean
@@ -38,8 +38,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(restAuthenticationEntryPoint)
-                .accessDeniedHandler(restAccessDeniedHandler)
+                .authenticationEntryPoint(apiAuthenticationEntryPoint)
+                .accessDeniedHandler(apiAccessDeniedHandler)
             )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(

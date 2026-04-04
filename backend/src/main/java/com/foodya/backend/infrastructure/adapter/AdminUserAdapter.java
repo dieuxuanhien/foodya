@@ -4,6 +4,8 @@ import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.ports.out.AdminUserPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.infrastructure.mapper.UserAccountMapper;
+import com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel;
 import com.foodya.backend.infrastructure.repository.AdminUserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,15 +21,17 @@ import java.util.UUID;
 public class AdminUserAdapter implements AdminUserPort {
 
     private final AdminUserRepository repository;
+    private final UserAccountMapper mapper;
 
-    public AdminUserAdapter(AdminUserRepository repository) {
+    public AdminUserAdapter(AdminUserRepository repository, UserAccountMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
     public PaginatedResult<UserAccount> search(String keyword, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<UserAccount> result;
+        Page<UserAccountPersistenceModel> result;
         if (keyword == null || keyword.isBlank()) {
             result = repository.findAll(pageable);
         } else {
@@ -42,7 +46,7 @@ public class AdminUserAdapter implements AdminUserPort {
         }
 
         return new PaginatedResult<>(
-                result.getContent(),
+                    result.map(mapper::toDomain).getContent(),
                 result.getNumber(),
                 result.getSize(),
                 result.getTotalElements(),
@@ -52,17 +56,18 @@ public class AdminUserAdapter implements AdminUserPort {
 
     @Override
     public Optional<UserAccount> findById(UUID userId) {
-        return repository.findById(Objects.requireNonNull(userId));
+        return repository.findById(Objects.requireNonNull(userId)).map(mapper::toDomain);
     }
 
     @Override
     public UserAccount save(UserAccount userAccount) {
-        return repository.save(Objects.requireNonNull(userAccount));
+        UserAccount saved = mapper.toDomain(repository.save(Objects.requireNonNull(mapper.toPersistence(Objects.requireNonNull(userAccount)))));
+        return saved;
     }
 
     @Override
     public void delete(UserAccount userAccount) {
-        repository.delete(Objects.requireNonNull(userAccount));
+        repository.delete(Objects.requireNonNull(mapper.toPersistence(Objects.requireNonNull(userAccount))));
     }
 
     @Override

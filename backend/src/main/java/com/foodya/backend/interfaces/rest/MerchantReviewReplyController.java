@@ -4,7 +4,7 @@ import com.foodya.backend.application.dto.RespondOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderReviewRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +33,7 @@ public class MerchantReviewReplyController {
                                                               @PathVariable UUID id,
                                                               @Valid @RequestBody RespondOrderReviewRequest request,
                                                               HttpServletRequest httpServletRequest) {
-        OrderReviewResponse data = OrderReviewRestMapper.toResponse(
+        OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.merchantRespond(CurrentUser.userId(authentication), id, request.response())
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));

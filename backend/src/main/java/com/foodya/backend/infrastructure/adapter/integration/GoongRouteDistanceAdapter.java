@@ -3,7 +3,7 @@ package com.foodya.backend.infrastructure.adapter.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodya.backend.application.ports.out.RouteDistancePort;
-import com.foodya.backend.infrastructure.integration.GoongMapsAdapter;
+import com.foodya.backend.infrastructure.integration.GoongMapsClient;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -12,11 +12,11 @@ import java.math.RoundingMode;
 @Component
 public class GoongRouteDistanceAdapter implements RouteDistancePort {
 
-    private final GoongMapsAdapter goongMapsAdapter;
+    private final GoongMapsClient goongMapsClient;
     private final ObjectMapper objectMapper;
 
-    public GoongRouteDistanceAdapter(GoongMapsAdapter goongMapsAdapter, ObjectMapper objectMapper) {
-        this.goongMapsAdapter = goongMapsAdapter;
+    public GoongRouteDistanceAdapter(GoongMapsClient goongMapsClient, ObjectMapper objectMapper) {
+        this.goongMapsClient = goongMapsClient;
         this.objectMapper = objectMapper;
     }
 
@@ -25,7 +25,7 @@ public class GoongRouteDistanceAdapter implements RouteDistancePort {
                                       double originLng,
                                       double destinationLat,
                                       double destinationLng) {
-        String raw = goongMapsAdapter.routeDistanceRaw(
+        String raw = goongMapsClient.routeDistanceRaw(
                 originLat + "," + originLng,
                 destinationLat + "," + destinationLng
         );

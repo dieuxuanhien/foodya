@@ -8,11 +8,11 @@ import com.foodya.backend.domain.policies.PasswordPolicy;
 import com.foodya.backend.domain.services.PhoneNormalizer;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
-import com.foodya.backend.application.dto.ForgotPasswordResponse;
+import com.foodya.backend.application.dto.ForgotPasswordResult;
 import com.foodya.backend.application.dto.LoginRequest;
 import com.foodya.backend.application.dto.RegisterRequest;
-import com.foodya.backend.application.dto.TokenPairResponse;
-import com.foodya.backend.application.dto.VerifyOtpResponse;
+import com.foodya.backend.application.dto.TokenPairResult;
+import com.foodya.backend.application.dto.VerifyOtpResult;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.UnauthorizedException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -66,7 +66,7 @@ public class AuthService implements AuthUseCase {
     }
 
     @Transactional
-    public TokenPairResponse register(RegisterRequest request) {
+    public TokenPairResult register(RegisterRequest request) {
         validateRole(request.role());
         validateUniqueness(request.username(), request.email(), request.phoneNumber());
         validatePassword(request.password());
@@ -86,7 +86,7 @@ public class AuthService implements AuthUseCase {
     }
 
     @Transactional
-    public TokenPairResponse login(LoginRequest request) {
+    public TokenPairResult login(LoginRequest request) {
         UserAccountModel user = userByUsernameOrEmail(request.usernameOrEmail())
                 .orElseThrow(() -> new UnauthorizedException("invalid credentials"));
 
@@ -102,7 +102,7 @@ public class AuthService implements AuthUseCase {
     }
 
     @Transactional
-    public TokenPairResponse refresh(String refreshToken) {
+    public TokenPairResult refresh(String refreshToken) {
         TokenClaims claims = parseTypedToken(refreshToken, TokenPort.TOKEN_TYPE_REFRESH);
         String jti = claims.id();
         String family = claims.getString("family");
@@ -152,10 +152,10 @@ public class AuthService implements AuthUseCase {
     }
 
     @Transactional
-    public ForgotPasswordResponse forgotPassword(String email) {
+    public ForgotPasswordResult forgotPassword(String email) {
         UserAccountModel user = userAccountPort.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
         if (user == null) {
-            return new ForgotPasswordResponse("", "If this account exists, OTP has been sent");
+            return new ForgotPasswordResult("", "If this account exists, OTP has been sent");
         }
 
         String challengeToken = UUID.randomUUID().toString();
@@ -171,11 +171,11 @@ public class AuthService implements AuthUseCase {
         auditLogService.securityEvent(user.getId().toString(), "AUTH_FORGOT_PASSWORD", "USER", user.getId().toString(), null, challengeToken);
 
         String hint = maskEmail(user.getEmail());
-        return new ForgotPasswordResponse(challengeToken, hint);
+        return new ForgotPasswordResult(challengeToken, hint);
     }
 
     @Transactional
-    public VerifyOtpResponse verifyOtp(String challengeToken, String otp) {
+    public VerifyOtpResult verifyOtp(String challengeToken, String otp) {
         PasswordResetChallengeModel challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
                 .orElseThrow(() -> new UnauthorizedException("invalid challenge token"));
 
@@ -191,7 +191,7 @@ public class AuthService implements AuthUseCase {
         auditLogService.securityEvent(challenge.getUser().getId().toString(), "AUTH_VERIFY_OTP", "USER", challenge.getUser().getId().toString(), null, "verified");
 
         String resetToken = tokenPort.issueResetToken(challenge.getUser(), UUID.randomUUID().toString(), challengeToken);
-        return new VerifyOtpResponse(resetToken);
+        return new VerifyOtpResult(resetToken);
     }
 
     @Transactional
@@ -225,11 +225,11 @@ public class AuthService implements AuthUseCase {
         logoutAll(user.getId());
     }
 
-    private TokenPairResponse issueTokenPair(UserAccountModel user, String family) {
+    private TokenPairResult issueTokenPair(UserAccountModel user, String family) {
         return issueTokenPair(user, family, UUID.randomUUID().toString());
     }
 
-    private TokenPairResponse issueTokenPair(UserAccountModel user, String family, String refreshJti) {
+    private TokenPairResult issueTokenPair(UserAccountModel user, String family, String refreshJti) {
         String accessJti = UUID.randomUUID().toString();
         String accessToken = tokenPort.issueAccessToken(user, accessJti);
         String refreshToken = tokenPort.issueRefreshToken(user, refreshJti, family);
@@ -242,7 +242,7 @@ public class AuthService implements AuthUseCase {
         refresh.setExpiresAt(refreshClaims.expiresAt());
         refreshTokenPort.save(refresh);
 
-        return new TokenPairResponse(accessToken, refreshToken);
+        return new TokenPairResult(accessToken, refreshToken);
     }
 
     private void validateRole(UserRole role) {

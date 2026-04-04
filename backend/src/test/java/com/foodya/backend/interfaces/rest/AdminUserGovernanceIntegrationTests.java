@@ -184,7 +184,7 @@ class AdminUserGovernanceIntegrationTests {
                                  String phone,
                                  UserRole role,
                                  String rawPassword) {
-        UserAccount user = new UserAccount();
+                com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         user.setUsername(username);
         user.setEmail(email);
         user.setPhoneNumber(phone);
@@ -192,7 +192,7 @@ class AdminUserGovernanceIntegrationTests {
         user.setRole(role);
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        return userAccountRepository.save(user);
+                return new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
     }
 
     private String login(String username, String password) throws Exception {

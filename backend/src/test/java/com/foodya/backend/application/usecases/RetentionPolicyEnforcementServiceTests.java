@@ -4,7 +4,7 @@ import com.foodya.backend.application.ports.out.AiChatHistoryPort;
 import com.foodya.backend.application.ports.out.AuditLogPort;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
-import com.foodya.backend.application.usecases.policy.RetentionPolicyEnforcementUseCase;
+import com.foodya.backend.application.usecases.policy.RetentionPolicyEnforcementService;
 import com.foodya.backend.domain.value_objects.ParameterValueType;
 import com.foodya.backend.domain.entities.SystemParameter;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(22L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(33L);
 
-        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
+        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -74,7 +74,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(2L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(3L);
 
-        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
+        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -106,7 +106,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(2L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(3L);
 
-        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
+        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,
@@ -136,7 +136,7 @@ class RetentionPolicyEnforcementServiceTests {
         when(trackingPointPort.deleteByRecordedAtBefore(any())).thenReturn(2L);
         when(aiChatHistoryPort.deleteByCreatedAtBefore(any())).thenReturn(3L);
 
-        RetentionPolicyEnforcementUseCase service = new RetentionPolicyEnforcementUseCase(
+        RetentionPolicyEnforcementService service = new RetentionPolicyEnforcementService(
                 systemParameterPort,
                 auditLogPort,
                 trackingPointPort,

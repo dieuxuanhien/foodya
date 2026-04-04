@@ -2,11 +2,11 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.dto.CancelOrderRestRequest;
+import com.foodya.backend.interfaces.rest.dto.CancelOrderApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderTrackingPointResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,7 +36,7 @@ public class CustomerOrderLifecycleController {
                                                                    HttpServletRequest request) {
         List<OrderSummaryResponse> data = orderLifecycleService.customerOrders(CurrentUser.userId(authentication))
                 .stream()
-                .map(OrderLifecycleRestMapper::toSummary)
+                .map(OrderLifecycleApiMapper::toSummary)
                 .toList();
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
     }
@@ -45,7 +45,7 @@ public class CustomerOrderLifecycleController {
     public ApiSuccessResponse<OrderDetailResponse> myOrderDetail(Authentication authentication,
                                                                  @PathVariable UUID orderId,
                                                                  HttpServletRequest request) {
-        OrderDetailResponse data = OrderLifecycleRestMapper.toDetail(
+        OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
                 orderLifecycleService.customerOrder(CurrentUser.userId(authentication), orderId)
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
@@ -54,10 +54,10 @@ public class CustomerOrderLifecycleController {
     @PostMapping("/{orderId}/cancel")
     public ApiSuccessResponse<OrderDetailResponse> cancelOrder(Authentication authentication,
                                                                @PathVariable UUID orderId,
-                                                               @RequestBody(required = false) CancelOrderRestRequest cancelRequest,
+                                                               @RequestBody(required = false) CancelOrderApiRequest cancelRequest,
                                                                HttpServletRequest request) {
         String reason = cancelRequest == null ? null : cancelRequest.reason();
-        OrderDetailResponse data = OrderLifecycleRestMapper.toDetail(
+        OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
                 orderLifecycleService.cancelOrder(CurrentUser.userId(authentication), orderId, reason)
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
@@ -69,7 +69,7 @@ public class CustomerOrderLifecycleController {
                                                                                HttpServletRequest request) {
         List<OrderTrackingPointResponse> data = orderLifecycleService.customerTrackingPoints(CurrentUser.userId(authentication), orderId)
                 .stream()
-                .map(OrderLifecycleRestMapper::toTrackingPoint)
+                .map(OrderLifecycleApiMapper::toTrackingPoint)
                 .toList();
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
     }

@@ -6,7 +6,7 @@ import com.foodya.backend.application.dto.UpdateCartItemRequest;
 import com.foodya.backend.application.ports.in.CartUseCase;
 import com.foodya.backend.interfaces.rest.dto.ActiveCartResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.mapper.CartRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.CartApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +46,7 @@ public class CustomerCartController {
     public ResponseEntity<ApiSuccessResponse<ActiveCartResponse>> getActive(Authentication authentication,
                                                                              HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.getActiveCart(CurrentUser.userId(authentication));
-        return ResponseEntity.ok(ApiSuccessResponse.of(CartRestMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 
     @PostMapping("/items")
@@ -60,7 +60,7 @@ public class CustomerCartController {
                                                                            @Valid @RequestBody AddCartItemRequest request,
                                                                            HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.addItem(CurrentUser.userId(authentication), request.menuItemId(), request.quantity(), request.note());
-        return ResponseEntity.ok(ApiSuccessResponse.of(CartRestMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 
     @PatchMapping("/items/{menuItemId}")
@@ -70,7 +70,7 @@ public class CustomerCartController {
                                                                               @Valid @RequestBody UpdateCartItemRequest request,
                                                                               HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.updateItem(CurrentUser.userId(authentication), menuItemId, request.quantity(), request.note());
-        return ResponseEntity.ok(ApiSuccessResponse.of(CartRestMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 
     @DeleteMapping("/items/{menuItemId}")
@@ -79,7 +79,7 @@ public class CustomerCartController {
                                                                               @PathVariable String menuItemId,
                                                                               HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.removeItem(CurrentUser.userId(authentication), menuItemId);
-        return ResponseEntity.ok(ApiSuccessResponse.of(CartRestMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 
     @DeleteMapping("/items")
@@ -87,6 +87,6 @@ public class CustomerCartController {
     public ResponseEntity<ApiSuccessResponse<ActiveCartResponse>> clear(Authentication authentication,
                                                                          HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.clearActiveCart(CurrentUser.userId(authentication));
-        return ResponseEntity.ok(ApiSuccessResponse.of(CartRestMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 }

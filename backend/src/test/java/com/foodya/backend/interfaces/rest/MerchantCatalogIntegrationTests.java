@@ -236,7 +236,7 @@ class MerchantCatalogIntegrationTests {
     }
 
     private String merchantAccessToken(String username, String email, String phoneNumber) {
-        UserAccount user = new UserAccount();
+                com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         user.setUsername(username);
         user.setEmail(email);
         user.setPhoneNumber(phoneNumber);
@@ -244,7 +244,7 @@ class MerchantCatalogIntegrationTests {
         user.setRole(UserRole.MERCHANT);
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        UserAccount saved = userAccountRepository.save(user);
+                UserAccount saved = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
         return tokenService.issueAccessToken(AuthPersistenceMapper.toModel(saved), UUID.randomUUID().toString());
     }
 }

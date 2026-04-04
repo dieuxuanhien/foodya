@@ -2,6 +2,7 @@ package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.SystemParameter;
+import com.foodya.backend.infrastructure.mapper.SystemParameterMapper;
 import com.foodya.backend.infrastructure.repository.SystemParameterRepository;
 import org.springframework.stereotype.Component;
 
@@ -13,14 +14,17 @@ import java.util.Optional;
 public class SystemParameterAdapter implements SystemParameterPort {
 
     private final SystemParameterRepository repository;
+    private final SystemParameterMapper mapper;
 
-    public SystemParameterAdapter(SystemParameterRepository repository) {
+    public SystemParameterAdapter(SystemParameterRepository repository,
+                                  SystemParameterMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
     public Optional<SystemParameter> findById(String key) {
-        return repository.findById(Objects.requireNonNull(key));
+        return repository.findById(Objects.requireNonNull(key)).map(mapper::toDomain);
     }
 
     @Override
@@ -30,11 +34,12 @@ public class SystemParameterAdapter implements SystemParameterPort {
 
     @Override
     public SystemParameter save(SystemParameter parameter) {
-        return repository.save(Objects.requireNonNull(parameter));
+        var saved = repository.save(Objects.requireNonNull(mapper.toPersistence(Objects.requireNonNull(parameter))));
+        return mapper.toDomain(saved);
     }
 
     @Override
     public List<SystemParameter> findAllOrderedByKey() {
-        return repository.findAllByOrderByKeyAsc();
+        return repository.findAllByOrderByKeyAsc().stream().map(mapper::toDomain).toList();
     }
 }

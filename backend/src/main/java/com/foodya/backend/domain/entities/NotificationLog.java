@@ -2,61 +2,37 @@ package com.foodya.backend.domain.entities;
 
 import com.foodya.backend.domain.value_objects.NotificationReceiverType;
 import com.foodya.backend.domain.value_objects.NotificationStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "notification_logs")
 public class NotificationLog {
 
-    @Id
     private UUID id;
 
-    @Column(name = "receiver_user_id", nullable = false)
     private UUID receiverUserId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "receiver_type", nullable = false, length = 32)
     private NotificationReceiverType receiverType;
 
-    @Column(name = "event_type", nullable = false, length = 64)
     private String eventType;
 
-    @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "text")
     private String message;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
     private NotificationStatus status;
 
-    @Column(name = "order_id")
     private UUID orderId;
 
-    @Column(name = "provider_response", columnDefinition = "text")
     private String providerResponse;
 
-    @Column(name = "sent_at")
     private OffsetDateTime sentAt;
 
-    @Column(name = "read_at")
     private OffsetDateTime readAt;
 
-    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @PrePersist
-    void onCreate() {
+    public void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
         }
@@ -70,6 +46,10 @@ public class NotificationLog {
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public UUID getReceiverUserId() {
@@ -146,6 +126,10 @@ public class NotificationLog {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public OffsetDateTime getReadAt() {

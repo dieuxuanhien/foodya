@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.in.RevenueReportUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.RevenueReportResponse;
-import com.foodya.backend.interfaces.rest.mapper.RevenueReportRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.RevenueReportApiMapper;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,7 +51,7 @@ public class AdminRevenueReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             HttpServletRequest request
     ) {
-        RevenueReportResponse data = RevenueReportRestMapper.toResponse(revenueReportService.platformRevenueReport(from, to));
+        RevenueReportResponse data = RevenueReportApiMapper.toResponse(revenueReportService.platformRevenueReport(from, to));
         return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(request)));
     }
 }

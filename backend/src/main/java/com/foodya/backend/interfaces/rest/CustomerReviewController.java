@@ -4,7 +4,7 @@ import com.foodya.backend.application.dto.CreateOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderReviewRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,7 +43,7 @@ public class CustomerReviewController {
     private OrderReviewResponse createReviewData(Authentication authentication,
                                                  UUID orderId,
                                                  CreateOrderReviewRequest request) {
-        OrderReviewResponse data = OrderReviewRestMapper.toResponse(
+        OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.createReview(CurrentUser.userId(authentication), orderId, request.stars(), request.comment())
         );
         return data;

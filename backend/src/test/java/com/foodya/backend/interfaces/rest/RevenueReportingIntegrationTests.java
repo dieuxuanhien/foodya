@@ -163,7 +163,7 @@ class RevenueReportingIntegrationTests {
     }
 
     private UserAccount saveUser(String username, String email, String phone, UserRole role) {
-        UserAccount user = new UserAccount();
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
         user.setUsername(username);
         user.setEmail(email);
         user.setPhoneNumber(phone);
@@ -171,7 +171,7 @@ class RevenueReportingIntegrationTests {
         user.setRole(role);
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
-        return userAccountRepository.save(user);
+        return new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
     }
 
     private Restaurant saveRestaurant(UserAccount owner, String name) {

@@ -1,6 +1,6 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.constant.IntegrationKeyCatalog;
+import com.foodya.backend.application.constants.IntegrationKeyCatalog;
 import com.foodya.backend.domain.value_objects.IntegrationStatus;
 import com.foodya.backend.application.ports.out.IntegrationSecretPort;
 import org.springframework.stereotype.Service;

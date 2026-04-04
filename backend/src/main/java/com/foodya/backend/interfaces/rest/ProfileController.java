@@ -5,10 +5,10 @@ import com.foodya.backend.application.dto.UserAccountModel;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.dto.ChangePasswordRestRequest;
-import com.foodya.backend.interfaces.rest.dto.MeResponse;
-import com.foodya.backend.interfaces.rest.dto.UpdateProfileRestRequest;
-import com.foodya.backend.interfaces.rest.mapper.RestDtoMapper;
+import com.foodya.backend.interfaces.rest.dto.ChangePasswordApiRequest;
+import com.foodya.backend.interfaces.rest.dto.ProfileResponse;
+import com.foodya.backend.interfaces.rest.dto.UpdateProfileApiRequest;
+import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,10 +43,10 @@ public class ProfileController {
             @ApiResponse(responseCode = "200", description = "Current profile"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<ApiSuccessResponse<MeResponse>> me(Authentication authentication,
+    public ResponseEntity<ApiSuccessResponse<ProfileResponse>> me(Authentication authentication,
                                                               HttpServletRequest httpServletRequest) {
         UserAccountModel user = profileService.me(CurrentUser.userId(authentication));
-        return ResponseEntity.ok(ApiSuccessResponse.of(RestDtoMapper.toMeResponse(user), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toProfileResponse(user), RequestTrace.from(httpServletRequest)));
     }
 
     @PatchMapping
@@ -56,8 +56,8 @@ public class ProfileController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "422", description = "Validation failed")
     })
-    public ResponseEntity<ApiSuccessResponse<MeResponse>> update(Authentication authentication,
-                                                                  @Valid @RequestBody UpdateProfileRestRequest request,
+    public ResponseEntity<ApiSuccessResponse<ProfileResponse>> update(Authentication authentication,
+                                                                  @Valid @RequestBody UpdateProfileApiRequest request,
                                                                   HttpServletRequest httpServletRequest) {
         UpdateProfileRequest command = new UpdateProfileRequest(
                 request.fullName(),
@@ -66,7 +66,7 @@ public class ProfileController {
                 request.avatarUrl()
         );
         UserAccountModel user = profileService.update(CurrentUser.userId(authentication), command);
-        return ResponseEntity.ok(ApiSuccessResponse.of(RestDtoMapper.toMeResponse(user), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toProfileResponse(user), RequestTrace.from(httpServletRequest)));
     }
 
     @PutMapping("/password")
@@ -77,7 +77,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "422", description = "Validation failed")
     })
     public ResponseEntity<ApiSuccessResponse<String>> changePassword(Authentication authentication,
-                                                                      @Valid @RequestBody ChangePasswordRestRequest request,
+                                                                      @Valid @RequestBody ChangePasswordApiRequest request,
                                                                       HttpServletRequest httpServletRequest) {
         ChangePasswordRequest command = new ChangePasswordRequest(
                 request.currentPassword(),

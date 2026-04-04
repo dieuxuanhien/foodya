@@ -4,12 +4,12 @@ import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
-import com.foodya.backend.interfaces.rest.dto.DeliveryLocationUpdateRestRequest;
+import com.foodya.backend.interfaces.rest.dto.DeliveryLocationUpdateApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
-import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateRestRequest;
+import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderTrackingPointResponse;
-import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleRestMapper;
+import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleApiMapper;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -41,7 +41,7 @@ public class DeliveryOrderController {
     @GetMapping({"/assignments", "/assigned"})
     public ApiSuccessResponse<List<OrderSummaryResponse>> assignments(HttpServletRequest request) {
         List<OrderSummaryResponse> data = orderLifecycleService.deliveryAssignments().stream()
-                .map(OrderLifecycleRestMapper::toSummary)
+                .map(OrderLifecycleApiMapper::toSummary)
                 .toList();
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
     }
@@ -49,24 +49,24 @@ public class DeliveryOrderController {
     @PostMapping("/{orderId}/accept")
     public ApiSuccessResponse<OrderDetailResponse> accept(@PathVariable UUID orderId,
                                                           HttpServletRequest request) {
-        OrderDetailResponse data = OrderLifecycleRestMapper.toDetail(orderLifecycleService.deliveryAccept(orderId));
+        OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(orderLifecycleService.deliveryAccept(orderId));
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
     }
 
     @PatchMapping("/{orderId}/status")
     public ApiSuccessResponse<OrderDetailResponse> updateStatus(@PathVariable UUID orderId,
-                                                                 @Valid @RequestBody OrderStatusUpdateRestRequest statusUpdate,
+                                                                 @Valid @RequestBody OrderStatusUpdateApiRequest statusUpdate,
                                                                  HttpServletRequest request) {
         OrderStatus targetStatus = parseStatus(statusUpdate.status());
-        OrderDetailResponse data = OrderLifecycleRestMapper.toDetail(orderLifecycleService.deliveryUpdateStatus(orderId, targetStatus));
+        OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(orderLifecycleService.deliveryUpdateStatus(orderId, targetStatus));
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
     }
 
     @PostMapping("/{orderId}/tracking-points")
     public ApiSuccessResponse<OrderTrackingPointResponse> addTrackingPoint(@PathVariable UUID orderId,
-                                                                            @Valid @RequestBody DeliveryLocationUpdateRestRequest updateRequest,
+                                                                            @Valid @RequestBody DeliveryLocationUpdateApiRequest updateRequest,
                                                                             HttpServletRequest request) {
-        OrderTrackingPointResponse data = OrderLifecycleRestMapper.toTrackingPoint(
+        OrderTrackingPointResponse data = OrderLifecycleApiMapper.toTrackingPoint(
                 orderLifecycleService.addTrackingPoint(orderId, updateRequest.lat(), updateRequest.lng(), updateRequest.recordedAt())
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
@@ -74,9 +74,9 @@ public class DeliveryOrderController {
 
     @PostMapping("/{orderId}/locations")
     public ResponseEntity<ApiSuccessResponse<OrderTrackingPointResponse>> addLocationPoint(@PathVariable UUID orderId,
-                                                                                             @Valid @RequestBody DeliveryLocationUpdateRestRequest updateRequest,
+                                                                                             @Valid @RequestBody DeliveryLocationUpdateApiRequest updateRequest,
                                                                                              HttpServletRequest request) {
-        OrderTrackingPointResponse data = OrderLifecycleRestMapper.toTrackingPoint(
+        OrderTrackingPointResponse data = OrderLifecycleApiMapper.toTrackingPoint(
                 orderLifecycleService.addTrackingPoint(orderId, updateRequest.lat(), updateRequest.lng(), updateRequest.recordedAt())
         );
         return ResponseEntity.status(HttpStatus.ACCEPTED)
