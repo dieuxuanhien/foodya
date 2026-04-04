@@ -3,7 +3,7 @@ package com.foodya.backend.infrastructure.adapter;
 import com.foodya.backend.application.dto.UserAccountModel;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
-import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
 import org.springframework.stereotype.Component;
 
@@ -63,9 +63,9 @@ public class UserAccountAdapter implements UserAccountPort {
     @Override
     public UserAccountModel save(UserAccountModel userAccount) {
         UserAccountModel accountModel = Objects.requireNonNull(userAccount);
-        UserAccount entity = accountModel.getId() == null
-                ? new UserAccount()
-            : repository.findById(Objects.requireNonNull(accountModel.getId())).orElseGet(UserAccount::new);
+        UserAccountPersistenceModel entity = accountModel.getId() == null
+                ? new UserAccountPersistenceModel()
+            : repository.findById(Objects.requireNonNull(accountModel.getId())).orElseGet(UserAccountPersistenceModel::new);
         AuthPersistenceMapper.copyToEntity(accountModel, entity);
         return AuthPersistenceMapper.toModel(repository.save(Objects.requireNonNull(entity)));
     }
