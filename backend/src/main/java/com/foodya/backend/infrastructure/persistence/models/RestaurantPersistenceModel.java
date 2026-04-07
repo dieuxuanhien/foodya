@@ -39,6 +39,12 @@ public class RestaurantPersistenceModel {
     @Column(name = "image_url", length = 1024)
     private String imageUrl;
 
+    @Column(name = "background_image_url", length = 1024)
+    private String backgroundImageUrl;
+
+    @Column(name = "avatar_image_url", length = 1024)
+    private String avatarImageUrl;
+
     @Column(name = "address_line", nullable = false, columnDefinition = "text")
     private String addressLine;
 
@@ -148,6 +154,23 @@ public class RestaurantPersistenceModel {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getBackgroundImageUrl() {
+        return backgroundImageUrl;
+    }
+
+    public void setBackgroundImageUrl(String backgroundImageUrl) {
+        this.backgroundImageUrl = backgroundImageUrl;
+        this.imageUrl = backgroundImageUrl;
+    }
+
+    public String getAvatarImageUrl() {
+        return avatarImageUrl;
+    }
+
+    public void setAvatarImageUrl(String avatarImageUrl) {
+        this.avatarImageUrl = avatarImageUrl;
     }
 
     public String getAddressLine() {

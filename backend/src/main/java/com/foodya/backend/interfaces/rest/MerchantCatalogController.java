@@ -71,21 +71,12 @@ public class MerchantCatalogController {
     @Operation(summary = "Create restaurant with image")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurantWithImage(Authentication authentication,
                                                                                                    @Valid @RequestPart("payload") CreateRestaurantRequest request,
-                                                                                                   @RequestPart("file") MultipartFile file,
+                                                                                                   @RequestPart(value = "backgroundFile", required = false) MultipartFile backgroundFile,
+                                                                                                   @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
                                                                                                    HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
         RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request);
-        try {
-            restaurant = merchantCatalogService.uploadRestaurantImage(
-                    merchantId,
-                    restaurant.getId(),
-                    file.getOriginalFilename(),
-                    file.getContentType(),
-                    file.getBytes()
-            );
-        } catch (IOException ex) {
-            throw new ValidationException("invalid file", java.util.Map.of("file", "cannot be read"));
-        }
+        restaurant = applyRestaurantImages(merchantId, restaurant.getId(), restaurant, backgroundFile, avatarFile);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
@@ -106,22 +97,13 @@ public class MerchantCatalogController {
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurantWithImage(Authentication authentication,
                                                                                                    @PathVariable String id,
                                                                                                    @Valid @RequestPart("payload") UpdateRestaurantRequest request,
-                                                                                                   @RequestPart("file") MultipartFile file,
+                                                                                                   @RequestPart(value = "backgroundFile", required = false) MultipartFile backgroundFile,
+                                                                                                   @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
                                                                                                    HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
         UUID restaurantId = parseUuid(id, "id");
         RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, restaurantId, request);
-        try {
-            restaurant = merchantCatalogService.uploadRestaurantImage(
-                    merchantId,
-                    restaurantId,
-                    file.getOriginalFilename(),
-                    file.getContentType(),
-                    file.getBytes()
-            );
-        } catch (IOException ex) {
-            throw new ValidationException("invalid file", java.util.Map.of("file", "cannot be read"));
-        }
+        restaurant = applyRestaurantImages(merchantId, restaurantId, restaurant, backgroundFile, avatarFile);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
 
@@ -274,6 +256,36 @@ public class MerchantCatalogController {
             return UUID.fromString(value);
         } catch (IllegalArgumentException ex) {
             throw new ValidationException("invalid uuid", java.util.Map.of(field, "must be a valid UUID"));
+        }
+    }
+
+    private RestaurantData applyRestaurantImages(UUID merchantId,
+                                                 UUID restaurantId,
+                                                 RestaurantData restaurant,
+                                                 MultipartFile backgroundFile,
+                                                 MultipartFile avatarFile) {
+        try {
+            if (backgroundFile != null && !backgroundFile.isEmpty()) {
+                restaurant = merchantCatalogService.uploadRestaurantBackgroundImage(
+                        merchantId,
+                        restaurantId,
+                        backgroundFile.getOriginalFilename(),
+                        backgroundFile.getContentType(),
+                        backgroundFile.getBytes()
+                );
+            }
+            if (avatarFile != null && !avatarFile.isEmpty()) {
+                restaurant = merchantCatalogService.uploadRestaurantAvatarImage(
+                        merchantId,
+                        restaurantId,
+                        avatarFile.getOriginalFilename(),
+                        avatarFile.getContentType(),
+                        avatarFile.getBytes()
+                );
+            }
+            return restaurant;
+        } catch (IOException ex) {
+            throw new ValidationException("invalid file", java.util.Map.of("file", "cannot be read"));
         }
     }
 }

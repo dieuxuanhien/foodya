@@ -20,11 +20,17 @@ public interface MerchantCatalogUseCase {
 
     RestaurantData updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request);
 
-    RestaurantData uploadRestaurantImage(UUID merchantUserId,
-                                         UUID restaurantId,
-                                         String originalFileName,
-                                         String contentType,
-                                         byte[] content);
+    RestaurantData uploadRestaurantBackgroundImage(UUID merchantUserId,
+                                                   UUID restaurantId,
+                                                   String originalFileName,
+                                                   String contentType,
+                                                   byte[] content);
+
+    RestaurantData uploadRestaurantAvatarImage(UUID merchantUserId,
+                                               UUID restaurantId,
+                                               String originalFileName,
+                                               String contentType,
+                                               byte[] content);
 
     MenuCategoryData createCategory(UUID merchantUserId, UUID restaurantId, CreateMenuCategoryRequest request);
 

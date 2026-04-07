@@ -4,5 +4,7 @@ import java.util.UUID;
 
 public interface RestaurantImageStoragePort {
 
-    String store(UUID restaurantId, String originalFileName, String contentType, byte[] content);
+    String storeBackground(UUID restaurantId, String originalFileName, String contentType, byte[] content);
+
+    String storeAvatar(UUID restaurantId, String originalFileName, String contentType, byte[] content);
 }

@@ -22,6 +22,10 @@ public class Restaurant {
 
     private String imageUrl;
 
+    private String backgroundImageUrl;
+
+    private String avatarImageUrl;
+
     private String description;
 
     private String addressLine;
@@ -92,6 +96,23 @@ public class Restaurant {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getBackgroundImageUrl() {
+        return backgroundImageUrl;
+    }
+
+    public void setBackgroundImageUrl(String backgroundImageUrl) {
+        this.backgroundImageUrl = backgroundImageUrl;
+        this.imageUrl = backgroundImageUrl;
+    }
+
+    public String getAvatarImageUrl() {
+        return avatarImageUrl;
+    }
+
+    public void setAvatarImageUrl(String avatarImageUrl) {
+        this.avatarImageUrl = avatarImageUrl;
     }
 
     public String getDescription() {

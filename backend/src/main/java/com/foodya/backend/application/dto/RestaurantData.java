@@ -16,6 +16,8 @@ public class RestaurantData {
     private List<String> cuisineTypes = new ArrayList<>();
     private String description;
     private String imageUrl;
+    private String backgroundImageUrl;
+    private String avatarImageUrl;
     private String addressLine;
     private BigDecimal latitude;
     private BigDecimal longitude;
@@ -80,6 +82,23 @@ public class RestaurantData {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getBackgroundImageUrl() {
+        return backgroundImageUrl;
+    }
+
+    public void setBackgroundImageUrl(String backgroundImageUrl) {
+        this.backgroundImageUrl = backgroundImageUrl;
+        this.imageUrl = backgroundImageUrl;
+    }
+
+    public String getAvatarImageUrl() {
+        return avatarImageUrl;
+    }
+
+    public void setAvatarImageUrl(String avatarImageUrl) {
+        this.avatarImageUrl = avatarImageUrl;
     }
 
     public String getAddressLine() {

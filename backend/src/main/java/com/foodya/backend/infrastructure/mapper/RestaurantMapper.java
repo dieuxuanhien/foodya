@@ -22,7 +22,8 @@ public class RestaurantMapper {
         domain.setCuisineType(model.getCuisineType());
         domain.setCuisineTypes(parseCuisineTypes(model.getCuisineTypes()));
         domain.setDescription(model.getDescription());
-        domain.setImageUrl(model.getImageUrl());
+        domain.setBackgroundImageUrl(model.getBackgroundImageUrl() != null ? model.getBackgroundImageUrl() : model.getImageUrl());
+        domain.setAvatarImageUrl(model.getAvatarImageUrl());
         domain.setAddressLine(model.getAddressLine());
         domain.setLatitude(model.getLatitude());
         domain.setLongitude(model.getLongitude());
@@ -49,7 +50,8 @@ public class RestaurantMapper {
         model.setCuisineType(domain.getCuisineType());
         model.setCuisineTypes(String.join(",", domain.getCuisineTypes()));
         model.setDescription(domain.getDescription());
-        model.setImageUrl(domain.getImageUrl());
+        model.setBackgroundImageUrl(domain.getBackgroundImageUrl() != null ? domain.getBackgroundImageUrl() : domain.getImageUrl());
+        model.setAvatarImageUrl(domain.getAvatarImageUrl());
         model.setAddressLine(domain.getAddressLine());
         model.setLatitude(domain.getLatitude());
         model.setLongitude(domain.getLongitude());

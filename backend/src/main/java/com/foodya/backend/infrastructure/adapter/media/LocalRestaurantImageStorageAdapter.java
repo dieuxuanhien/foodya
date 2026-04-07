@@ -26,7 +26,16 @@ public class LocalRestaurantImageStorageAdapter implements RestaurantImageStorag
     }
 
     @Override
-    public String store(UUID restaurantId, String originalFileName, String contentType, byte[] content) {
+    public String storeBackground(UUID restaurantId, String originalFileName, String contentType, byte[] content) {
+        return store(restaurantId, "background", originalFileName, contentType, content);
+    }
+
+    @Override
+    public String storeAvatar(UUID restaurantId, String originalFileName, String contentType, byte[] content) {
+        return store(restaurantId, "avatar", originalFileName, contentType, content);
+    }
+
+    private String store(UUID restaurantId, String variant, String originalFileName, String contentType, byte[] content) {
         Objects.requireNonNull(restaurantId, "restaurantId");
         Objects.requireNonNull(content, "content");
 
@@ -40,7 +49,7 @@ public class LocalRestaurantImageStorageAdapter implements RestaurantImageStorag
                 .orElseThrow(() -> new IllegalStateException("Missing Supabase S3 secret key"));
 
         String extension = resolveExtension(originalFileName);
-        String objectKey = "restaurants/" + restaurantId + "/" + UUID.randomUUID() + extension;
+        String objectKey = "restaurants/" + restaurantId + "/" + variant + "/" + UUID.randomUUID() + extension;
 
         URI endpoint = URI.create(normalizeProjectUrl(projectUrl) + "/storage/v1/s3");
         AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
@@ -57,7 +66,7 @@ public class LocalRestaurantImageStorageAdapter implements RestaurantImageStorag
                     .build();
             s3Client.putObject(request, RequestBody.fromBytes(content));
         } catch (Exception ex) {
-            throw new IllegalStateException("failed to upload restaurant image to Supabase", ex);
+            throw new IllegalStateException("failed to upload restaurant " + variant + " image to Supabase", ex);
         }
 
         return normalizeProjectUrl(projectUrl) + "/storage/v1/object/public/" + bucket + "/" + objectKey;

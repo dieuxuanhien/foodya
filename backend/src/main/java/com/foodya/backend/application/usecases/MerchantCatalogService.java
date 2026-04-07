@@ -117,18 +117,34 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         return toRestaurantData(restaurantPort.save(restaurant));
     }
 
-    public RestaurantData uploadRestaurantImage(UUID merchantUserId,
-                                                UUID restaurantId,
-                                                String originalFileName,
-                                                String contentType,
-                                                byte[] content) {
+    public RestaurantData uploadRestaurantBackgroundImage(UUID merchantUserId,
+                                                          UUID restaurantId,
+                                                          String originalFileName,
+                                                          String contentType,
+                                                          byte[] content) {
         requireText(originalFileName, "fileName");
         requireNonNull(content, "content");
         validateImageContent(contentType, content.length);
 
         Restaurant restaurant = ownedRestaurant(merchantUserId, restaurantId);
-        String imageUrl = restaurantImageStoragePort.store(restaurantId, originalFileName, contentType, content);
+        String imageUrl = restaurantImageStoragePort.storeBackground(restaurantId, originalFileName, contentType, content);
+        restaurant.setBackgroundImageUrl(imageUrl);
         restaurant.setImageUrl(imageUrl);
+        return toRestaurantData(restaurantPort.save(restaurant));
+    }
+
+    public RestaurantData uploadRestaurantAvatarImage(UUID merchantUserId,
+                                                      UUID restaurantId,
+                                                      String originalFileName,
+                                                      String contentType,
+                                                      byte[] content) {
+        requireText(originalFileName, "fileName");
+        requireNonNull(content, "content");
+        validateImageContent(contentType, content.length);
+
+        Restaurant restaurant = ownedRestaurant(merchantUserId, restaurantId);
+        String imageUrl = restaurantImageStoragePort.storeAvatar(restaurantId, originalFileName, contentType, content);
+        restaurant.setAvatarImageUrl(imageUrl);
         return toRestaurantData(restaurantPort.save(restaurant));
     }
 
@@ -402,7 +418,8 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         model.setCuisineType(restaurant.getCuisineType());
         model.setCuisineTypes(restaurant.getCuisineTypes());
         model.setDescription(restaurant.getDescription());
-        model.setImageUrl(restaurant.getImageUrl());
+        model.setBackgroundImageUrl(restaurant.getBackgroundImageUrl());
+        model.setAvatarImageUrl(restaurant.getAvatarImageUrl());
         model.setAddressLine(restaurant.getAddressLine());
         model.setLatitude(restaurant.getLatitude());
         model.setLongitude(restaurant.getLongitude());
