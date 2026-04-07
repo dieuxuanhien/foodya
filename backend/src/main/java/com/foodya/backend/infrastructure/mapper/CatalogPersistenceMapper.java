@@ -10,36 +10,37 @@ public final class CatalogPersistenceMapper {
     private CatalogPersistenceMapper() {
     }
 
-    public static RestaurantModel toModel(Restaurant entity) {
-        RestaurantModel model = new RestaurantModel();
-        model.setId(entity.getId());
-        model.setOwnerUserId(entity.getOwnerUserId());
-        model.setName(entity.getName());
-        model.setCuisineType(entity.getCuisineType());
-        model.setDescription(entity.getDescription());
-        model.setAddressLine(entity.getAddressLine());
-        model.setLatitude(entity.getLatitude());
-        model.setLongitude(entity.getLongitude());
-        model.setH3IndexRes9(entity.getH3IndexRes9());
-        model.setAvgRating(entity.getAvgRating());
-        model.setReviewCount(entity.getReviewCount());
-        model.setStatus(entity.getStatus());
-        model.setOpen(entity.isOpen());
-        model.setMaxDeliveryKm(entity.getMaxDeliveryKm());
-        return model;
+    public static RestaurantData toData(Restaurant entity) {
+        RestaurantData data = new RestaurantData();
+        data.setId(entity.getId());
+        data.setOwnerUserId(entity.getOwnerUserId());
+        data.setName(entity.getName());
+        data.setCuisineType(entity.getCuisineType());
+        data.setDescription(entity.getDescription());
+        data.setAddressLine(entity.getAddressLine());
+        data.setLatitude(entity.getLatitude());
+        data.setLongitude(entity.getLongitude());
+        data.setH3IndexRes9(entity.getH3IndexRes9());
+        data.setAvgRating(entity.getAvgRating());
+        data.setReviewCount(entity.getReviewCount());
+        data.setStatus(entity.getStatus());
+        data.setOpen(entity.isOpen());
+        data.setMaxDeliveryKm(entity.getMaxDeliveryKm());
+        return data;
     }
 
-    public static MenuItemModel toModel(MenuItem entity) {
-        MenuItemModel model = new MenuItemModel();
-        model.setId(entity.getId());
-        model.setRestaurantId(entity.getRestaurantId());
-        model.setCategoryId(entity.getCategoryId());
-        model.setName(entity.getName());
-        model.setDescription(entity.getDescription());
-        model.setPrice(entity.getPrice());
-        model.setActive(entity.isActive());
-        model.setAvailable(entity.isAvailable());
-        model.setDeletedAt(entity.getDeletedAt());
-        return model;
+    public static MenuItemData toData(MenuItem entity) {
+        MenuItemData data = new MenuItemData();
+        data.setId(entity.getId());
+        data.setRestaurantId(entity.getRestaurantId());
+        data.setCategoryId(entity.getCategoryId());
+        data.setName(entity.getName());
+        data.setDescription(entity.getDescription());
+        data.setImageUrl(entity.getImageUrl());
+        data.setPrice(entity.getPrice());
+        data.setActive(entity.isActive());
+        data.setAvailable(entity.isAvailable());
+        data.setDeletedAt(entity.getDeletedAt());
+        return data;
     }
 }

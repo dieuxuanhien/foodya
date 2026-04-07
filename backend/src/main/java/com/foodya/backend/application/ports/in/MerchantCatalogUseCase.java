@@ -16,25 +16,31 @@ import java.util.UUID;
 
 public interface MerchantCatalogUseCase {
 
-    RestaurantModel createRestaurant(UUID merchantUserId, CreateRestaurantRequest request);
+    RestaurantData createRestaurant(UUID merchantUserId, CreateRestaurantRequest request);
 
-    RestaurantModel updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request);
+    RestaurantData updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request);
 
-    MenuCategoryModel createCategory(UUID merchantUserId, UUID restaurantId, CreateMenuCategoryRequest request);
+    MenuCategoryData createCategory(UUID merchantUserId, UUID restaurantId, CreateMenuCategoryRequest request);
 
-    PaginatedResult<MenuCategoryModel> listCategories(UUID merchantUserId, UUID restaurantId, Integer page, Integer size);
+    PaginatedResult<MenuCategoryData> listCategories(UUID merchantUserId, UUID restaurantId, Integer page, Integer size);
 
-    MenuCategoryModel updateCategory(UUID merchantUserId, UUID categoryId, UpdateMenuCategoryRequest request);
+    MenuCategoryData updateCategory(UUID merchantUserId, UUID categoryId, UpdateMenuCategoryRequest request);
 
     void deleteCategory(UUID merchantUserId, UUID categoryId);
 
-    MenuItemModel createMenuItem(UUID merchantUserId, UUID restaurantId, CreateMenuItemRequest request);
+    MenuItemData createMenuItem(UUID merchantUserId, UUID restaurantId, CreateMenuItemRequest request);
 
-    PaginatedResult<MenuItemModel> listMenuItems(UUID merchantUserId, UUID restaurantId, Integer page, Integer size);
+    PaginatedResult<MenuItemData> listMenuItems(UUID merchantUserId, UUID restaurantId, Integer page, Integer size);
 
-    MenuItemModel updateMenuItem(UUID merchantUserId, UUID menuItemId, UpdateMenuItemRequest request);
+    MenuItemData updateMenuItem(UUID merchantUserId, UUID menuItemId, UpdateMenuItemRequest request);
 
     void softDeleteMenuItem(UUID merchantUserId, UUID menuItemId);
 
-    MenuItemModel updateAvailability(UUID merchantUserId, UUID menuItemId, UpdateMenuItemAvailabilityRequest request);
+    MenuItemData updateAvailability(UUID merchantUserId, UUID menuItemId, UpdateMenuItemAvailabilityRequest request);
+
+    MenuItemData uploadMenuItemImage(UUID merchantUserId,
+                                     UUID menuItemId,
+                                     String originalFileName,
+                                     String contentType,
+                                     byte[] content);
 }

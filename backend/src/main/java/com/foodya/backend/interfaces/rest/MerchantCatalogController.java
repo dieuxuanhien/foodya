@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,10 +35,13 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -121,16 +125,43 @@ public class MerchantCatalogController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/restaurants/{id}/menu-items")
+    @PostMapping(value = "/restaurants/{id}/menu-items", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create menu item")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItem(Authentication authentication,
                                                                                 @PathVariable String id,
                                                                                 @Valid @RequestBody CreateMenuItemRequest request,
                                                                                 HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuItemModel menuItem = merchantCatalogService.createMenuItem(merchantId, parseUuid(id, "id"), request);
+        MenuItemData menuItem = merchantCatalogService.createMenuItem(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
+    }
+
+    @PostMapping(value = "/restaurants/{id}/menu-items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create menu item with image")
+    public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItemWithImage(Authentication authentication,
+                                                                                         @PathVariable String id,
+                                                                                         @Valid @RequestPart("payload") CreateMenuItemRequest request,
+                                                                                         @RequestPart("file") MultipartFile file,
+                                                                                         HttpServletRequest httpServletRequest) {
+        UUID merchantId = principal(authentication);
+        UUID restaurantId = parseUuid(id, "id");
+        MenuItemData menuItem = merchantCatalogService.createMenuItem(merchantId, restaurantId, request);
+
+        try {
+            menuItem = merchantCatalogService.uploadMenuItemImage(
+                    merchantId,
+                    menuItem.getId(),
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getBytes()
+            );
+        } catch (IOException ex) {
+            throw new ValidationException("invalid file", java.util.Map.of("file", "cannot be read"));
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
     }
 
     @GetMapping("/restaurants/{id}/menu-items")

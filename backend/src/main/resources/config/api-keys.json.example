@@ -1,6 +1,7 @@
 {
   "google.ai.studio.api.key": "<GOOGLE_AI_STUDIO_KEY>",
   "supabase.project.url": "<SUPABASE_PROJECT_URL>",
+  "supabase.storage.bucket": "<SUPABASE_STORAGE_BUCKET>",
   "supabase.storage.s3.access-key-id": "<SUPABASE_S3_ACCESS_KEY_ID>",
   "supabase.storage.s3.secret-access-key": "<SUPABASE_S3_SECRET_ACCESS_KEY>",
   "goong.api.key": "<GOONG_API_KEY>",

@@ -39,20 +39,21 @@ public final class CommonApiMapper {
         );
     }
 
-    public static MenuItemResponse toMenuItemResponse(MenuItemModel item) {
+    public static MenuItemResponse toMenuItemResponse(MenuItemData item) {
         return new MenuItemResponse(
                 item.getId().toString(),
                 item.getRestaurantId().toString(),
                 item.getCategoryId().toString(),
                 item.getName(),
                 item.getDescription(),
+                item.getImageUrl(),
                 item.getPrice(),
                 item.isActive(),
                 item.isAvailable()
         );
     }
 
-    public static RestaurantDetailResponse toRestaurantDetailResponse(RestaurantModel restaurant) {
+    public static RestaurantDetailResponse toRestaurantDetailResponse(RestaurantData restaurant) {
         return new RestaurantDetailResponse(
                 restaurant.getId().toString(),
                 restaurant.getName(),

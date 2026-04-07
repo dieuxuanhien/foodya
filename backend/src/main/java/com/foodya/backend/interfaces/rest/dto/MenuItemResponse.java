@@ -8,6 +8,7 @@ public record MenuItemResponse(
         String categoryId,
         String name,
         String description,
+        String imageUrl,
         BigDecimal price,
         boolean active,
         boolean available

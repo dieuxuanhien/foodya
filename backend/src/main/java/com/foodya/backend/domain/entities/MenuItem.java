@@ -22,6 +22,8 @@ public class MenuItem {
 
     private String description;
 
+    private String imageUrl;
+
     private BigDecimal price;
 
     private boolean active;
@@ -72,6 +74,14 @@ public class MenuItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public BigDecimal getPrice() {

@@ -23,18 +23,16 @@ import com.foodya.backend.application.ports.in.MerchantCatalogUseCase;
 import com.foodya.backend.application.ports.out.MenuCategoryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.MenuItemPort;
+import com.foodya.backend.application.ports.out.MenuItemImageStoragePort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.application.support.PaginationPolicy;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class MerchantCatalogService implements MerchantCatalogUseCase {
 
     private final RestaurantPort restaurantPort;
@@ -43,23 +41,32 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
     private final SystemParameterPort systemParameterPort;
     private final PaginationPolicy paginationPolicy;
     private final GeoPort geoPort;
+    private final MenuItemImageStoragePort menuItemImageStoragePort;
 
     public MerchantCatalogService(RestaurantPort restaurantPort,
                                   MenuCategoryPort menuCategoryPort,
                                   MenuItemPort menuItemPort,
                                   SystemParameterPort systemParameterPort,
                                   PaginationPolicy paginationPolicy,
-                                  GeoPort geoPort) {
+                                  GeoPort geoPort,
+                                  MenuItemImageStoragePort menuItemImageStoragePort) {
         this.restaurantPort = restaurantPort;
         this.menuCategoryPort = menuCategoryPort;
         this.menuItemPort = menuItemPort;
         this.systemParameterPort = systemParameterPort;
         this.paginationPolicy = paginationPolicy;
         this.geoPort = geoPort;
+        this.menuItemImageStoragePort = menuItemImageStoragePort;
     }
 
-    @Transactional
-    public RestaurantModel createRestaurant(UUID merchantUserId, CreateRestaurantRequest request) {
+    public RestaurantData createRestaurant(UUID merchantUserId, CreateRestaurantRequest request) {
+        requireText(request.name(), "name");
+        requireText(request.cuisineType(), "cuisineType");
+        requireText(request.addressLine(), "addressLine");
+        requireNonNull(request.latitude(), "latitude");
+        requireNonNull(request.longitude(), "longitude");
+        requireNonNull(request.maxDeliveryKm(), "maxDeliveryKm");
+        requireNonNull(request.isOpen(), "isOpen");
         validateRestaurantDistance(request.maxDeliveryKm());
 
         Restaurant restaurant = new Restaurant();
@@ -74,11 +81,17 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         restaurant.setOpen(request.isOpen());
         restaurant.setStatus(RestaurantStatus.PENDING);
         restaurant.setMaxDeliveryKm(request.maxDeliveryKm());
-        return toRestaurantModel(restaurantPort.save(restaurant));
+        return toRestaurantData(restaurantPort.save(restaurant));
     }
 
-    @Transactional
-    public RestaurantModel updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request) {
+    public RestaurantData updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request) {
+        requireText(request.name(), "name");
+        requireText(request.cuisineType(), "cuisineType");
+        requireText(request.addressLine(), "addressLine");
+        requireNonNull(request.latitude(), "latitude");
+        requireNonNull(request.longitude(), "longitude");
+        requireNonNull(request.maxDeliveryKm(), "maxDeliveryKm");
+        requireNonNull(request.isOpen(), "isOpen");
         validateRestaurantDistance(request.maxDeliveryKm());
         Restaurant restaurant = ownedRestaurant(merchantUserId, restaurantId);
         restaurant.setName(request.name().trim());
@@ -90,11 +103,13 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         restaurant.setH3IndexRes9(geoPort.h3Res9(request.latitude().doubleValue(), request.longitude().doubleValue()));
         restaurant.setOpen(request.isOpen());
         restaurant.setMaxDeliveryKm(request.maxDeliveryKm());
-        return toRestaurantModel(restaurantPort.save(restaurant));
+        return toRestaurantData(restaurantPort.save(restaurant));
     }
 
-    @Transactional
-    public MenuCategoryModel createCategory(UUID merchantUserId, UUID restaurantId, CreateMenuCategoryRequest request) {
+    public MenuCategoryData createCategory(UUID merchantUserId, UUID restaurantId, CreateMenuCategoryRequest request) {
+        requireText(request.name(), "name");
+        requireNonNull(request.sortOrder(), "sortOrder");
+        requireNonNull(request.isActive(), "isActive");
         ownedRestaurant(merchantUserId, restaurantId);
         if (menuCategoryPort.existsByRestaurantIdAndNameIgnoreCase(restaurantId, request.name().trim())) {
             throw new ValidationException("category already exists", Map.of("name", "duplicate category name"));
@@ -105,16 +120,15 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         category.setName(request.name().trim());
         category.setSortOrder(request.sortOrder());
         category.setActive(request.isActive());
-        return toMenuCategoryModel(menuCategoryPort.save(category));
+        return toMenuCategoryData(menuCategoryPort.save(category));
     }
 
-    @Transactional(readOnly = true)
-    public PaginatedResult<MenuCategoryModel> listCategories(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
+    public PaginatedResult<MenuCategoryData> listCategories(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
         ownedRestaurant(merchantUserId, restaurantId);
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<MenuCategory> result = menuCategoryPort.findByRestaurantIdAndActiveTrue(restaurantId, spec.page(), spec.size());
         return new PaginatedResult<>(
-                result.items().stream().map(this::toMenuCategoryModel).toList(),
+                result.items().stream().map(this::toMenuCategoryData).toList(),
                 result.page(),
                 result.size(),
                 result.totalElements(),
@@ -122,8 +136,10 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         );
     }
 
-    @Transactional
-    public MenuCategoryModel updateCategory(UUID merchantUserId, UUID categoryId, UpdateMenuCategoryRequest request) {
+    public MenuCategoryData updateCategory(UUID merchantUserId, UUID categoryId, UpdateMenuCategoryRequest request) {
+        requireText(request.name(), "name");
+        requireNonNull(request.sortOrder(), "sortOrder");
+        requireNonNull(request.isActive(), "isActive");
         MenuCategory category = menuCategoryPort.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("menu category not found"));
         ownedRestaurant(merchantUserId, category.getRestaurantId());
@@ -134,10 +150,9 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         category.setName(request.name().trim());
         category.setSortOrder(request.sortOrder());
         category.setActive(request.isActive());
-        return toMenuCategoryModel(menuCategoryPort.save(category));
+        return toMenuCategoryData(menuCategoryPort.save(category));
     }
 
-    @Transactional
     public void deleteCategory(UUID merchantUserId, UUID categoryId) {
         MenuCategory category = menuCategoryPort.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("menu category not found"));
@@ -145,8 +160,13 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         menuCategoryPort.delete(category);
     }
 
-    @Transactional
-    public MenuItemModel createMenuItem(UUID merchantUserId, UUID restaurantId, CreateMenuItemRequest request) {
+    public MenuItemData createMenuItem(UUID merchantUserId, UUID restaurantId, CreateMenuItemRequest request) {
+        requireText(request.categoryId(), "categoryId");
+        requireText(request.name(), "name");
+        requireText(request.description(), "description");
+        requireNonNull(request.price(), "price");
+        requireNonNull(request.isActive(), "isActive");
+        requireNonNull(request.isAvailable(), "isAvailable");
         ownedRestaurant(merchantUserId, restaurantId);
         validatePrice(request.price());
 
@@ -162,16 +182,15 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         item.setPrice(request.price());
         item.setActive(request.isActive());
         item.setAvailable(request.isAvailable());
-        return toMenuItemModel(menuItemPort.save(item));
+        return toMenuItemData(menuItemPort.save(item));
     }
 
-    @Transactional(readOnly = true)
-    public PaginatedResult<MenuItemModel> listMenuItems(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
+    public PaginatedResult<MenuItemData> listMenuItems(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
         ownedRestaurant(merchantUserId, restaurantId);
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<MenuItem> result = menuItemPort.findByRestaurantIdAndActiveTrueAndDeletedAtIsNull(restaurantId, spec.page(), spec.size());
         return new PaginatedResult<>(
-                result.items().stream().map(this::toMenuItemModel).toList(),
+                result.items().stream().map(this::toMenuItemData).toList(),
                 result.page(),
                 result.size(),
                 result.totalElements(),
@@ -179,8 +198,13 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         );
     }
 
-    @Transactional
-    public MenuItemModel updateMenuItem(UUID merchantUserId, UUID menuItemId, UpdateMenuItemRequest request) {
+    public MenuItemData updateMenuItem(UUID merchantUserId, UUID menuItemId, UpdateMenuItemRequest request) {
+        requireText(request.categoryId(), "categoryId");
+        requireText(request.name(), "name");
+        requireText(request.description(), "description");
+        requireNonNull(request.price(), "price");
+        requireNonNull(request.isActive(), "isActive");
+        requireNonNull(request.isAvailable(), "isAvailable");
         MenuItem item = menuItemPort.findById(menuItemId)
                 .orElseThrow(() -> new NotFoundException("menu item not found"));
         ownedRestaurant(merchantUserId, item.getRestaurantId());
@@ -196,10 +220,9 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         item.setPrice(request.price());
         item.setActive(request.isActive());
         item.setAvailable(request.isAvailable());
-        return toMenuItemModel(menuItemPort.save(item));
+        return toMenuItemData(menuItemPort.save(item));
     }
 
-    @Transactional
     public void softDeleteMenuItem(UUID merchantUserId, UUID menuItemId) {
         MenuItem item = menuItemPort.findById(menuItemId)
                 .orElseThrow(() -> new NotFoundException("menu item not found"));
@@ -209,13 +232,31 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         menuItemPort.save(item);
     }
 
-    @Transactional
-    public MenuItemModel updateAvailability(UUID merchantUserId, UUID menuItemId, UpdateMenuItemAvailabilityRequest request) {
+    public MenuItemData updateAvailability(UUID merchantUserId, UUID menuItemId, UpdateMenuItemAvailabilityRequest request) {
+        requireNonNull(request.isAvailable(), "isAvailable");
         MenuItem item = menuItemPort.findById(menuItemId)
                 .orElseThrow(() -> new NotFoundException("menu item not found"));
         ownedRestaurant(merchantUserId, item.getRestaurantId());
         item.setAvailable(request.isAvailable());
-        return toMenuItemModel(menuItemPort.save(item));
+        return toMenuItemData(menuItemPort.save(item));
+    }
+
+    public MenuItemData uploadMenuItemImage(UUID merchantUserId,
+                                            UUID menuItemId,
+                                            String originalFileName,
+                                            String contentType,
+                                            byte[] content) {
+        requireText(originalFileName, "fileName");
+        requireNonNull(content, "content");
+        validateImageContent(contentType, content.length);
+
+        MenuItem item = menuItemPort.findById(menuItemId)
+                .orElseThrow(() -> new NotFoundException("menu item not found"));
+        ownedRestaurant(merchantUserId, item.getRestaurantId());
+
+        String imageUrl = menuItemImageStoragePort.store(menuItemId, originalFileName, contentType, content);
+        item.setImageUrl(imageUrl);
+        return toMenuItemData(menuItemPort.save(item));
     }
 
     private Restaurant ownedRestaurant(UUID merchantUserId, UUID restaurantId) {
@@ -263,6 +304,19 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         }
     }
 
+    private static void validateImageContent(String contentType, int contentLength) {
+        if (contentType != null && !contentType.isBlank() && !contentType.startsWith("image/")) {
+            throw new ValidationException("invalid contentType", Map.of("contentType", "must be an image mime type"));
+        }
+        if (contentLength <= 0) {
+            throw new ValidationException("invalid content", Map.of("file", "must not be empty"));
+        }
+        int maxBytes = 5 * 1024 * 1024;
+        if (contentLength > maxBytes) {
+            throw new ValidationException("invalid content", Map.of("file", "must be <= 5MB"));
+        }
+    }
+
     private static UUID parseUuid(String value, String field) {
         try {
             return UUID.fromString(value);
@@ -271,8 +325,20 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         }
     }
 
-    private RestaurantModel toRestaurantModel(Restaurant restaurant) {
-        RestaurantModel model = new RestaurantModel();
+    private static void requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be blank"));
+        }
+    }
+
+    private static void requireNonNull(Object value, String field) {
+        if (value == null) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be null"));
+        }
+    }
+
+    private RestaurantData toRestaurantData(Restaurant restaurant) {
+        RestaurantData model = new RestaurantData();
         model.setId(restaurant.getId());
         model.setOwnerUserId(restaurant.getOwnerUserId());
         model.setName(restaurant.getName());
@@ -290,8 +356,8 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         return model;
     }
 
-    private MenuCategoryModel toMenuCategoryModel(MenuCategory category) {
-        MenuCategoryModel model = new MenuCategoryModel();
+    private MenuCategoryData toMenuCategoryData(MenuCategory category) {
+        MenuCategoryData model = new MenuCategoryData();
         model.setId(category.getId());
         model.setRestaurantId(category.getRestaurantId());
         model.setName(category.getName());
@@ -300,13 +366,14 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         return model;
     }
 
-    private MenuItemModel toMenuItemModel(MenuItem item) {
-        MenuItemModel model = new MenuItemModel();
+    private MenuItemData toMenuItemData(MenuItem item) {
+        MenuItemData model = new MenuItemData();
         model.setId(item.getId());
         model.setRestaurantId(item.getRestaurantId());
         model.setCategoryId(item.getCategoryId());
         model.setName(item.getName());
         model.setDescription(item.getDescription());
+        model.setImageUrl(item.getImageUrl());
         model.setPrice(item.getPrice());
         model.setActive(item.isActive());
         model.setAvailable(item.isAvailable());

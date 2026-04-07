@@ -8,6 +8,7 @@ public final class IntegrationKeyCatalog {
     public static final String GOOGLE_AI_STUDIO_API_KEY = "google.ai.studio.api.key";
 
     public static final String SUPABASE_PROJECT_URL = "supabase.project.url";
+    public static final String SUPABASE_STORAGE_BUCKET = "supabase.storage.bucket";
     public static final String SUPABASE_S3_ACCESS_KEY_ID = "supabase.storage.s3.access-key-id";
     public static final String SUPABASE_S3_SECRET_ACCESS_KEY = "supabase.storage.s3.secret-access-key";
 

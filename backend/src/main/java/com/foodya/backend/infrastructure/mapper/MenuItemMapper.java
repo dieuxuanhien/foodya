@@ -18,6 +18,7 @@ public class MenuItemMapper {
         domain.setCategoryId(model.getCategoryId());
         domain.setName(model.getName());
         domain.setDescription(model.getDescription());
+        domain.setImageUrl(model.getImageUrl());
         domain.setPrice(model.getPrice());
         domain.setActive(model.isActive());
         domain.setAvailable(model.isAvailable());
@@ -38,6 +39,7 @@ public class MenuItemMapper {
         model.setCategoryId(domain.getCategoryId());
         model.setName(domain.getName());
         model.setDescription(domain.getDescription());
+        model.setImageUrl(domain.getImageUrl());
         model.setPrice(domain.getPrice());
         model.setActive(domain.isActive());
         model.setAvailable(domain.isAvailable());

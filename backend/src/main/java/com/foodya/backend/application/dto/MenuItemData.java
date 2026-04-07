@@ -4,13 +4,14 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class MenuItemModel {
+public class MenuItemData {
 
     private UUID id;
     private UUID restaurantId;
     private UUID categoryId;
     private String name;
     private String description;
+    private String imageUrl;
     private BigDecimal price;
     private boolean active;
     private boolean available;
@@ -54,6 +55,14 @@ public class MenuItemModel {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public BigDecimal getPrice() {
