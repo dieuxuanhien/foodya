@@ -23,7 +23,7 @@ public class CartPersistenceModel {
     @Column(name = "customer_user_id", nullable = false)
     private UUID customerUserId;
 
-    @Column(name = "restaurant_id", nullable = false)
+    @Column(name = "restaurant_id")
     private UUID restaurantId;
 
     @Enumerated(EnumType.STRING)

@@ -49,14 +49,12 @@ public class CartService implements CartUseCase {
 
         Cart cart = cartPort.findByCustomerUserIdAndStatus(customerUserId, CartStatus.ACTIVE)
                 .orElseGet(() -> createActiveCart(customerUserId, menuItem.getRestaurantId()));
+        Cart scopedCart = ensureRestaurantScope(cart, menuItem.getRestaurantId());
 
-        // BR29: active cart must be scoped to a single restaurant.
-        cart.validateRestaurantScope(menuItem.getRestaurantId());
-
-        CartItem line = cartItemPort.findByCartIdAndMenuItemId(cart.getId(), menuItemId)
+        CartItem line = cartItemPort.findByCartIdAndMenuItemId(scopedCart.getId(), menuItemId)
                 .orElseGet(() -> {
                     CartItem item = new CartItem();
-                    item.setCartId(cart.getId());
+                    item.setCartId(scopedCart.getId());
                     item.setMenuItemId(menuItemId);
                     item.setQuantity(0);
                     item.setUnitPriceSnapshot(menuItem.getPrice());
@@ -67,7 +65,7 @@ public class CartService implements CartUseCase {
         line.setNote(note);
         cartItemPort.save(line);
 
-        return toView(cart);
+        return toView(scopedCart);
     }
 
     public ActiveCartView updateItem(UUID customerUserId, String menuItemIdRaw, int quantity, String note) {
@@ -90,13 +88,13 @@ public class CartService implements CartUseCase {
         CartItem line = cartItemPort.findByCartIdAndMenuItemId(cart.getId(), menuItemId)
                 .orElseThrow(() -> new NotFoundException("cart item not found"));
         cartItemPort.delete(line);
-        return toView(cart);
+        return toView(clearRestaurantScopeIfEmpty(cart));
     }
 
     public ActiveCartView clearActiveCart(UUID customerUserId) {
         Cart cart = requiredActiveCart(customerUserId);
         cartItemPort.deleteByCartId(cart.getId());
-        return toView(cart);
+        return toView(clearRestaurantScopeIfEmpty(cart));
     }
 
     private Cart requiredActiveCart(UUID customerUserId) {
@@ -110,6 +108,26 @@ public class CartService implements CartUseCase {
         cart.setRestaurantId(restaurantId);
         cart.setStatus(CartStatus.ACTIVE);
         return cartPort.save(cart);
+    }
+
+    private Cart ensureRestaurantScope(Cart cart, UUID restaurantId) {
+        if (cart.getRestaurantId() == null) {
+            cart.setRestaurantId(restaurantId);
+            return cartPort.save(cart);
+        }
+
+        // BR29: active cart must be scoped to a single restaurant.
+        cart.validateRestaurantScope(restaurantId);
+        return cart;
+    }
+
+    private Cart clearRestaurantScopeIfEmpty(Cart cart) {
+        if (cartItemPort.findByCartId(cart.getId()).isEmpty() && cart.getRestaurantId() != null) {
+            cart.setRestaurantId(null);
+            cart = cartPort.save(cart);
+        }
+
+        return cart;
     }
 
     private ActiveCartView toView(Cart cart) {

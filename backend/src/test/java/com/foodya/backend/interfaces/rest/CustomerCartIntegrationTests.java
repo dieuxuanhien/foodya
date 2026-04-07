@@ -133,12 +133,14 @@ class CustomerCartIntegrationTests {
         mockMvc.perform(delete("/api/v1/customer/carts/active/items/{menuItemId}", menuItem.getId())
                         .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.itemCount").value(0));
+            .andExpect(jsonPath("$.data.itemCount").value(0))
+            .andExpect(jsonPath("$.data.restaurantId").isEmpty());
 
         mockMvc.perform(delete("/api/v1/customer/carts/active/items")
                         .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.itemCount").value(0));
+            .andExpect(jsonPath("$.data.itemCount").value(0))
+            .andExpect(jsonPath("$.data.restaurantId").isEmpty());
     }
 
     @Test
