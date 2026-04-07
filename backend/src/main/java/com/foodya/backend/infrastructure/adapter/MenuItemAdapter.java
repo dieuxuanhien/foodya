@@ -35,7 +35,7 @@ public class MenuItemAdapter implements MenuItemPort {
 
     @Override
     public List<MenuItem> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword) {
-        return repository.findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(keyword)
+        return repository.findActiveMenuItemsByKeyword(keyword)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();

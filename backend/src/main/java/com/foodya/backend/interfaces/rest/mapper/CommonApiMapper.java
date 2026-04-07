@@ -11,6 +11,8 @@ import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.SystemParameterResponse;
 
+import java.util.List;
+
 public final class CommonApiMapper {
 
     private CommonApiMapper() {
@@ -40,6 +42,7 @@ public final class CommonApiMapper {
     }
 
     public static MenuItemResponse toMenuItemResponse(MenuItemData item) {
+        List<String> images = toImages(item.getImageUrl());
         return new MenuItemResponse(
                 item.getId().toString(),
                 item.getRestaurantId().toString(),
@@ -47,6 +50,7 @@ public final class CommonApiMapper {
                 item.getName(),
                 item.getDescription(),
                 item.getImageUrl(),
+                images,
                 item.getPrice(),
                 item.isActive(),
                 item.isAvailable()
@@ -54,11 +58,15 @@ public final class CommonApiMapper {
     }
 
     public static RestaurantDetailResponse toRestaurantDetailResponse(RestaurantData restaurant) {
+        List<String> images = toImages(restaurant.getImageUrl());
         return new RestaurantDetailResponse(
                 restaurant.getId().toString(),
                 restaurant.getName(),
                 restaurant.getCuisineType(),
+                restaurant.getCuisineTypes(),
                 restaurant.getDescription(),
+                restaurant.getImageUrl(),
+                images,
                 restaurant.getAddressLine(),
                 restaurant.getLatitude(),
                 restaurant.getLongitude(),
@@ -82,5 +90,12 @@ public final class CommonApiMapper {
                 parameter.getUpdatedByActor(),
                 parameter.getUpdatedAt()
         );
+    }
+
+    private static List<String> toImages(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return List.of();
+        }
+        return List.of(imageUrl);
     }
 }

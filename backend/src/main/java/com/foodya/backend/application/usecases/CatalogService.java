@@ -159,7 +159,7 @@ public class CatalogService {
                                                          BigDecimal minRating,
                                                          Boolean openNow) {
         return restaurants.stream()
-                .filter(restaurant -> cuisine == null || cuisine.isBlank() || restaurant.getCuisineType().equalsIgnoreCase(cuisine.trim()))
+            .filter(restaurant -> matchesCuisineFilter(restaurant, cuisine))
                 .filter(restaurant -> minRating == null || restaurant.getAvgRating().compareTo(minRating) >= 0)
                 .filter(restaurant -> openNow == null || restaurant.isOpen() == openNow)
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -176,6 +176,7 @@ public class CatalogService {
         return active.stream()
                 .filter(restaurant -> matchesKeyword(restaurant.getName(), keyword)
                     || matchesKeyword(restaurant.getCuisineType(), keyword)
+                    || restaurant.getCuisineTypes().stream().anyMatch(cuisine -> matchesKeyword(cuisine, keyword))
                     || matchesKeyword(restaurant.getDescription(), keyword)
                     || itemMatchRestaurantIds.contains(restaurant.getId()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -331,9 +332,21 @@ public class CatalogService {
         sorted.sort(Comparator
                 .comparing((RestaurantData restaurant) -> !matchesKeyword(restaurant.getName(), keyword)
                         && !matchesKeyword(restaurant.getCuisineType(), keyword)
+                        && restaurant.getCuisineTypes().stream().noneMatch(cuisine -> matchesKeyword(cuisine, keyword))
                         && !matchesKeyword(restaurant.getDescription(), keyword))
                 .thenComparing(RestaurantData::getName));
         return sorted;
+    }
+
+    private static boolean matchesCuisineFilter(RestaurantData restaurant, String cuisine) {
+        if (cuisine == null || cuisine.isBlank()) {
+            return true;
+        }
+        String resolved = cuisine.trim();
+        if (restaurant.getCuisineType() != null && restaurant.getCuisineType().equalsIgnoreCase(resolved)) {
+            return true;
+        }
+        return restaurant.getCuisineTypes().stream().anyMatch(value -> value.equalsIgnoreCase(resolved));
     }
 
     private double maxNearbyRadius() {
