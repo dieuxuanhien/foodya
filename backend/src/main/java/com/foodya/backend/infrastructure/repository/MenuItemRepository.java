@@ -1,6 +1,8 @@
 package com.foodya.backend.infrastructure.repository;
 
 import com.foodya.backend.infrastructure.persistence.models.MenuItemPersistenceModel;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,7 +20,19 @@ public interface MenuItemRepository extends JpaRepository<MenuItemPersistenceMod
 
     List<MenuItemPersistenceModel> findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(UUID restaurantId);
 
-    List<MenuItemPersistenceModel> findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(String keyword);
+    List<MenuItemPersistenceModel> findByActiveTrueAndDeletedAtIsNull();
+
+        @Query("""
+                        select m
+                        from MenuItemPersistenceModel m
+                        where m.active = true
+                            and m.deletedAt is null
+                            and (
+                                        lower(m.name) like lower(concat('%', :keyword, '%'))
+                                        or lower(coalesce(m.description, '')) like lower(concat('%', :keyword, '%'))
+                            )
+                        """)
+        List<MenuItemPersistenceModel> findActiveMenuItemsByKeyword(@Param("keyword") String keyword);
 
     List<MenuItemPersistenceModel> findByActiveTrueAndAvailableTrueAndDeletedAtIsNull();
 

@@ -101,6 +101,48 @@ class CatalogIntegrationTests {
     }
 
     @Test
+    void searchMatchesRestaurantCuisine() throws Exception {
+        seedRestaurant("Pho House", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
+
+        mockMvc.perform(get("/api/v1/restaurants")
+                        .param("q", "vietnamese")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].restaurantName").value("Pho House"));
+    }
+
+    @Test
+    void searchMatchesMenuItemDescription() throws Exception {
+        Restaurant restaurant = seedRestaurant("Signature Bowl", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
+        MenuCategory category = seedCategory(restaurant, "Main", 1);
+        seedMenuItem(restaurant, category, "Rice Bowl", "House signature broth with herbs", new BigDecimal("65000"));
+
+        mockMvc.perform(get("/api/v1/restaurants")
+                        .param("q", "signature")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].restaurantName").value("Signature Bowl"))
+                .andExpect(jsonPath("$.data[0].matchedItems[0].name").value("Rice Bowl"));
+    }
+
+    @Test
+    void searchMatchesVietnameseNormalizedText() throws Exception {
+        Restaurant restaurant = seedRestaurant("Bánh Mì House", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
+        MenuCategory category = seedCategory(restaurant, "Main", 1);
+        seedMenuItem(restaurant, category, "Bánh Mì Đặc Biệt", new BigDecimal("55000"));
+
+        mockMvc.perform(get("/api/v1/restaurants")
+                        .param("q", "banh")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].restaurantName").value("Bánh Mì House"))
+                .andExpect(jsonPath("$.data[0].matchedItems[0].name").value("Bánh Mì Đặc Biệt"));
+    }
+
+    @Test
     void nearbySortsByDistanceAscending() throws Exception {
         seedRestaurant("Near A", new BigDecimal("10.7771000"), new BigDecimal("106.7001000"));
         seedRestaurant("Near B", new BigDecimal("10.7900000"), new BigDecimal("106.7200000"));
@@ -188,11 +230,15 @@ class CatalogIntegrationTests {
     }
 
     private MenuItem seedMenuItem(Restaurant restaurant, MenuCategory category, String name, BigDecimal price) {
+        return seedMenuItem(restaurant, category, name, name + " description", price);
+    }
+
+    private MenuItem seedMenuItem(Restaurant restaurant, MenuCategory category, String name, String description, BigDecimal price) {
         MenuItem item = new MenuItem();
         item.setRestaurantId(restaurant.getId());
         item.setCategoryId(category.getId());
         item.setName(name);
-        item.setDescription(name + " description");
+        item.setDescription(description);
         item.setPrice(price);
         item.setActive(true);
         item.setAvailable(true);

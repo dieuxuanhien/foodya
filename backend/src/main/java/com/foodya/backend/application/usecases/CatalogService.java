@@ -12,20 +12,22 @@ import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
 public class CatalogService {
 
     private static final List<RestaurantStatus> PUBLIC_STATUSES = List.of(RestaurantStatus.ACTIVE);
@@ -58,8 +60,9 @@ public class CatalogService {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String keyword = q == null ? "" : q.trim();
 
-        Map<UUID, List<MenuItemModel>> matchedItemsByRestaurant = matchedItemsByRestaurant(keyword);
-        List<RestaurantModel> candidates = filterByKeyword(keyword, matchedItemsByRestaurant.keySet());
+
+        Map<UUID, List<MenuItemData>> matchedItemsByRestaurant = matchedItemsByRestaurant(keyword);
+        List<RestaurantData> candidates = filterByKeyword(keyword, matchedItemsByRestaurant.keySet());
         candidates = applyRestaurantFilters(candidates, cuisine, minRating, openNow);
 
         Map<UUID, BigDecimal> distanceByRestaurant = Map.of();
@@ -73,10 +76,10 @@ public class CatalogService {
         }
 
         final Map<UUID, BigDecimal> resolvedDistanceByRestaurant = distanceByRestaurant;
-        List<RestaurantModel> sorted = sortRestaurants(candidates, sort, keyword, resolvedDistanceByRestaurant);
+        List<RestaurantData> sorted = sortRestaurants(candidates, sort, keyword, resolvedDistanceByRestaurant);
         int from = spec.offset();
         int to = Math.min(sorted.size(), from + spec.size());
-        List<RestaurantModel> pageContent = from >= sorted.size() ? List.of() : sorted.subList(from, to);
+        List<RestaurantData> pageContent = from >= sorted.size() ? List.of() : sorted.subList(from, to);
 
         List<RestaurantSearchView> responses = pageContent.stream()
                 .map(restaurant -> RestaurantSearchView.from(
@@ -104,16 +107,16 @@ public class CatalogService {
 
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         Set<String> ring = h3Ring(lat.doubleValue(), lng.doubleValue(), radiusKm.doubleValue());
-        List<RestaurantModel> prefiltered = catalogQueryPort.findRestaurantsByH3IndexAndStatus(ring, PUBLIC_STATUSES);
-        List<RestaurantModel> candidates = applyNearbyFilter(prefiltered, lat.doubleValue(), lng.doubleValue(), radiusKm.doubleValue());
+        List<RestaurantData> prefiltered = catalogQueryPort.findRestaurantsByH3IndexAndStatus(ring, PUBLIC_STATUSES);
+        List<RestaurantData> candidates = applyNearbyFilter(prefiltered, lat.doubleValue(), lng.doubleValue(), radiusKm.doubleValue());
         Map<UUID, BigDecimal> distanceByRestaurant = computeDistanceMap(candidates, lat.doubleValue(), lng.doubleValue());
 
-        List<RestaurantModel> sorted = new ArrayList<>(candidates);
+        List<RestaurantData> sorted = new ArrayList<>(candidates);
         sorted.sort(Comparator.comparing(r -> distanceByRestaurant.get(r.getId())));
 
         int from = spec.offset();
         int to = Math.min(sorted.size(), from + spec.size());
-        List<RestaurantModel> pageContent = from >= sorted.size() ? List.of() : sorted.subList(from, to);
+        List<RestaurantData> pageContent = from >= sorted.size() ? List.of() : sorted.subList(from, to);
 
         List<RestaurantSearchView> responses = pageContent.stream()
                 .map(restaurant -> RestaurantSearchView.from(restaurant, distanceByRestaurant.get(restaurant.getId()), List.of()))
@@ -123,12 +126,12 @@ public class CatalogService {
         return new PaginatedResult<>(responses, spec.page(), spec.size(), sorted.size(), totalPages);
     }
 
-    public RestaurantModel restaurantDetail(UUID restaurantId) {
+    public RestaurantData restaurantDetail(UUID restaurantId) {
         return catalogQueryPort.findRestaurantByIdAndStatusIn(restaurantId, PUBLIC_STATUSES)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
     }
 
-    public PaginatedResult<MenuItemModel> publicMenuItems(UUID restaurantId,
+    public PaginatedResult<MenuItemData> publicMenuItems(UUID restaurantId,
                                                           String keyword,
                                                           String categoryId,
                                                           String sort,
@@ -137,7 +140,7 @@ public class CatalogService {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         restaurantDetail(restaurantId);
 
-        List<MenuItemModel> filtered = catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId)
+        List<MenuItemData> filtered = catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId)
                 .stream()
                 .filter(item -> matchesKeyword(item, keyword))
                 .filter(item -> matchesCategory(item, categoryId))
@@ -146,12 +149,12 @@ public class CatalogService {
         sortMenuItems(filtered, sort);
         int from = spec.offset();
         int to = Math.min(filtered.size(), from + spec.size());
-        List<MenuItemModel> pageContent = from >= filtered.size() ? List.of() : filtered.subList(from, to);
+        List<MenuItemData> pageContent = from >= filtered.size() ? List.of() : filtered.subList(from, to);
         int totalPages = (int) Math.ceil((double) filtered.size() / spec.size());
         return new PaginatedResult<>(pageContent, spec.page(), spec.size(), filtered.size(), totalPages);
     }
 
-    private List<RestaurantModel> applyRestaurantFilters(List<RestaurantModel> restaurants,
+    private List<RestaurantData> applyRestaurantFilters(List<RestaurantData> restaurants,
                                                          String cuisine,
                                                          BigDecimal minRating,
                                                          Boolean openNow) {
@@ -162,31 +165,35 @@ public class CatalogService {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private List<RestaurantModel> filterByKeyword(String keyword, Collection<UUID> itemMatchRestaurantIds) {
-        List<RestaurantModel> active = catalogQueryPort.findAllRestaurants().stream()
+    private List<RestaurantData> filterByKeyword(String keyword, Collection<UUID> itemMatchRestaurantIds) {
+        List<RestaurantData> active = catalogQueryPort.findAllRestaurants().stream()
                 .filter(restaurant -> PUBLIC_STATUSES.contains(restaurant.getStatus()))
                 .toList();
         if (keyword.isBlank()) {
             return new ArrayList<>(active);
         }
 
-        String lower = keyword.toLowerCase();
         return active.stream()
-                .filter(restaurant -> restaurant.getName().toLowerCase().contains(lower) || itemMatchRestaurantIds.contains(restaurant.getId()))
+                .filter(restaurant -> matchesKeyword(restaurant.getName(), keyword)
+                    || matchesKeyword(restaurant.getCuisineType(), keyword)
+                    || matchesKeyword(restaurant.getDescription(), keyword)
+                    || itemMatchRestaurantIds.contains(restaurant.getId()))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private Map<UUID, List<MenuItemModel>> matchedItemsByRestaurant(String keyword) {
+    private Map<UUID, List<MenuItemData>> matchedItemsByRestaurant(String keyword) {
         if (keyword.isBlank()) {
             return Map.of();
         }
 
         return catalogQueryPort.findActiveMenuItemsByKeyword(keyword)
                 .stream()
-                .collect(Collectors.groupingBy(MenuItemModel::getRestaurantId, LinkedHashMap::new, Collectors.toList()));
+                .filter(item -> matchesKeyword(item, keyword))
+                .collect(Collectors.groupingBy(MenuItemData::getRestaurantId, LinkedHashMap::new, Collectors.toList()));
     }
 
-    private List<RestaurantModel> applyNearbyFilter(List<RestaurantModel> restaurants,
+
+    private List<RestaurantData> applyNearbyFilter(List<RestaurantData> restaurants,
                                                     double lat,
                                                     double lng,
                                                     double radiusKm) {
@@ -195,7 +202,7 @@ public class CatalogService {
         }
 
         Set<String> ring = h3Ring(lat, lng, radiusKm);
-        List<RestaurantModel> h3Candidates = restaurants.stream()
+        List<RestaurantData> h3Candidates = restaurants.stream()
                 .filter(restaurant -> ring.contains(restaurant.getH3IndexRes9()))
                 .toList();
 
@@ -213,14 +220,44 @@ public class CatalogService {
         return geoPort.h3KRingRes9(lat, lng, radiusKm);
     }
 
-    private static boolean matchesKeyword(MenuItemModel item, String keyword) {
+    private static boolean matchesKeyword(MenuItemData item, String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return true;
         }
-        return item.getName().toLowerCase().contains(keyword.trim().toLowerCase());
+        return matchesKeyword(item.getName(), keyword) || matchesKeyword(item.getDescription(), keyword);
     }
 
-    private static boolean matchesCategory(MenuItemModel item, String categoryId) {
+    private static boolean matchesKeyword(String text, String keyword) {
+        if (text == null || keyword == null || keyword.isBlank()) {
+            return false;
+        }
+        Set<String> textTokens = tokenizeForSearch(text);
+        List<String> keywordTokens = tokenizeForSearch(keyword).stream().toList();
+        if (keywordTokens.isEmpty()) {
+            return false;
+        }
+        return keywordTokens.stream().allMatch(textTokens::contains);
+    }
+
+    private static Set<String> tokenizeForSearch(String value) {
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'd')
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}]+", " ")
+                .trim();
+
+        if (normalized.isBlank()) {
+            return Set.of();
+        }
+
+        return Arrays.stream(normalized.split("\\s+"))
+                .filter(token -> !token.isBlank())
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private static boolean matchesCategory(MenuItemData item, String categoryId) {
         if (categoryId == null || categoryId.isBlank()) {
             return true;
         }
@@ -231,18 +268,18 @@ public class CatalogService {
         }
     }
 
-    private static void sortMenuItems(List<MenuItemModel> items, String sort) {
+    private static void sortMenuItems(List<MenuItemData> items, String sort) {
         String resolvedSort = sort == null ? "popularity_desc" : sort.trim().toLowerCase();
         if ("name_asc".equals(resolvedSort)) {
-            items.sort(Comparator.comparing(MenuItemModel::getName));
+            items.sort(Comparator.comparing(MenuItemData::getName));
             return;
         }
         if ("price_asc".equals(resolvedSort)) {
-            items.sort(Comparator.comparing(MenuItemModel::getPrice));
+            items.sort(Comparator.comparing(MenuItemData::getPrice));
             return;
         }
         if ("price_desc".equals(resolvedSort)) {
-            items.sort(Comparator.comparing(MenuItemModel::getPrice).reversed());
+            items.sort(Comparator.comparing(MenuItemData::getPrice).reversed());
             return;
         }
         if (!"popularity_desc".equals(resolvedSort)) {
@@ -250,10 +287,10 @@ public class CatalogService {
         }
 
         // Phase 2 popularity proxy until order analytics exists in later phases.
-        items.sort(Comparator.comparing(MenuItemModel::getName));
+        items.sort(Comparator.comparing(MenuItemData::getName));
     }
 
-    private Map<UUID, BigDecimal> computeDistanceMap(List<RestaurantModel> restaurants, double lat, double lng) {
+    private Map<UUID, BigDecimal> computeDistanceMap(List<RestaurantData> restaurants, double lat, double lng) {
         Map<UUID, BigDecimal> distances = new LinkedHashMap<>();
         restaurants.forEach(restaurant -> distances.put(
                 restaurant.getId(),
@@ -262,15 +299,15 @@ public class CatalogService {
         return distances;
     }
 
-    private List<RestaurantModel> sortRestaurants(List<RestaurantModel> restaurants,
+    private List<RestaurantData> sortRestaurants(List<RestaurantData> restaurants,
                                                   String sort,
                                                   String keyword,
                                                   Map<UUID, BigDecimal> distanceByRestaurant) {
-        List<RestaurantModel> sorted = new ArrayList<>(restaurants);
+        List<RestaurantData> sorted = new ArrayList<>(restaurants);
         String resolvedSort = sort == null ? "relevance" : sort.trim().toLowerCase();
 
         if ("rating_desc".equals(resolvedSort)) {
-            sorted.sort(Comparator.comparing(RestaurantModel::getAvgRating).reversed().thenComparing(RestaurantModel::getName));
+            sorted.sort(Comparator.comparing(RestaurantData::getAvgRating).reversed().thenComparing(RestaurantData::getName));
             return sorted;
         }
 
@@ -287,14 +324,15 @@ public class CatalogService {
         }
 
         if (keyword.isBlank()) {
-            sorted.sort(Comparator.comparing(RestaurantModel::getName));
+            sorted.sort(Comparator.comparing(RestaurantData::getName));
             return sorted;
         }
 
-        String lower = keyword.toLowerCase();
         sorted.sort(Comparator
-                .comparing((RestaurantModel restaurant) -> !restaurant.getName().toLowerCase().startsWith(lower))
-                .thenComparing(RestaurantModel::getName));
+                .comparing((RestaurantData restaurant) -> !matchesKeyword(restaurant.getName(), keyword)
+                        && !matchesKeyword(restaurant.getCuisineType(), keyword)
+                        && !matchesKeyword(restaurant.getDescription(), keyword))
+                .thenComparing(RestaurantData::getName));
         return sorted;
     }
 

@@ -35,45 +35,45 @@ public class CatalogQueryAdapter implements CatalogQueryPort {
     }
 
     @Override
-    public List<RestaurantModel> findAllRestaurants() {
+    public List<RestaurantData> findAllRestaurants() {
         return restaurantRepository.findAll().stream()
                 .map(restaurantMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel)
+                .map(CatalogPersistenceMapper::toData)
                 .toList();
     }
 
     @Override
-    public List<RestaurantModel> findRestaurantsByH3IndexAndStatus(Collection<String> h3Indexes,
+    public List<RestaurantData> findRestaurantsByH3IndexAndStatus(Collection<String> h3Indexes,
                                                                    Collection<RestaurantStatus> statuses) {
         return restaurantRepository.findByH3IndexRes9InAndStatusIn(h3Indexes, statuses)
                 .stream()
             .map(restaurantMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel)
+                .map(CatalogPersistenceMapper::toData)
                 .toList();
     }
 
     @Override
-    public Optional<RestaurantModel> findRestaurantByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses) {
+    public Optional<RestaurantData> findRestaurantByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses) {
         return restaurantRepository.findByIdAndStatusIn(id, statuses)
                 .map(restaurantMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel);
+                .map(CatalogPersistenceMapper::toData);
     }
 
     @Override
-    public List<MenuItemModel> findPublicMenuItemsByRestaurant(UUID restaurantId) {
+    public List<MenuItemData> findPublicMenuItemsByRestaurant(UUID restaurantId) {
         return menuItemRepository.findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(restaurantId)
                 .stream()
             .map(menuItemMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel)
+                .map(CatalogPersistenceMapper::toData)
                 .toList();
     }
 
     @Override
-    public List<MenuItemModel> findActiveMenuItemsByKeyword(String keyword) {
-        return menuItemRepository.findByActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(keyword)
+    public List<MenuItemData> findActiveMenuItemsByKeyword(String keyword) {
+        return menuItemRepository.findByActiveTrueAndDeletedAtIsNull()
                 .stream()
             .map(menuItemMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel)
+                .map(CatalogPersistenceMapper::toData)
                 .toList();
     }
 }
