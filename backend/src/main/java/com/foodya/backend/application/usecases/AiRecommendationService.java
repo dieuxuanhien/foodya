@@ -6,7 +6,8 @@ import com.foodya.backend.application.dto.AiCatalogChunkDocument;
 import com.foodya.backend.application.dto.AiCatalogVectorHit;
 import com.foodya.backend.application.dto.AiRecommendationItemView;
 import com.foodya.backend.application.dto.CreateAiChatRequest;
-import com.foodya.backend.application.dto.AiChatHistoryModel;
+import com.foodya.backend.application.dto.AiChatHistoryData;
+import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.ports.in.AiRecommendationUseCase;
 import com.foodya.backend.application.ports.out.AiCatalogVectorPort;
 import com.foodya.backend.application.ports.out.AiChatHistoryPort;
@@ -15,6 +16,7 @@ import com.foodya.backend.application.ports.out.AiEmbeddingPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.MenuItemPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
+import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.application.ports.out.WeatherContextPort;
 import com.foodya.backend.domain.entities.SystemParameter;
@@ -83,6 +85,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private final AiCatalogVectorPort aiCatalogVectorPort;
     private final MenuItemPort menuItemPort;
     private final RestaurantPort restaurantPort;
+    private final UserAccountPort userAccountPort;
     private final AiDraftPort aiDraftPort;
     private final WeatherContextPort weatherContextPort;
     private final AiChatHistoryPort aiChatHistoryPort;
@@ -97,6 +100,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                                    AiCatalogVectorPort aiCatalogVectorPort,
                                    MenuItemPort menuItemPort,
                                    RestaurantPort restaurantPort,
+                                   UserAccountPort userAccountPort,
                                    AiDraftPort aiDraftPort,
                                    WeatherContextPort weatherContextPort,
                                    AiChatHistoryPort aiChatHistoryPort,
@@ -107,6 +111,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                     this.aiCatalogVectorPort = aiCatalogVectorPort;
         this.menuItemPort = menuItemPort;
         this.restaurantPort = restaurantPort;
+                    this.userAccountPort = userAccountPort;
         this.aiDraftPort = aiDraftPort;
         this.weatherContextPort = weatherContextPort;
         this.aiChatHistoryPort = aiChatHistoryPort;
@@ -120,8 +125,9 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         }
     }
 
-    @Transactional
     public AiChatResponseView createChat(UUID customerUserId, CreateAiChatRequest request) {
+        userAccountPort.findById(customerUserId)
+            .orElseThrow(() -> new NotFoundException("user not found"));
         String normalizedPrompt = request.prompt().trim();
         List<String> tokens = tokenize(normalizedPrompt);
         RecommendationIntent intent = parseIntent(normalizedPrompt, tokens);
@@ -192,7 +198,6 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         );
     }
 
-    @Transactional(readOnly = true)
     public List<AiChatHistoryView> history(UUID customerUserId) {
         return aiChatHistoryPort.findByUserIdOrderByCreatedAtDesc(customerUserId)
                 .stream()

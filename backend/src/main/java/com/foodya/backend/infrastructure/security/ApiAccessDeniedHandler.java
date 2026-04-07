@@ -27,7 +27,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        SecurityApiErrorResponse body = new SecurityApiErrorResponse(
+        SecurityErrorResponse body = new SecurityErrorResponse(
                 "FORBIDDEN",
                 "access is denied",
                 null,

@@ -27,7 +27,7 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        SecurityApiErrorResponse body = new SecurityApiErrorResponse(
+        SecurityErrorResponse body = new SecurityErrorResponse(
                 "UNAUTHORIZED",
                 "authentication is required",
                 null,

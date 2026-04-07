@@ -7,6 +7,7 @@ import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.TooManyRequestsException;
 import com.foodya.backend.application.exception.UnauthorizedException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.domain.exceptions.CartValidationException;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -43,6 +44,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(ValidationException ex, HttpServletRequest request) {
         return error(HttpStatus.UNPROCESSABLE_ENTITY, "VALIDATION_FAILED", ex.getMessage(), ex.getDetails(), request);
+    }
+
+    @ExceptionHandler(CartValidationException.class)
+    public ResponseEntity<ApiErrorResponse> handleCartValidation(CartValidationException ex, HttpServletRequest request) {
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "VALIDATION_FAILED", ex.getMessage(), null, request);
     }
 
     @ExceptionHandler(ConflictException.class)

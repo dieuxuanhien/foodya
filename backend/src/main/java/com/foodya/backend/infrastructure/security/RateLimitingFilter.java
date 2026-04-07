@@ -56,7 +56,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (counter.count > limit) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                SecurityApiErrorResponse body = new SecurityApiErrorResponse(
+            SecurityErrorResponse body = new SecurityErrorResponse(
                     "RATE_LIMITED",
                     "rate limit exceeded",
                     null,
