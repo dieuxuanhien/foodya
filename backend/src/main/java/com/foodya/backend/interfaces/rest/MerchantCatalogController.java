@@ -12,6 +12,7 @@ import com.foodya.backend.application.dto.UpdateMenuCategoryRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemAvailabilityRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemRequest;
 import com.foodya.backend.application.dto.UpdateRestaurantRequest;
+import com.foodya.backend.application.constants.AppCuisineCatalog;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
@@ -55,7 +56,7 @@ public class MerchantCatalogController {
         this.merchantCatalogService = merchantCatalogService;
     }
 
-    @PostMapping("/restaurants")
+    @PostMapping(value = "/restaurants", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create restaurant")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurant(Authentication authentication,
                                                                                           @Valid @RequestBody CreateRestaurantRequest request,
@@ -66,7 +67,30 @@ public class MerchantCatalogController {
             .body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
 
-    @PatchMapping("/restaurants/{id}")
+    @PostMapping(value = "/restaurants", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create restaurant with image")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurantWithImage(Authentication authentication,
+                                                                                                   @Valid @RequestPart("payload") CreateRestaurantRequest request,
+                                                                                                   @RequestPart("file") MultipartFile file,
+                                                                                                   HttpServletRequest httpServletRequest) {
+        UUID merchantId = principal(authentication);
+        RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request);
+        try {
+            restaurant = merchantCatalogService.uploadRestaurantImage(
+                    merchantId,
+                    restaurant.getId(),
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getBytes()
+            );
+        } catch (IOException ex) {
+            throw new ValidationException("invalid file", java.util.Map.of("file", "cannot be read"));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
+    }
+
+    @PatchMapping(value = "/restaurants/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Update restaurant")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurant(Authentication authentication,
                                                                                           @PathVariable String id,
@@ -75,6 +99,36 @@ public class MerchantCatalogController {
         UUID merchantId = principal(authentication);
         RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
+    }
+
+    @PatchMapping(value = "/restaurants/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update restaurant with image")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurantWithImage(Authentication authentication,
+                                                                                                   @PathVariable String id,
+                                                                                                   @Valid @RequestPart("payload") UpdateRestaurantRequest request,
+                                                                                                   @RequestPart("file") MultipartFile file,
+                                                                                                   HttpServletRequest httpServletRequest) {
+        UUID merchantId = principal(authentication);
+        UUID restaurantId = parseUuid(id, "id");
+        RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, restaurantId, request);
+        try {
+            restaurant = merchantCatalogService.uploadRestaurantImage(
+                    merchantId,
+                    restaurantId,
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getBytes()
+            );
+        } catch (IOException ex) {
+            throw new ValidationException("invalid file", java.util.Map.of("file", "cannot be read"));
+        }
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
+    }
+
+    @GetMapping("/cuisine-types")
+    @Operation(summary = "List app-level cuisine types")
+    public ResponseEntity<ApiSuccessResponse<java.util.List<String>>> cuisineTypes(HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(ApiSuccessResponse.of(AppCuisineCatalog.displayValues(), RequestTrace.from(httpServletRequest)));
     }
 
     @PostMapping("/restaurants/{id}/menu-categories")

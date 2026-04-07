@@ -16,6 +16,7 @@ import com.foodya.backend.application.dto.UpdateMenuCategoryRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemAvailabilityRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemRequest;
 import com.foodya.backend.application.dto.UpdateRestaurantRequest;
+import com.foodya.backend.application.constants.AppCuisineCatalog;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -24,12 +25,17 @@ import com.foodya.backend.application.ports.out.MenuCategoryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.MenuItemPort;
 import com.foodya.backend.application.ports.out.MenuItemImageStoragePort;
+import com.foodya.backend.application.ports.out.RestaurantImageStoragePort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.application.support.PaginationPolicy;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,6 +48,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
     private final PaginationPolicy paginationPolicy;
     private final GeoPort geoPort;
     private final MenuItemImageStoragePort menuItemImageStoragePort;
+    private final RestaurantImageStoragePort restaurantImageStoragePort;
 
     public MerchantCatalogService(RestaurantPort restaurantPort,
                                   MenuCategoryPort menuCategoryPort,
@@ -49,7 +56,8 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
                                   SystemParameterPort systemParameterPort,
                                   PaginationPolicy paginationPolicy,
                                   GeoPort geoPort,
-                                  MenuItemImageStoragePort menuItemImageStoragePort) {
+                                  MenuItemImageStoragePort menuItemImageStoragePort,
+                                  RestaurantImageStoragePort restaurantImageStoragePort) {
         this.restaurantPort = restaurantPort;
         this.menuCategoryPort = menuCategoryPort;
         this.menuItemPort = menuItemPort;
@@ -57,22 +65,24 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         this.paginationPolicy = paginationPolicy;
         this.geoPort = geoPort;
         this.menuItemImageStoragePort = menuItemImageStoragePort;
+        this.restaurantImageStoragePort = restaurantImageStoragePort;
     }
 
     public RestaurantData createRestaurant(UUID merchantUserId, CreateRestaurantRequest request) {
         requireText(request.name(), "name");
-        requireText(request.cuisineType(), "cuisineType");
         requireText(request.addressLine(), "addressLine");
         requireNonNull(request.latitude(), "latitude");
         requireNonNull(request.longitude(), "longitude");
         requireNonNull(request.maxDeliveryKm(), "maxDeliveryKm");
         requireNonNull(request.isOpen(), "isOpen");
         validateRestaurantDistance(request.maxDeliveryKm());
+        List<String> cuisineTypes = resolveCuisineTypes(request.cuisineTypes(), request.cuisineType());
 
         Restaurant restaurant = new Restaurant();
         restaurant.setOwnerUserId(merchantUserId);
         restaurant.setName(request.name().trim());
-        restaurant.setCuisineType(request.cuisineType().trim());
+        restaurant.setCuisineTypes(cuisineTypes);
+        restaurant.setCuisineType(cuisineTypes.get(0));
         restaurant.setDescription(request.description());
         restaurant.setAddressLine(request.addressLine().trim());
         restaurant.setLatitude(request.latitude());
@@ -86,16 +96,17 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
 
     public RestaurantData updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request) {
         requireText(request.name(), "name");
-        requireText(request.cuisineType(), "cuisineType");
         requireText(request.addressLine(), "addressLine");
         requireNonNull(request.latitude(), "latitude");
         requireNonNull(request.longitude(), "longitude");
         requireNonNull(request.maxDeliveryKm(), "maxDeliveryKm");
         requireNonNull(request.isOpen(), "isOpen");
         validateRestaurantDistance(request.maxDeliveryKm());
+        List<String> cuisineTypes = resolveCuisineTypes(request.cuisineTypes(), request.cuisineType());
         Restaurant restaurant = ownedRestaurant(merchantUserId, restaurantId);
         restaurant.setName(request.name().trim());
-        restaurant.setCuisineType(request.cuisineType().trim());
+        restaurant.setCuisineTypes(cuisineTypes);
+        restaurant.setCuisineType(cuisineTypes.get(0));
         restaurant.setDescription(request.description());
         restaurant.setAddressLine(request.addressLine().trim());
         restaurant.setLatitude(request.latitude());
@@ -103,6 +114,21 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         restaurant.setH3IndexRes9(geoPort.h3Res9(request.latitude().doubleValue(), request.longitude().doubleValue()));
         restaurant.setOpen(request.isOpen());
         restaurant.setMaxDeliveryKm(request.maxDeliveryKm());
+        return toRestaurantData(restaurantPort.save(restaurant));
+    }
+
+    public RestaurantData uploadRestaurantImage(UUID merchantUserId,
+                                                UUID restaurantId,
+                                                String originalFileName,
+                                                String contentType,
+                                                byte[] content) {
+        requireText(originalFileName, "fileName");
+        requireNonNull(content, "content");
+        validateImageContent(contentType, content.length);
+
+        Restaurant restaurant = ownedRestaurant(merchantUserId, restaurantId);
+        String imageUrl = restaurantImageStoragePort.store(restaurantId, originalFileName, contentType, content);
+        restaurant.setImageUrl(imageUrl);
         return toRestaurantData(restaurantPort.save(restaurant));
     }
 
@@ -337,13 +363,46 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         }
     }
 
+    private static List<String> resolveCuisineTypes(List<String> cuisineTypes, String legacyCuisineType) {
+        List<String> selected = cuisineTypes;
+        if ((selected == null || selected.isEmpty()) && legacyCuisineType != null && !legacyCuisineType.isBlank()) {
+            selected = List.of(legacyCuisineType);
+        }
+        if (selected == null || selected.isEmpty()) {
+            throw new ValidationException("invalid cuisineTypes", Map.of("cuisineTypes", "must contain at least one value"));
+        }
+
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String cuisine : selected) {
+            if (cuisine == null || cuisine.isBlank()) {
+                continue;
+            }
+            String cleaned = cuisine.trim();
+            if (!AppCuisineCatalog.isSupported(cleaned)) {
+                throw new ValidationException("invalid cuisineTypes", Map.of("cuisineTypes", "contains unsupported value: " + cleaned));
+            }
+            String key = cleaned.toLowerCase(Locale.ROOT);
+            normalized.add(Arrays.stream(key.split("\\s+"))
+                    .map(token -> token.isBlank() ? token : Character.toUpperCase(token.charAt(0)) + token.substring(1))
+                    .reduce((left, right) -> left + " " + right)
+                    .orElse(cleaned));
+        }
+
+        if (normalized.isEmpty()) {
+            throw new ValidationException("invalid cuisineTypes", Map.of("cuisineTypes", "must contain at least one non-blank value"));
+        }
+        return List.copyOf(normalized);
+    }
+
     private RestaurantData toRestaurantData(Restaurant restaurant) {
         RestaurantData model = new RestaurantData();
         model.setId(restaurant.getId());
         model.setOwnerUserId(restaurant.getOwnerUserId());
         model.setName(restaurant.getName());
         model.setCuisineType(restaurant.getCuisineType());
+        model.setCuisineTypes(restaurant.getCuisineTypes());
         model.setDescription(restaurant.getDescription());
+        model.setImageUrl(restaurant.getImageUrl());
         model.setAddressLine(restaurant.getAddressLine());
         model.setLatitude(restaurant.getLatitude());
         model.setLongitude(restaurant.getLongitude());

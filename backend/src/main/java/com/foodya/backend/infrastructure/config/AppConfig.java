@@ -61,8 +61,18 @@ public class AppConfig {
 			SystemParameterPort systemParameterPort,
 			PaginationPolicy paginationPolicy,
 			GeoPort geoPort,
-			MenuItemImageStoragePort menuItemImageStoragePort) {
-		return new MerchantCatalogService(restaurantPort, menuCategoryPort, menuItemPort, systemParameterPort, paginationPolicy, geoPort, menuItemImageStoragePort);
+			MenuItemImageStoragePort menuItemImageStoragePort,
+			RestaurantImageStoragePort restaurantImageStoragePort) {
+		return new MerchantCatalogService(
+				restaurantPort,
+				menuCategoryPort,
+				menuItemPort,
+				systemParameterPort,
+				paginationPolicy,
+				geoPort,
+				menuItemImageStoragePort,
+				restaurantImageStoragePort
+		);
 	}
 
 	@Bean
