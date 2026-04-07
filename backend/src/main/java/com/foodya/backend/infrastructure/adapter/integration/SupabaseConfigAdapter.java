@@ -1,8 +1,8 @@
 package com.foodya.backend.infrastructure.adapter.integration;
 
 import com.foodya.backend.application.ports.out.SupabaseConfigPort;
+import com.foodya.backend.application.constants.IntegrationKeyCatalog;
 import com.foodya.backend.infrastructure.config.ApiSecretsProvider;
-import com.foodya.backend.infrastructure.config.IntegrationKey;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;

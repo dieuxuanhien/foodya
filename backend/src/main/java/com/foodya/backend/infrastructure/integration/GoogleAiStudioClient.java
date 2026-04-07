@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.integration;
 
 import com.foodya.backend.infrastructure.config.ApiSecretsProvider;
-import com.foodya.backend.infrastructure.config.IntegrationKey;
+import com.foodya.backend.application.constants.IntegrationKeyCatalog;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -31,7 +31,7 @@ public class GoogleAiStudioClient {
     }
 
     public String generateRecommendationDraft(String prompt) {
-        String apiKey = apiSecretsProvider.get(IntegrationKey.GOOGLE_AI_STUDIO_API_KEY)
+        String apiKey = apiSecretsProvider.get(IntegrationKeyCatalog.GOOGLE_AI_STUDIO_API_KEY)
                 .orElseThrow(() -> new IllegalStateException("Missing Google AI Studio API key"));
 
         Map<String, Object> payload = Map.of(
@@ -49,7 +49,7 @@ public class GoogleAiStudioClient {
     }
 
         public List<Double> embedText(String text) {
-                String apiKey = apiSecretsProvider.get(IntegrationKey.GOOGLE_AI_STUDIO_API_KEY)
+                String apiKey = apiSecretsProvider.get(IntegrationKeyCatalog.GOOGLE_AI_STUDIO_API_KEY)
                                 .orElseThrow(() -> new IllegalStateException("Missing Google AI Studio API key"));
 
                 Map<String, Object> payload = Map.of(

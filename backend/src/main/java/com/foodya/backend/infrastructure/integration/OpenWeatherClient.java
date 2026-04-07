@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.integration;
 
 import com.foodya.backend.infrastructure.config.ApiSecretsProvider;
-import com.foodya.backend.infrastructure.config.IntegrationKey;
+import com.foodya.backend.application.constants.IntegrationKeyCatalog;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -19,7 +19,7 @@ public class OpenWeatherClient {
     }
 
     public String getCurrentWeatherRaw(double lat, double lng) {
-        String apiKey = apiSecretsProvider.get(IntegrationKey.OPENWEATHER_API_KEY)
+        String apiKey = apiSecretsProvider.get(IntegrationKeyCatalog.OPENWEATHER_API_KEY)
                 .orElseThrow(() -> new IllegalStateException("Missing OpenWeather API key"));
 
         return restClient.get()
