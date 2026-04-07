@@ -10,13 +10,10 @@ import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.domain.entities.UserAccount;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
-@Service
 public class AdminUserService implements AdminUserUseCase {
 
     private static final List<OrderStatus> BLOCKING_DELETE_STATUSES = List.of(
@@ -39,7 +36,6 @@ public class AdminUserService implements AdminUserUseCase {
         this.auditLogService = auditLogService;
     }
 
-    @Transactional(readOnly = true)
     public PaginatedResult<AdminUserSummaryView> list(String keyword, Integer page, Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<UserAccount> users = adminUserPort.search(keyword, spec.page(), spec.size());
@@ -53,7 +49,6 @@ public class AdminUserService implements AdminUserUseCase {
         );
     }
 
-    @Transactional
     public AdminUserSummaryView lock(UUID userId, UUID actorId) {
         UserAccount user = requireUser(userId);
         UserStatus oldStatus = user.getStatus();
@@ -73,7 +68,6 @@ public class AdminUserService implements AdminUserUseCase {
         return toView(updated);
     }
 
-    @Transactional
     public AdminUserSummaryView unlock(UUID userId, UUID actorId) {
         UserAccount user = requireUser(userId);
         UserStatus oldStatus = user.getStatus();
@@ -93,7 +87,6 @@ public class AdminUserService implements AdminUserUseCase {
         return toView(updated);
     }
 
-    @Transactional
     public void delete(UUID userId, UUID actorId) {
         UserAccount user = requireUser(userId);
 

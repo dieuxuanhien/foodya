@@ -5,7 +5,7 @@ import com.foodya.backend.domain.value_objects.UserStatus;
 
 import java.util.UUID;
 
-public class UserAccountModel {
+public class UserAccountData {
 
     private UUID id;
     private String username;

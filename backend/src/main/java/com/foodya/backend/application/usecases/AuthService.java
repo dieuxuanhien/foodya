@@ -1,9 +1,9 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.dto.PasswordResetChallengeModel;
-import com.foodya.backend.application.dto.RefreshTokenModel;
+import com.foodya.backend.application.dto.PasswordResetChallengeData;
+import com.foodya.backend.application.dto.RefreshTokenData;
 import com.foodya.backend.application.dto.TokenClaims;
-import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.domain.policies.PasswordPolicy;
 import com.foodya.backend.domain.services.PhoneNormalizer;
 import com.foodya.backend.domain.value_objects.UserRole;
@@ -24,8 +24,6 @@ import com.foodya.backend.application.ports.out.RefreshTokenPort;
 import com.foodya.backend.application.ports.out.SecurityPolicyPort;
 import com.foodya.backend.application.ports.out.TokenPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
@@ -35,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service
 public class AuthService implements AuthUseCase {
 
     private final UserAccountPort userAccountPort;
@@ -65,13 +62,12 @@ public class AuthService implements AuthUseCase {
         this.otpDeliveryPort = otpDeliveryPort;
     }
 
-    @Transactional
     public TokenPairResult register(RegisterRequest request) {
         validateRole(request.role());
         validateUniqueness(request.username(), request.email(), request.phoneNumber());
         validatePassword(request.password());
 
-        UserAccountModel user = new UserAccountModel();
+        UserAccountData user = new UserAccountData();
         user.setUsername(request.username().trim());
         user.setEmail(request.email().trim().toLowerCase(Locale.ROOT));
         user.setPhoneNumber(normalizePhone(request.phoneNumber()));
@@ -80,14 +76,13 @@ public class AuthService implements AuthUseCase {
         user.setStatus(request.role() == UserRole.MERCHANT ? UserStatus.PENDING_APPROVAL : UserStatus.ACTIVE);
         user.setPasswordHash(passwordHashPort.encode(request.password()));
 
-        UserAccountModel saved = userAccountPort.save(user);
+        UserAccountData saved = userAccountPort.save(user);
         auditLogService.securityEvent(saved.getId().toString(), "AUTH_REGISTER", "USER", saved.getId().toString(), null, "registered");
         return issueTokenPair(saved, UUID.randomUUID().toString());
     }
 
-    @Transactional
     public TokenPairResult login(LoginRequest request) {
-        UserAccountModel user = userByUsernameOrEmail(request.usernameOrEmail())
+        UserAccountData user = userByUsernameOrEmail(request.usernameOrEmail())
                 .orElseThrow(() -> new UnauthorizedException("invalid credentials"));
 
         if (!passwordHashPort.matches(request.password(), user.getPasswordHash())) {
@@ -101,12 +96,11 @@ public class AuthService implements AuthUseCase {
         return issueTokenPair(user, UUID.randomUUID().toString());
     }
 
-    @Transactional
     public TokenPairResult refresh(String refreshToken) {
         TokenClaims claims = parseTypedToken(refreshToken, TokenPort.TOKEN_TYPE_REFRESH);
         String jti = claims.id();
         String family = claims.getString("family");
-        RefreshTokenModel existing = refreshTokenPort.findByTokenJti(jti)
+        RefreshTokenData existing = refreshTokenPort.findByTokenJti(jti)
                 .orElseThrow(() -> new UnauthorizedException("refresh token not recognized"));
 
         if (existing.getRevokedAt() != null || existing.getExpiresAt().isBefore(OffsetDateTime.now())) {
@@ -123,7 +117,6 @@ public class AuthService implements AuthUseCase {
         return issueTokenPair(existing.getUser(), family, newJti);
     }
 
-    @Transactional
     public void logout(String refreshToken, UUID actorUserId) {
         TokenClaims claims = parseTypedToken(refreshToken, TokenPort.TOKEN_TYPE_REFRESH);
         refreshTokenPort.findByTokenJti(claims.id())
@@ -139,21 +132,19 @@ public class AuthService implements AuthUseCase {
                 });
     }
 
-    @Transactional
     public void logoutAll(UUID userId) {
-        UserAccountModel user = userAccountPort.findById(userId)
+        UserAccountData user = userAccountPort.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("user not found"));
 
-        List<RefreshTokenModel> active = refreshTokenPort.findByUserAndRevokedAtIsNullAndExpiresAtAfter(user, OffsetDateTime.now());
+        List<RefreshTokenData> active = refreshTokenPort.findByUserAndRevokedAtIsNullAndExpiresAtAfter(user, OffsetDateTime.now());
         OffsetDateTime now = OffsetDateTime.now();
         active.forEach(token -> token.setRevokedAt(now));
         refreshTokenPort.saveAll(active);
         auditLogService.securityEvent(userId.toString(), "AUTH_LOGOUT_ALL", "USER", userId.toString(), null, "active-sessions-revoked=" + active.size());
     }
 
-    @Transactional
     public ForgotPasswordResult forgotPassword(String email) {
-        UserAccountModel user = userAccountPort.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
+        UserAccountData user = userAccountPort.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
         if (user == null) {
             return new ForgotPasswordResult("", "If this account exists, OTP has been sent");
         }
@@ -161,7 +152,7 @@ public class AuthService implements AuthUseCase {
         String challengeToken = UUID.randomUUID().toString();
         String otp = generateOtp();
 
-        PasswordResetChallengeModel challenge = new PasswordResetChallengeModel();
+        PasswordResetChallengeData challenge = new PasswordResetChallengeData();
         challenge.setChallengeToken(challengeToken);
         challenge.setUser(user);
         challenge.setOtpHash(passwordHashPort.encode(otp));
@@ -174,9 +165,8 @@ public class AuthService implements AuthUseCase {
         return new ForgotPasswordResult(challengeToken, hint);
     }
 
-    @Transactional
     public VerifyOtpResult verifyOtp(String challengeToken, String otp) {
-        PasswordResetChallengeModel challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
+        PasswordResetChallengeData challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
                 .orElseThrow(() -> new UnauthorizedException("invalid challenge token"));
 
         if (challenge.getConsumedAt() != null || challenge.getExpiresAt().isBefore(OffsetDateTime.now())) {
@@ -194,7 +184,6 @@ public class AuthService implements AuthUseCase {
         return new VerifyOtpResult(resetToken);
     }
 
-    @Transactional
     public void resetPassword(String resetToken, String newPassword, String confirmPassword) {
         if (!newPassword.equals(confirmPassword)) {
             throw new ValidationException("confirmPassword does not match", Map.of("confirmPassword", "must equal newPassword"));
@@ -202,14 +191,14 @@ public class AuthService implements AuthUseCase {
 
         TokenClaims claims = parseTypedToken(resetToken, TokenPort.TOKEN_TYPE_RESET);
         String challengeToken = claims.getString("challengeToken");
-        PasswordResetChallengeModel challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
+        PasswordResetChallengeData challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
                 .orElseThrow(() -> new UnauthorizedException("invalid reset challenge"));
 
         if (challenge.getVerifiedAt() == null || challenge.getConsumedAt() != null || challenge.getExpiresAt().isBefore(OffsetDateTime.now())) {
             throw new UnauthorizedException("reset challenge is not valid");
         }
 
-        UserAccountModel user = challenge.getUser();
+        UserAccountData user = challenge.getUser();
         validatePassword(newPassword);
         if (passwordHashPort.matches(newPassword, user.getPasswordHash())) {
             throw new ValidationException("new password must differ from current password", Map.of("newPassword", "must differ from current password"));
@@ -225,17 +214,17 @@ public class AuthService implements AuthUseCase {
         logoutAll(user.getId());
     }
 
-    private TokenPairResult issueTokenPair(UserAccountModel user, String family) {
+    private TokenPairResult issueTokenPair(UserAccountData user, String family) {
         return issueTokenPair(user, family, UUID.randomUUID().toString());
     }
 
-    private TokenPairResult issueTokenPair(UserAccountModel user, String family, String refreshJti) {
+    private TokenPairResult issueTokenPair(UserAccountData user, String family, String refreshJti) {
         String accessJti = UUID.randomUUID().toString();
         String accessToken = tokenPort.issueAccessToken(user, accessJti);
         String refreshToken = tokenPort.issueRefreshToken(user, refreshJti, family);
 
         TokenClaims refreshClaims = tokenPort.parseClaims(refreshToken);
-        RefreshTokenModel refresh = new RefreshTokenModel();
+        RefreshTokenData refresh = new RefreshTokenData();
         refresh.setUser(user);
         refresh.setTokenJti(refreshJti);
         refresh.setTokenFamily(family);
@@ -264,7 +253,7 @@ public class AuthService implements AuthUseCase {
         }
     }
 
-    private Optional<UserAccountModel> userByUsernameOrEmail(String input) {
+    private Optional<UserAccountData> userByUsernameOrEmail(String input) {
         String trimmed = input.trim();
         if (trimmed.contains("@")) {
             return userAccountPort.findByEmail(trimmed.toLowerCase(Locale.ROOT));

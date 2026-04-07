@@ -1,8 +1,8 @@
 package com.foodya.backend.infrastructure.mapper;
 
-import com.foodya.backend.application.dto.PasswordResetChallengeModel;
-import com.foodya.backend.application.dto.RefreshTokenModel;
-import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.PasswordResetChallengeData;
+import com.foodya.backend.application.dto.RefreshTokenData;
+import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.domain.entities.PasswordResetChallenge;
 import com.foodya.backend.domain.entities.RefreshToken;
 import com.foodya.backend.domain.entities.UserAccount;
@@ -12,24 +12,24 @@ public final class AuthPersistenceMapper {
     private AuthPersistenceMapper() {
     }
 
-    public static UserAccountModel toModel(UserAccount entity) {
+    public static UserAccountData toData(UserAccount entity) {
         if (entity == null) {
             return null;
         }
-        UserAccountModel model = new UserAccountModel();
-        model.setId(entity.getId());
-        model.setUsername(entity.getUsername());
-        model.setEmail(entity.getEmail());
-        model.setPhoneNumber(entity.getPhoneNumber());
-        model.setFullName(entity.getFullName());
-        model.setAvatarUrl(entity.getAvatarUrl());
-        model.setRole(entity.getRole());
-        model.setStatus(entity.getStatus());
-        model.setPasswordHash(entity.getPasswordHash());
-        return model;
+        UserAccountData data = new UserAccountData();
+        data.setId(entity.getId());
+        data.setUsername(entity.getUsername());
+        data.setEmail(entity.getEmail());
+        data.setPhoneNumber(entity.getPhoneNumber());
+        data.setFullName(entity.getFullName());
+        data.setAvatarUrl(entity.getAvatarUrl());
+        data.setRole(entity.getRole());
+        data.setStatus(entity.getStatus());
+        data.setPasswordHash(entity.getPasswordHash());
+        return data;
     }
 
-    public static UserAccount toEntity(UserAccountModel model) {
+    public static UserAccount toEntity(UserAccountData model) {
         if (model == null) {
             return null;
         }
@@ -38,7 +38,7 @@ public final class AuthPersistenceMapper {
         return entity;
     }
 
-    public static void copyToEntity(UserAccountModel model, UserAccount entity) {
+    public static void copyToEntity(UserAccountData model, UserAccount entity) {
         if (model == null || entity == null) {
             return;
         }
@@ -52,22 +52,22 @@ public final class AuthPersistenceMapper {
         entity.setPasswordHash(model.getPasswordHash());
     }
 
-    public static RefreshTokenModel toModel(RefreshToken entity) {
+    public static RefreshTokenData toData(RefreshToken entity) {
         if (entity == null) {
             return null;
         }
-        RefreshTokenModel model = new RefreshTokenModel();
-        model.setId(entity.getId());
-        model.setUser(toModel(entity.getUser()));
-        model.setTokenJti(entity.getTokenJti());
-        model.setTokenFamily(entity.getTokenFamily());
-        model.setExpiresAt(entity.getExpiresAt());
-        model.setRevokedAt(entity.getRevokedAt());
-        model.setReplacedByJti(entity.getReplacedByJti());
-        return model;
+        RefreshTokenData data = new RefreshTokenData();
+        data.setId(entity.getId());
+        data.setUser(toData(entity.getUser()));
+        data.setTokenJti(entity.getTokenJti());
+        data.setTokenFamily(entity.getTokenFamily());
+        data.setExpiresAt(entity.getExpiresAt());
+        data.setRevokedAt(entity.getRevokedAt());
+        data.setReplacedByJti(entity.getReplacedByJti());
+        return data;
     }
 
-    public static RefreshToken toEntity(RefreshTokenModel model, UserAccount userEntity) {
+    public static RefreshToken toEntity(RefreshTokenData model, UserAccount userEntity) {
         if (model == null) {
             return null;
         }
@@ -81,7 +81,7 @@ public final class AuthPersistenceMapper {
         return entity;
     }
 
-    public static void copyToEntity(RefreshTokenModel model, RefreshToken entity, UserAccount userEntity) {
+    public static void copyToEntity(RefreshTokenData model, RefreshToken entity, UserAccount userEntity) {
         if (model == null || entity == null) {
             return;
         }
@@ -93,22 +93,22 @@ public final class AuthPersistenceMapper {
         entity.setReplacedByJti(model.getReplacedByJti());
     }
 
-    public static PasswordResetChallengeModel toModel(PasswordResetChallenge entity) {
+    public static PasswordResetChallengeData toData(PasswordResetChallenge entity) {
         if (entity == null) {
             return null;
         }
-        PasswordResetChallengeModel model = new PasswordResetChallengeModel();
-        model.setId(entity.getId());
-        model.setChallengeToken(entity.getChallengeToken());
-        model.setUser(toModel(entity.getUser()));
-        model.setOtpHash(entity.getOtpHash());
-        model.setExpiresAt(entity.getExpiresAt());
-        model.setVerifiedAt(entity.getVerifiedAt());
-        model.setConsumedAt(entity.getConsumedAt());
-        return model;
+        PasswordResetChallengeData data = new PasswordResetChallengeData();
+        data.setId(entity.getId());
+        data.setChallengeToken(entity.getChallengeToken());
+        data.setUser(toData(entity.getUser()));
+        data.setOtpHash(entity.getOtpHash());
+        data.setExpiresAt(entity.getExpiresAt());
+        data.setVerifiedAt(entity.getVerifiedAt());
+        data.setConsumedAt(entity.getConsumedAt());
+        return data;
     }
 
-    public static PasswordResetChallenge toEntity(PasswordResetChallengeModel model, UserAccount userEntity) {
+    public static PasswordResetChallenge toEntity(PasswordResetChallengeData model, UserAccount userEntity) {
         if (model == null) {
             return null;
         }
@@ -122,7 +122,7 @@ public final class AuthPersistenceMapper {
         return entity;
     }
 
-    public static void copyToEntity(PasswordResetChallengeModel model, PasswordResetChallenge entity, UserAccount userEntity) {
+    public static void copyToEntity(PasswordResetChallengeData model, PasswordResetChallenge entity, UserAccount userEntity) {
         if (model == null || entity == null) {
             return;
         }

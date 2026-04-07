@@ -130,8 +130,8 @@ class RevenueReportingIntegrationTests {
         saveOrderItem(otherMerchantSuccess, burgerItem, 1, new BigDecimal("90000.00"));
         saveOrder(customer, firstRestaurant, OrderStatus.PENDING, "ODR-REPORT-0004", new BigDecimal("50000.00"), new BigDecimal("5000.00"));
 
-        String adminToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(admin), UUID.randomUUID().toString());
-        String merchantOneToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(merchantOne), UUID.randomUUID().toString());
+        String adminToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(admin), UUID.randomUUID().toString());
+        String merchantOneToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(merchantOne), UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/admin/reports/revenue")
                         .header("Authorization", "Bearer " + adminToken))
@@ -153,7 +153,7 @@ class RevenueReportingIntegrationTests {
     @Test
     void merchantRevenueReportRejectsInvalidTopItems() throws Exception {
         UserAccount merchant = saveUser("merchant_report_03", "merchant_report_03@foodya.test", "+84991110005", UserRole.MERCHANT);
-        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(merchant), UUID.randomUUID().toString());
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(merchant), UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/merchant/reports/revenue")
                         .header("Authorization", "Bearer " + token)

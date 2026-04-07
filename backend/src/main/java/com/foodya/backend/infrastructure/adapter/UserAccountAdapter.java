@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter;
 
-import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.entities.UserAccount;
@@ -24,18 +24,18 @@ public class UserAccountAdapter implements UserAccountPort {
     }
 
     @Override
-    public Optional<UserAccountModel> findById(UUID id) {
-        return repository.findById(Objects.requireNonNull(id)).map(mapper::toDomain).map(AuthPersistenceMapper::toModel);
+    public Optional<UserAccountData> findById(UUID id) {
+        return repository.findById(Objects.requireNonNull(id)).map(mapper::toDomain).map(AuthPersistenceMapper::toData);
     }
 
     @Override
-    public Optional<UserAccountModel> findByUsername(String username) {
-        return repository.findByUsername(username).map(mapper::toDomain).map(AuthPersistenceMapper::toModel);
+    public Optional<UserAccountData> findByUsername(String username) {
+        return repository.findByUsername(username).map(mapper::toDomain).map(AuthPersistenceMapper::toData);
     }
 
     @Override
-    public Optional<UserAccountModel> findByEmail(String email) {
-        return repository.findByEmail(email).map(mapper::toDomain).map(AuthPersistenceMapper::toModel);
+    public Optional<UserAccountData> findByEmail(String email) {
+        return repository.findByEmail(email).map(mapper::toDomain).map(AuthPersistenceMapper::toData);
     }
 
     @Override
@@ -64,8 +64,8 @@ public class UserAccountAdapter implements UserAccountPort {
     }
 
     @Override
-    public UserAccountModel save(UserAccountModel userAccount) {
-        UserAccountModel accountModel = Objects.requireNonNull(userAccount);
+    public UserAccountData save(UserAccountData userAccount) {
+        UserAccountData accountModel = Objects.requireNonNull(userAccount);
         UserAccount entity = accountModel.getId() == null
                 ? new UserAccount()
             : repository.findById(Objects.requireNonNull(accountModel.getId()))
@@ -77,6 +77,6 @@ public class UserAccountAdapter implements UserAccountPort {
                 });
         AuthPersistenceMapper.copyToEntity(accountModel, entity);
         entity.setId(accountModel.getId());
-        return AuthPersistenceMapper.toModel(mapper.toDomain(repository.save(Objects.requireNonNull(mapper.toPersistence(entity)))));
+        return AuthPersistenceMapper.toData(mapper.toDomain(repository.save(Objects.requireNonNull(mapper.toPersistence(entity)))));
     }
 }

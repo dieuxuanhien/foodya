@@ -2,10 +2,7 @@ package com.foodya.backend.application.usecases.policy;
 
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.SystemParameter;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 public class BackupPolicyEnforcementService implements com.foodya.backend.application.ports.in.BackupPolicyEnforcementUseCase {
 
     private static final String RPO_KEY = "ops.backup.rpo_minutes";
@@ -17,7 +14,6 @@ public class BackupPolicyEnforcementService implements com.foodya.backend.applic
         this.systemParameterPort = systemParameterPort;
     }
 
-    @Transactional(readOnly = true)
     @Override
     public BackupPolicyStatus verifyBackupObjectives() {
         int rpoMinutes = intParam(RPO_KEY, 15);

@@ -5,7 +5,7 @@ import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public class RestaurantModel {
+public class RestaurantData {
 
     private UUID id;
     private UUID ownerUserId;

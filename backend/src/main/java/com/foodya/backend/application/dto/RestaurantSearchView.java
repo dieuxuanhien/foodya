@@ -13,7 +13,7 @@ public record RestaurantSearchView(
         BigDecimal distanceKm,
         List<MatchedMenuItemView> matchedItems
 ) {
-        public static RestaurantSearchView from(RestaurantModel restaurant,
+        public static RestaurantSearchView from(RestaurantData restaurant,
                                                 BigDecimal distanceKm,
                                                 List<MatchedMenuItemView> matchedItems) {
         return new RestaurantSearchView(

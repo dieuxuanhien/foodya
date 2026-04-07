@@ -1,8 +1,8 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.OrderModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.AdminGovernanceUseCase;
 import com.foodya.backend.domain.value_objects.OrderStatus;
@@ -52,7 +52,7 @@ public class AdminGovernanceController {
                                                                                                 @RequestParam(required = false) Integer size,
                                                                                                 HttpServletRequest request) {
         RestaurantStatus restaurantStatus = parseRestaurantStatus(status);
-        PaginatedResult<RestaurantModel> result = adminGovernanceService.listRestaurants(q, restaurantStatus, page, size);
+        PaginatedResult<RestaurantData> result = adminGovernanceService.listRestaurants(q, restaurantStatus, page, size);
 
         List<RestaurantDetailResponse> data = result.items().stream()
                 .map(CommonApiMapper::toRestaurantDetailResponse)
@@ -69,7 +69,7 @@ public class AdminGovernanceController {
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> approveRestaurant(Authentication authentication,
                                                                                            @PathVariable String id,
                                                                                            HttpServletRequest request) {
-        RestaurantModel restaurant = adminGovernanceService.approveRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
+        RestaurantData restaurant = adminGovernanceService.approveRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
@@ -77,7 +77,7 @@ public class AdminGovernanceController {
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> rejectRestaurant(Authentication authentication,
                                                                                           @PathVariable String id,
                                                                                           HttpServletRequest request) {
-        RestaurantModel restaurant = adminGovernanceService.rejectRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
+        RestaurantData restaurant = adminGovernanceService.rejectRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
@@ -93,7 +93,7 @@ public class AdminGovernanceController {
                                                                                       @RequestParam(required = false) Integer size,
                                                                                       HttpServletRequest request) {
         OrderStatus orderStatus = parseOrderStatus(status);
-        PaginatedResult<OrderModel> result = adminGovernanceService.listOrders(orderStatus, page, size);
+        PaginatedResult<OrderData> result = adminGovernanceService.listOrders(orderStatus, page, size);
 
         List<OrderSummaryResponse> data = result.items().stream()
                 .map(this::toOrderSummary)
@@ -111,7 +111,7 @@ public class AdminGovernanceController {
                                                                                       @PathVariable String id,
                                                                                       @Valid @RequestBody OrderStatusUpdateApiRequest request,
                                                                                       HttpServletRequest httpServletRequest) {
-        OrderModel order = adminGovernanceService.updateOrderStatus(
+        OrderData order = adminGovernanceService.updateOrderStatus(
                 parseUuid(id, "id"),
                 parseOrderStatus(request.status()),
                 CurrentUser.userId(authentication)
@@ -161,7 +161,7 @@ public class AdminGovernanceController {
         }
     }
 
-    private OrderSummaryResponse toOrderSummary(OrderModel order) {
+    private OrderSummaryResponse toOrderSummary(OrderData order) {
         return new OrderSummaryResponse(
                 order.getId(),
                 order.getOrderCode(),
@@ -171,7 +171,7 @@ public class AdminGovernanceController {
         );
     }
 
-    private OrderDetailResponse toOrderDetail(OrderModel order) {
+    private OrderDetailResponse toOrderDetail(OrderData order) {
         return new OrderDetailResponse(
                 order.getId(),
                 order.getOrderCode(),

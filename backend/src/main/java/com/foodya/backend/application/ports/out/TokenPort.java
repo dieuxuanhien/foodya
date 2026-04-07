@@ -1,7 +1,7 @@
 package com.foodya.backend.application.ports.out;
 
 import com.foodya.backend.application.dto.TokenClaims;
-import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.UserAccountData;
 
 public interface TokenPort {
 
@@ -11,11 +11,11 @@ public interface TokenPort {
     String TOKEN_TYPE_REFRESH = "REFRESH";
     String TOKEN_TYPE_RESET = "RESET";
 
-    String issueAccessToken(UserAccountModel user, String jti);
+    String issueAccessToken(UserAccountData user, String jti);
 
-    String issueRefreshToken(UserAccountModel user, String jti, String family);
+    String issueRefreshToken(UserAccountData user, String jti, String family);
 
-    String issueResetToken(UserAccountModel user, String jti, String challengeToken);
+    String issueResetToken(UserAccountData user, String jti, String challengeToken);
 
     TokenClaims parseClaims(String token);
 }

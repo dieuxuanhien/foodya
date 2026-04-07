@@ -2,7 +2,7 @@ package com.foodya.backend.application.dto;
 
 import java.util.UUID;
 
-public class MenuCategoryModel {
+public class MenuCategoryData {
 
     private UUID id;
     private UUID restaurantId;

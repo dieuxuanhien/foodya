@@ -5,12 +5,9 @@ import com.foodya.backend.application.ports.out.AuditLogPort;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.SystemParameter;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
-@Service
 public class RetentionPolicyEnforcementService implements com.foodya.backend.application.ports.in.RetentionPolicyEnforcementUseCase {
 
     private static final String RETENTION_CUSTOMER_DATA_DAYS = "retention.customer_data_days";
@@ -34,13 +31,11 @@ public class RetentionPolicyEnforcementService implements com.foodya.backend.app
         this.aiChatHistoryPort = aiChatHistoryPort;
     }
 
-    @Transactional
     @Override
     public RetentionCleanupResult enforceRetentionPolicies() {
         return enforceRetentionPolicies(OffsetDateTime.now());
     }
 
-    @Transactional
     @Override
     public RetentionCleanupResult enforceRetentionPolicies(OffsetDateTime now) {
         int auditLogsDays = intParamWithFallback(RETENTION_AUDIT_LOGS_DAYS, RETENTION_CUSTOMER_DATA_DAYS, 365);

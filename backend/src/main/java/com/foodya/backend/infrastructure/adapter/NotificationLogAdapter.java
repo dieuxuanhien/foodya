@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.NotificationLogModel;
+import com.foodya.backend.application.dto.NotificationLogData;
 import com.foodya.backend.application.ports.out.NotificationLogPort;
 import com.foodya.backend.domain.entities.NotificationLog;
 import com.foodya.backend.infrastructure.mapper.NotificationLogMapper;
@@ -29,22 +29,22 @@ public class NotificationLogAdapter implements NotificationLogPort {
     }
 
     @Override
-    public NotificationLogModel save(NotificationLogModel notificationLog) {
+    public NotificationLogData save(NotificationLogData notificationLog) {
         NotificationLog saved = notificationLogMapper.toDomain(
             notificationLogRepository.save(
                 Objects.requireNonNull(notificationLogMapper.toPersistence(Objects.requireNonNull(toEntity(Objects.requireNonNull(notificationLog)))))
             )
         );
-        return toModel(saved);
+        return toData(saved);
     }
 
     @Override
-    public PaginatedResult<NotificationLogModel> list(int page, int size) {
+    public PaginatedResult<NotificationLogData> list(int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<NotificationLog> result = notificationLogRepository.findAll(pageable).map(notificationLogMapper::toDomain);
 
         return new PaginatedResult<>(
-                result.getContent().stream().map(this::toModel).toList(),
+                result.getContent().stream().map(this::toData).toList(),
                 result.getNumber(),
                 result.getSize(),
                 result.getTotalElements(),
@@ -53,12 +53,12 @@ public class NotificationLogAdapter implements NotificationLogPort {
     }
 
     @Override
-    public PaginatedResult<NotificationLogModel> listByReceiver(UUID receiverUserId, int page, int size) {
+    public PaginatedResult<NotificationLogData> listByReceiver(UUID receiverUserId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<NotificationLog> result = notificationLogRepository.findByReceiverUserId(receiverUserId, pageable)
             .map(notificationLogMapper::toDomain);
         return new PaginatedResult<>(
-                result.getContent().stream().map(this::toModel).toList(),
+                result.getContent().stream().map(this::toData).toList(),
                 result.getNumber(),
                 result.getSize(),
                 result.getTotalElements(),
@@ -67,15 +67,15 @@ public class NotificationLogAdapter implements NotificationLogPort {
     }
 
     @Override
-    public Optional<NotificationLogModel> markAsRead(UUID receiverUserId, UUID notificationId, OffsetDateTime readAt) {
+    public Optional<NotificationLogData> markAsRead(UUID receiverUserId, UUID notificationId, OffsetDateTime readAt) {
         return notificationLogRepository.findByIdAndReceiverUserId(notificationId, receiverUserId)
                 .map(entity -> {
                     entity.setReadAt(readAt);
-                    return toModel(notificationLogMapper.toDomain(notificationLogRepository.save(entity)));
+                    return toData(notificationLogMapper.toDomain(notificationLogRepository.save(entity)));
                 });
     }
 
-    private NotificationLog toEntity(NotificationLogModel model) {
+    private NotificationLog toEntity(NotificationLogData model) {
         NotificationLog entity = new NotificationLog();
         entity.setReceiverUserId(model.getReceiverUserId());
         entity.setReceiverType(model.getReceiverType());
@@ -92,20 +92,20 @@ public class NotificationLogAdapter implements NotificationLogPort {
         return entity;
     }
 
-    private NotificationLogModel toModel(NotificationLog entity) {
-        NotificationLogModel model = new NotificationLogModel();
-        model.setId(entity.getId());
-        model.setReceiverUserId(entity.getReceiverUserId());
-        model.setReceiverType(entity.getReceiverType());
-        model.setEventType(entity.getEventType());
-        model.setTitle(entity.getTitle());
-        model.setMessage(entity.getMessage());
-        model.setStatus(entity.getStatus());
-        model.setOrderId(entity.getOrderId());
-        model.setProviderResponse(entity.getProviderResponse());
-        model.setSentAt(entity.getSentAt());
-        model.setReadAt(entity.getReadAt());
-        model.setCreatedAt(entity.getCreatedAt());
-        return model;
+    private NotificationLogData toData(NotificationLog entity) {
+        NotificationLogData data = new NotificationLogData();
+        data.setId(entity.getId());
+        data.setReceiverUserId(entity.getReceiverUserId());
+        data.setReceiverType(entity.getReceiverType());
+        data.setEventType(entity.getEventType());
+        data.setTitle(entity.getTitle());
+        data.setMessage(entity.getMessage());
+        data.setStatus(entity.getStatus());
+        data.setOrderId(entity.getOrderId());
+        data.setProviderResponse(entity.getProviderResponse());
+        data.setSentAt(entity.getSentAt());
+        data.setReadAt(entity.getReadAt());
+        data.setCreatedAt(entity.getCreatedAt());
+        return data;
     }
 }

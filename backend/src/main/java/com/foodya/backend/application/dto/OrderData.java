@@ -7,7 +7,7 @@ import com.foodya.backend.domain.value_objects.PaymentStatus;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public class OrderModel {
+public class OrderData {
 
     private UUID id;
     private String orderCode;

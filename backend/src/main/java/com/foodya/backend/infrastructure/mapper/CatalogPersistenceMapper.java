@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.mapper;
 
-import com.foodya.backend.application.dto.MenuItemModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Restaurant;
 

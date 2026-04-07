@@ -1,10 +1,10 @@
 package com.foodya.backend.interfaces.rest.mapper;
 
-import com.foodya.backend.application.dto.UserAccountModel;
-import com.foodya.backend.application.dto.MenuCategoryModel;
-import com.foodya.backend.application.dto.MenuItemModel;
-import com.foodya.backend.application.dto.RestaurantModel;
-import com.foodya.backend.application.dto.SystemParameterModel;
+import com.foodya.backend.application.dto.UserAccountData;
+import com.foodya.backend.application.dto.MenuCategoryData;
+import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.SystemParameterData;
 import com.foodya.backend.interfaces.rest.dto.ProfileResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
@@ -16,7 +16,7 @@ public final class CommonApiMapper {
     private CommonApiMapper() {
     }
 
-    public static ProfileResponse toProfileResponse(UserAccountModel user) {
+    public static ProfileResponse toProfileResponse(UserAccountData user) {
         return new ProfileResponse(
                 user.getId().toString(),
                 user.getUsername(),
@@ -29,7 +29,7 @@ public final class CommonApiMapper {
         );
     }
 
-    public static MenuCategoryResponse toMenuCategoryResponse(MenuCategoryModel category) {
+    public static MenuCategoryResponse toMenuCategoryResponse(MenuCategoryData category) {
         return new MenuCategoryResponse(
                 category.getId().toString(),
                 category.getRestaurantId().toString(),
@@ -70,7 +70,7 @@ public final class CommonApiMapper {
         );
     }
 
-    public static SystemParameterResponse toSystemParameterResponse(SystemParameterModel parameter) {
+    public static SystemParameterResponse toSystemParameterResponse(SystemParameterData parameter) {
         return new SystemParameterResponse(
                 parameter.getKey(),
                 parameter.getValueType(),

@@ -12,14 +12,11 @@ import com.foodya.backend.domain.value_objects.CartStatus;
 import com.foodya.backend.domain.entities.Cart;
 import com.foodya.backend.domain.entities.CartItem;
 import com.foodya.backend.domain.entities.MenuItem;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class CartService implements CartUseCase {
 
     private final CartPort cartPort;
@@ -34,14 +31,12 @@ public class CartService implements CartUseCase {
         this.menuItemPort = menuItemPort;
     }
 
-    @Transactional(readOnly = true)
     public ActiveCartView getActiveCart(UUID customerUserId) {
         return cartPort.findByCustomerUserIdAndStatus(customerUserId, CartStatus.ACTIVE)
                 .map(this::toView)
                 .orElseGet(ActiveCartView::empty);
     }
 
-    @Transactional
     public ActiveCartView addItem(UUID customerUserId, String menuItemIdRaw, int quantity, String note) {
         UUID menuItemId = parseUuid(menuItemIdRaw, "menuItemId");
         if (quantity <= 0) {
@@ -75,7 +70,6 @@ public class CartService implements CartUseCase {
         return toView(cart);
     }
 
-    @Transactional
     public ActiveCartView updateItem(UUID customerUserId, String menuItemIdRaw, int quantity, String note) {
         UUID menuItemId = parseUuid(menuItemIdRaw, "menuItemId");
 
@@ -90,7 +84,6 @@ public class CartService implements CartUseCase {
         return toView(cart);
     }
 
-    @Transactional
     public ActiveCartView removeItem(UUID customerUserId, String menuItemIdRaw) {
         UUID menuItemId = parseUuid(menuItemIdRaw, "menuItemId");
         Cart cart = requiredActiveCart(customerUserId);
@@ -100,7 +93,6 @@ public class CartService implements CartUseCase {
         return toView(cart);
     }
 
-    @Transactional
     public ActiveCartView clearActiveCart(UUID customerUserId) {
         Cart cart = requiredActiveCart(customerUserId);
         cartItemPort.deleteByCartId(cart.getId());

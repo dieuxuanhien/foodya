@@ -6,7 +6,7 @@ import com.foodya.backend.domain.value_objects.NotificationStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class NotificationLogModel {
+public class NotificationLogData {
 
     private UUID id;
     private UUID receiverUserId;

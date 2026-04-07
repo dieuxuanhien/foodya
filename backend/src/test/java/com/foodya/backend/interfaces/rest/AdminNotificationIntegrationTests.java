@@ -110,8 +110,8 @@ class AdminNotificationIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Notify Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
 
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
-        String adminToken = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(admin), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String adminToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(admin), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/cancel", order.getId())
                         .header("Authorization", "Bearer " + customerToken)

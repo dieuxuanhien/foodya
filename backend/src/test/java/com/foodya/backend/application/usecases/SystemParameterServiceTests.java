@@ -1,7 +1,7 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.domain.value_objects.ParameterValueType;
-import com.foodya.backend.application.dto.SystemParameterModel;
+import com.foodya.backend.application.dto.SystemParameterData;
 import com.foodya.backend.application.dto.SystemParameterPatchRequest;
 import com.foodya.backend.application.dto.SystemParameterPutRequest;
 import com.foodya.backend.application.exception.ForbiddenException;
@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Transactional
 class SystemParameterServiceTests {
 
     @Autowired
@@ -28,20 +27,20 @@ class SystemParameterServiceTests {
 
     @Test
     void bootstrapCreatesDefaultKeys() {
-        List<SystemParameterModel> parameters = systemParameterService.listAll();
+        List<SystemParameterData> parameters = systemParameterService.listAll();
         assertTrue(parameters.stream().anyMatch(p -> p.getKey().equals("shipping.base_delivery_fee")));
         assertTrue(parameters.stream().anyMatch(p -> p.getKey().equals("ops.backup.rto_minutes")));
     }
 
     @Test
     void patchUpdatesValueAndVersion() {
-        SystemParameterModel before = systemParameterService.listAll().stream()
+        SystemParameterData before = systemParameterService.listAll().stream()
                 .filter(p -> p.getKey().equals("shipping.base_delivery_fee"))
                 .findFirst()
                 .orElseThrow();
         int beforeVersion = before.getVersion();
 
-        SystemParameterModel updated = systemParameterService.patch(
+        SystemParameterData updated = systemParameterService.patch(
                 "shipping.base_delivery_fee",
                 new SystemParameterPatchRequest(null, "12000", null, "Update for test"),
                 "ADMIN",

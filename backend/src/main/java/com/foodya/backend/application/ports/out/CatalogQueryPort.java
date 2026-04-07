@@ -1,7 +1,7 @@
 package com.foodya.backend.application.ports.out;
 
-import com.foodya.backend.application.dto.MenuItemModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 
 import java.util.Collection;
@@ -11,13 +11,13 @@ import java.util.UUID;
 
 public interface CatalogQueryPort {
 
-    List<RestaurantModel> findAllRestaurants();
+    List<RestaurantData> findAllRestaurants();
 
-    List<RestaurantModel> findRestaurantsByH3IndexAndStatus(Collection<String> h3Indexes, Collection<RestaurantStatus> statuses);
+    List<RestaurantData> findRestaurantsByH3IndexAndStatus(Collection<String> h3Indexes, Collection<RestaurantStatus> statuses);
 
-    Optional<RestaurantModel> findRestaurantByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses);
+    Optional<RestaurantData> findRestaurantByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses);
 
-    List<MenuItemModel> findPublicMenuItemsByRestaurant(UUID restaurantId);
+    List<MenuItemData> findPublicMenuItemsByRestaurant(UUID restaurantId);
 
-    List<MenuItemModel> findActiveMenuItemsByKeyword(String keyword);
+    List<MenuItemData> findActiveMenuItemsByKeyword(String keyword);
 }

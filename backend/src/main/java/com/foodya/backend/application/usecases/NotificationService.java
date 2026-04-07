@@ -1,7 +1,7 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.NotificationLogView;
-import com.foodya.backend.application.dto.NotificationLogModel;
+import com.foodya.backend.application.dto.NotificationLogData;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.ports.in.NotificationUseCase;
@@ -11,13 +11,10 @@ import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.NotificationReceiverType;
 import com.foodya.backend.domain.value_objects.NotificationStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Service
 public class NotificationService implements NotificationUseCase {
 
     private final NotificationLogPort notificationLogPort;
@@ -32,14 +29,13 @@ public class NotificationService implements NotificationUseCase {
         this.paginationPolicy = paginationPolicy;
     }
 
-    @Transactional
     public NotificationLogView notifyUser(UUID receiverUserId,
                                           UserRole receiverRole,
                                           String eventType,
                                           String title,
                                           String message,
                                           UUID orderId) {
-        NotificationLogModel log = new NotificationLogModel();
+        NotificationLogData log = new NotificationLogData();
         log.setReceiverUserId(receiverUserId);
         log.setReceiverType(mapRole(receiverRole));
         log.setEventType(eventType);
@@ -56,14 +52,13 @@ public class NotificationService implements NotificationUseCase {
         }
         log.setProviderResponse(result.providerResponse());
 
-        NotificationLogModel saved = notificationLogPort.save(log);
+        NotificationLogData saved = notificationLogPort.save(log);
         return toView(saved);
     }
 
-    @Transactional(readOnly = true)
     public PaginatedResult<NotificationLogView> list(Integer page, Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
-        PaginatedResult<NotificationLogModel> result = notificationLogPort.list(spec.page(), spec.size());
+        PaginatedResult<NotificationLogData> result = notificationLogPort.list(spec.page(), spec.size());
 
         return new PaginatedResult<>(
                 result.items().stream().map(this::toView).toList(),
@@ -74,10 +69,9 @@ public class NotificationService implements NotificationUseCase {
         );
     }
 
-    @Transactional(readOnly = true)
     public PaginatedResult<NotificationLogView> listForUser(UUID receiverUserId, Integer page, Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
-        PaginatedResult<NotificationLogModel> result = notificationLogPort.listByReceiver(receiverUserId, spec.page(), spec.size());
+        PaginatedResult<NotificationLogData> result = notificationLogPort.listByReceiver(receiverUserId, spec.page(), spec.size());
 
         return new PaginatedResult<>(
                 result.items().stream().map(this::toView).toList(),
@@ -88,9 +82,8 @@ public class NotificationService implements NotificationUseCase {
         );
     }
 
-    @Transactional
     public NotificationLogView markAsRead(UUID receiverUserId, UUID notificationId) {
-        NotificationLogModel model = notificationLogPort.markAsRead(receiverUserId, notificationId, OffsetDateTime.now())
+        NotificationLogData model = notificationLogPort.markAsRead(receiverUserId, notificationId, OffsetDateTime.now())
                 .orElseThrow(() -> new NotFoundException("notification not found"));
         return toView(model);
     }
@@ -104,7 +97,7 @@ public class NotificationService implements NotificationUseCase {
         };
     }
 
-    private NotificationLogView toView(NotificationLogModel log) {
+    private NotificationLogView toView(NotificationLogData log) {
         return new NotificationLogView(
                 log.getId(),
                 log.getReceiverUserId(),

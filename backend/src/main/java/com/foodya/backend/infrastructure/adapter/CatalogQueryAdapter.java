@@ -1,7 +1,7 @@
 package com.foodya.backend.infrastructure.adapter;
 
-import com.foodya.backend.application.dto.MenuItemModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.ports.out.CatalogQueryPort;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.infrastructure.mapper.CatalogPersistenceMapper;

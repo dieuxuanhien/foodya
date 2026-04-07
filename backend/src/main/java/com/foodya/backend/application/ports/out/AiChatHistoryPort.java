@@ -1,6 +1,6 @@
 package com.foodya.backend.application.ports.out;
 
-import com.foodya.backend.application.dto.AiChatHistoryModel;
+import com.foodya.backend.application.dto.AiChatHistoryData;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -8,9 +8,9 @@ import java.util.UUID;
 
 public interface AiChatHistoryPort {
 
-    AiChatHistoryModel save(AiChatHistoryModel chatHistory);
+    AiChatHistoryData save(AiChatHistoryData chatHistory);
 
-    List<AiChatHistoryModel> findByUserIdOrderByCreatedAtDesc(UUID userId);
+    List<AiChatHistoryData> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
     long deleteByCreatedAtBefore(OffsetDateTime cutoff);
 }

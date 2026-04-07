@@ -1,6 +1,6 @@
 package com.foodya.backend.infrastructure.adapter;
 
-import com.foodya.backend.application.dto.AiChatHistoryModel;
+import com.foodya.backend.application.dto.AiChatHistoryData;
 import com.foodya.backend.application.ports.out.AiChatHistoryPort;
 import com.foodya.backend.domain.entities.AiChatHistory;
 import com.foodya.backend.infrastructure.mapper.AiChatHistoryMapper;
@@ -24,17 +24,17 @@ public class AiChatHistoryAdapter implements AiChatHistoryPort {
     }
 
     @Override
-    public AiChatHistoryModel save(AiChatHistoryModel chatHistory) {
+    public AiChatHistoryData save(AiChatHistoryData chatHistory) {
         AiChatHistory saved = mapper.toDomain(repository.save(Objects.requireNonNull(mapper.toPersistence(toEntity(Objects.requireNonNull(chatHistory))))));
-        return toModel(saved);
+        return toData(saved);
     }
 
     @Override
-    public List<AiChatHistoryModel> findByUserIdOrderByCreatedAtDesc(UUID userId) {
+    public List<AiChatHistoryData> findByUserIdOrderByCreatedAtDesc(UUID userId) {
         return repository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(mapper::toDomain)
-                .map(this::toModel)
+                .map(this::toData)
                 .toList();
     }
 
@@ -43,7 +43,7 @@ public class AiChatHistoryAdapter implements AiChatHistoryPort {
         return repository.deleteByCreatedAtBefore(cutoff);
     }
 
-    private AiChatHistory toEntity(AiChatHistoryModel model) {
+    private AiChatHistory toEntity(AiChatHistoryData model) {
         AiChatHistory entity = new AiChatHistory();
         entity.setId(model.getId());
         entity.setUserId(model.getUserId());
@@ -55,16 +55,16 @@ public class AiChatHistoryAdapter implements AiChatHistoryPort {
         return entity;
     }
 
-    private AiChatHistoryModel toModel(AiChatHistory entity) {
-        AiChatHistoryModel model = new AiChatHistoryModel();
-        model.setId(entity.getId());
-        model.setUserId(entity.getUserId());
-        model.setPrompt(entity.getPrompt());
-        model.setResponseSummary(entity.getResponseSummary());
-        model.setContextLatitude(entity.getContextLatitude());
-        model.setContextLongitude(entity.getContextLongitude());
-        model.setWeatherH3IndexRes8(entity.getWeatherH3IndexRes8());
-        model.setCreatedAt(entity.getCreatedAt());
-        return model;
+    private AiChatHistoryData toData(AiChatHistory entity) {
+        AiChatHistoryData data = new AiChatHistoryData();
+        data.setId(entity.getId());
+        data.setUserId(entity.getUserId());
+        data.setPrompt(entity.getPrompt());
+        data.setResponseSummary(entity.getResponseSummary());
+        data.setContextLatitude(entity.getContextLatitude());
+        data.setContextLongitude(entity.getContextLongitude());
+        data.setWeatherH3IndexRes8(entity.getWeatherH3IndexRes8());
+        data.setCreatedAt(entity.getCreatedAt());
+        return data;
     }
 }

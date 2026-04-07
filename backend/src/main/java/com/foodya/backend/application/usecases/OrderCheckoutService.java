@@ -7,11 +7,11 @@ import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
-import com.foodya.backend.application.dto.MenuItemModel;
-import com.foodya.backend.application.dto.OrderItemModel;
-import com.foodya.backend.application.dto.OrderModel;
-import com.foodya.backend.application.dto.OrderPaymentModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.OrderItemData;
+import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.OrderPaymentData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderCheckoutPort;
 import com.foodya.backend.application.ports.out.RouteDistancePort;
@@ -19,8 +19,6 @@ import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class OrderCheckoutService implements OrderCheckoutUseCase {
 
     private final OrderCheckoutPort orderCheckoutPort;
@@ -49,19 +46,22 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         this.orderEventPublisherPort = orderEventPublisherPort;
     }
 
-    @Transactional
     public OrderCreatedView createOrder(UUID customerUserId,
                                         String idempotencyKey,
                                         CreateOrderRequest request) {
         String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
+        requireText(request.restaurantId(), "restaurantId");
+        requireText(request.deliveryAddress(), "deliveryAddress");
+        requireNonNull(request.deliveryLatitude(), "deliveryLatitude");
+        requireNonNull(request.deliveryLongitude(), "deliveryLongitude");
 
-        OrderModel existing = orderCheckoutPort.findByCustomerUserIdAndIdempotencyKey(customerUserId, normalizedIdempotencyKey).orElse(null);
+        OrderData existing = orderCheckoutPort.findByCustomerUserIdAndIdempotencyKey(customerUserId, normalizedIdempotencyKey).orElse(null);
         if (existing != null) {
             return toView(existing);
         }
 
         UUID restaurantId = parseUuid(request.restaurantId(), "restaurantId");
-        RestaurantModel restaurant = orderCheckoutPort.findActiveRestaurantById(restaurantId)
+        RestaurantData restaurant = orderCheckoutPort.findActiveRestaurantById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
 
         if (request.items() == null || request.items().isEmpty()) {
@@ -71,12 +71,16 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         int currencyMinorUnit = intParam("currency.minor_unit", 0);
         RoundingMode roundingMode = roundingModeParam("currency.rounding_mode", "HALF_UP");
 
-        List<OrderItemModel> orderItems = new ArrayList<>();
+        List<OrderItemData> orderItems = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CreateOrderItemRequest itemRequest : request.items()) {
+            requireText(itemRequest.menuItemId(), "menuItemId");
+            if (itemRequest.quantity() <= 0) {
+                throw new ValidationException("invalid quantity", Map.of("quantity", "must be >= 1"));
+            }
             UUID menuItemId = parseUuid(itemRequest.menuItemId(), "menuItemId");
-                MenuItemModel menuItem = orderCheckoutPort.findMenuItemById(menuItemId)
+                MenuItemData menuItem = orderCheckoutPort.findMenuItemById(menuItemId)
                     .orElseThrow(() -> new NotFoundException("menu item not found"));
 
             if (!restaurantId.equals(menuItem.getRestaurantId())) {
@@ -87,7 +91,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             BigDecimal lineTotal = round(menuItem.getPrice().multiply(BigDecimal.valueOf(itemRequest.quantity())), currencyMinorUnit, roundingMode);
             subtotal = subtotal.add(lineTotal);
 
-            OrderItemModel line = new OrderItemModel();
+            OrderItemData line = new OrderItemData();
             line.setMenuItemId(menuItem.getId());
             line.setMenuItemNameSnapshot(menuItem.getName());
             line.setUnitPriceSnapshot(menuItem.getPrice());
@@ -127,7 +131,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         );
         BigDecimal platformProfitAmount = round(commissionAmount.add(shippingFeeMarginAmount), currencyMinorUnit, roundingMode);
 
-        OrderModel order = new OrderModel();
+        OrderData order = new OrderData();
         order.setOrderCode(newOrderCode());
         order.setCustomerUserId(customerUserId);
         order.setIdempotencyKey(normalizedIdempotencyKey);
@@ -146,14 +150,14 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         order.setShippingFeeMarginAmount(shippingFeeMarginAmount);
         order.setPlatformProfitAmount(platformProfitAmount);
 
-        OrderModel savedOrder = orderCheckoutPort.saveOrder(order);
+        OrderData savedOrder = orderCheckoutPort.saveOrder(order);
 
-        for (OrderItemModel item : orderItems) {
+        for (OrderItemData item : orderItems) {
             item.setOrderId(savedOrder.getId());
         }
         orderCheckoutPort.saveOrderItems(orderItems);
 
-        OrderPaymentModel payment = new OrderPaymentModel();
+        OrderPaymentData payment = new OrderPaymentData();
         payment.setOrderId(savedOrder.getId());
         payment.setPaymentMethod(PaymentMethod.COD);
         payment.setPaymentStatus(PaymentStatus.UNPAID);
@@ -234,7 +238,19 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         }
     }
 
-    private static void assertMenuItemOrderable(MenuItemModel menuItem) {
+    private static void requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be blank"));
+        }
+    }
+
+    private static void requireNonNull(Object value, String field) {
+        if (value == null) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be null"));
+        }
+    }
+
+    private static void assertMenuItemOrderable(MenuItemData menuItem) {
         if (!menuItem.isActive() || !menuItem.isAvailable() || menuItem.getDeletedAt() != null) {
             throw new ValidationException("menu item is not orderable", Map.of("menuItemId", "inactive or unavailable"));
         }
@@ -246,7 +262,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         return "ORD-" + timestamp + "-" + suffix;
     }
 
-    private OrderCreatedView toView(OrderModel order) {
+    private OrderCreatedView toView(OrderData order) {
         String currencyCode = systemParameterPort.findById("currency.code")
                 .map(p -> p.getValue())
                 .orElse("VND");

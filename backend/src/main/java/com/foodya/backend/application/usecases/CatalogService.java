@@ -1,9 +1,9 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.MatchedMenuItemView;
-import com.foodya.backend.application.dto.MenuItemModel;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.dto.RestaurantSearchView;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;

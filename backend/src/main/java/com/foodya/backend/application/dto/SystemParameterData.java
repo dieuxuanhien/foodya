@@ -4,7 +4,7 @@ import com.foodya.backend.domain.value_objects.ParameterValueType;
 
 import java.time.OffsetDateTime;
 
-public class SystemParameterModel {
+public class SystemParameterData {
 
     private String key;
     private ParameterValueType valueType;

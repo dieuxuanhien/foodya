@@ -3,10 +3,10 @@ package com.foodya.backend.application.dto;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class RefreshTokenModel {
+public class RefreshTokenData {
 
     private UUID id;
-    private UserAccountModel user;
+    private UserAccountData user;
     private String tokenJti;
     private String tokenFamily;
     private OffsetDateTime expiresAt;
@@ -21,11 +21,11 @@ public class RefreshTokenModel {
         this.id = id;
     }
 
-    public UserAccountModel getUser() {
+    public UserAccountData getUser() {
         return user;
     }
 
-    public void setUser(UserAccountModel user) {
+    public void setUser(UserAccountData user) {
         this.user = user;
     }
 

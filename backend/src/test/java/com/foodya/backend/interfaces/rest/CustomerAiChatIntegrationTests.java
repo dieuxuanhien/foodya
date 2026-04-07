@@ -114,7 +114,7 @@ class CustomerAiChatIntegrationTests {
         seedMenuItem(restaurant, category, "Pho Ga", new BigDecimal("62000"), true);
         seedMenuItem(restaurant, category, "Hidden Pho", new BigDecimal("50000"), false);
 
-        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/ai/chats")
                         .header("Authorization", "Bearer " + token)
@@ -141,7 +141,7 @@ class CustomerAiChatIntegrationTests {
         MenuCategory category = seedCategory(restaurant, "Main", 1);
         seedMenuItem(restaurant, category, "Com Tam", new BigDecimal("45000"), true);
 
-        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/ai/chats")
                         .header("Authorization", "Bearer " + token)
@@ -185,7 +185,7 @@ class CustomerAiChatIntegrationTests {
             MenuCategory farCategory = seedCategory(far, "Main", 1);
             seedMenuItem(far, farCategory, "Pho Xa", new BigDecimal("70000"), true);
 
-            String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+            String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
 
             mockMvc.perform(post("/api/v1/customer/ai/chats")
                     .header("Authorization", "Bearer " + token)
@@ -214,7 +214,7 @@ class CustomerAiChatIntegrationTests {
             seedMenuItem(restaurant, category, "Bun Bo Hue cay", new BigDecimal("70000"), true);
             seedMenuItem(restaurant, category, "Pho Ga Thanh Dam", new BigDecimal("65000"), true);
 
-            String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+            String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
 
             mockMvc.perform(post("/api/v1/customer/ai/chats")
                     .header("Authorization", "Bearer " + token)
@@ -239,7 +239,7 @@ class CustomerAiChatIntegrationTests {
                         seedMenuItem(restaurant, category, "Com Ga 45k", new BigDecimal("45000"), true);
                         seedMenuItem(restaurant, category, "Steak Premium 150k", new BigDecimal("150000"), true);
 
-                        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+                        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
 
                         mockMvc.perform(post("/api/v1/customer/ai/chats")
                                         .header("Authorization", "Bearer " + token)
@@ -280,7 +280,7 @@ class CustomerAiChatIntegrationTests {
                         MenuCategory lowRatedCategory = seedCategory(lowRated, "Main", 1);
                         seedMenuItem(lowRated, lowRatedCategory, "Com Binh Dan 45k", new BigDecimal("45000"), true);
 
-                        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toModel(customer), UUID.randomUUID().toString());
+                        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
 
                         mockMvc.perform(post("/api/v1/customer/ai/chats")
                                         .header("Authorization", "Bearer " + token)

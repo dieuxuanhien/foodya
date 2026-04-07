@@ -1,10 +1,10 @@
 package com.foodya.backend.infrastructure.adapter;
 
-import com.foodya.backend.application.dto.MenuItemModel;
-import com.foodya.backend.application.dto.OrderItemModel;
-import com.foodya.backend.application.dto.OrderModel;
-import com.foodya.backend.application.dto.OrderPaymentModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.OrderItemData;
+import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.OrderPaymentData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.ports.out.OrderCheckoutPort;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.infrastructure.mapper.CatalogPersistenceMapper;
@@ -65,30 +65,30 @@ public class OrderCheckoutAdapter implements OrderCheckoutPort {
     }
 
     @Override
-    public Optional<OrderModel> findByCustomerUserIdAndIdempotencyKey(UUID customerUserId, String idempotencyKey) {
+    public Optional<OrderData> findByCustomerUserIdAndIdempotencyKey(UUID customerUserId, String idempotencyKey) {
         return orderRepository.findByCustomerUserIdAndIdempotencyKey(customerUserId, idempotencyKey)
                 .map(orderMapper::toDomain)
-                .map(OrderCheckoutPersistenceMapper::toModel);
+                .map(OrderCheckoutPersistenceMapper::toData);
     }
 
     @Override
-    public Optional<RestaurantModel> findActiveRestaurantById(UUID restaurantId) {
+    public Optional<RestaurantData> findActiveRestaurantById(UUID restaurantId) {
         return restaurantRepository.findByIdAndStatusIn(restaurantId, List.of(RestaurantStatus.ACTIVE))
                 .map(restaurantMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel);
+                .map(CatalogPersistenceMapper::toData);
     }
 
     @Override
-    public Optional<MenuItemModel> findMenuItemById(UUID menuItemId) {
+    public Optional<MenuItemData> findMenuItemById(UUID menuItemId) {
         return menuItemRepository.findById(Objects.requireNonNull(menuItemId))
                 .map(menuItemMapper::toDomain)
-                .map(CatalogPersistenceMapper::toModel);
+                .map(CatalogPersistenceMapper::toData);
     }
 
     @Override
     @SuppressWarnings("null")
-    public OrderModel saveOrder(OrderModel order) {
-        OrderModel orderModel = Objects.requireNonNull(order);
+    public OrderData saveOrder(OrderData order) {
+        OrderData orderModel = Objects.requireNonNull(order);
         Order entity = orderModel.getId() == null
                 ? new Order()
                 : orderRepository.findById(Objects.requireNonNull(orderModel.getId()))
@@ -98,12 +98,12 @@ public class OrderCheckoutAdapter implements OrderCheckoutPort {
         var persistenceModel = orderMapper.toPersistence(entity);
         var saved = orderRepository.save(persistenceModel);
         var domainOrder = orderMapper.toDomain(saved);
-        return OrderCheckoutPersistenceMapper.toModel(domainOrder);
+        return OrderCheckoutPersistenceMapper.toData(domainOrder);
     }
 
     @Override
     @SuppressWarnings("null")
-    public void saveOrderItems(List<OrderItemModel> items) {
+    public void saveOrderItems(List<OrderItemData> items) {
         List<OrderItem> entities = Objects.requireNonNull(items).stream()
                 .map(OrderCheckoutPersistenceMapper::toEntity)
                 .toList();
@@ -115,7 +115,7 @@ public class OrderCheckoutAdapter implements OrderCheckoutPort {
 
     @Override
     @SuppressWarnings("null")
-    public void saveOrderPayment(OrderPaymentModel payment) {
+    public void saveOrderPayment(OrderPaymentData payment) {
         var entity = OrderCheckoutPersistenceMapper.toEntity(Objects.requireNonNull(payment));
         orderPaymentRepository.save(orderPaymentMapper.toPersistence(Objects.requireNonNull(entity)));
     }

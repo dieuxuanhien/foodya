@@ -3,11 +3,11 @@ package com.foodya.backend.application.dto;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class PasswordResetChallengeModel {
+public class PasswordResetChallengeData {
 
     private UUID id;
     private String challengeToken;
-    private UserAccountModel user;
+    private UserAccountData user;
     private String otpHash;
     private OffsetDateTime expiresAt;
     private OffsetDateTime verifiedAt;
@@ -29,11 +29,11 @@ public class PasswordResetChallengeModel {
         this.challengeToken = challengeToken;
     }
 
-    public UserAccountModel getUser() {
+    public UserAccountData getUser() {
         return user;
     }
 
-    public void setUser(UserAccountModel user) {
+    public void setUser(UserAccountData user) {
         this.user = user;
     }
 

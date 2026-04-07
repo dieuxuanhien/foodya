@@ -16,8 +16,6 @@ import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.Restaurant;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class OrderLifecycleService implements OrderLifecycleUseCase {
 
     private final OrderManagementPort orderManagementPort;
@@ -43,7 +40,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         this.orderEventPublisherPort = orderEventPublisherPort;
     }
 
-    @Transactional(readOnly = true)
     public List<OrderSummaryView> customerOrders(UUID customerUserId) {
         return orderManagementPort.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId)
                 .stream()
@@ -51,7 +47,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
     public OrderDetailView customerOrder(UUID customerUserId, UUID orderId) {
         Order order = requireOrder(orderId);
         if (!order.getCustomerUserId().equals(customerUserId)) {
@@ -60,7 +55,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         return toDetail(order);
     }
 
-    @Transactional
     public OrderDetailView cancelOrder(UUID customerUserId, UUID orderId, String cancelReason) {
         Order order = requireOrder(orderId);
         if (!order.getCustomerUserId().equals(customerUserId)) {
@@ -76,7 +70,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         return toDetail(saved);
     }
 
-    @Transactional(readOnly = true)
     public List<OrderSummaryView> merchantOrders(UUID merchantUserId, UUID restaurantId) {
         Restaurant restaurant = restaurantPort.findById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
@@ -90,7 +83,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .toList();
     }
 
-    @Transactional
     public OrderDetailView merchantUpdateStatus(UUID merchantUserId, UUID orderId, OrderStatus targetStatus) {
         Order order = requireOrder(orderId);
         assertMerchantOwnsOrder(merchantUserId, order.getRestaurantId());
@@ -122,7 +114,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 Map.of("status", "only PENDING->ACCEPTED or ASSIGNED->PREPARING is allowed"));
     }
 
-    @Transactional(readOnly = true)
     public List<OrderSummaryView> deliveryAssignments() {
         return orderManagementPort.findByStatusInOrderByPlacedAtAsc(List.of(OrderStatus.ACCEPTED, OrderStatus.ASSIGNED))
                 .stream()
@@ -130,7 +121,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .toList();
     }
 
-    @Transactional
     public OrderDetailView deliveryAccept(UUID orderId) {
         Order order = requireOrder(orderId);
         try {
@@ -143,7 +133,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         return toDetail(saved);
     }
 
-    @Transactional
     public OrderDetailView deliveryUpdateStatus(UUID orderId, OrderStatus targetStatus) {
         Order order = requireOrder(orderId);
         if (targetStatus == OrderStatus.DELIVERING) {
@@ -178,7 +167,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 Map.of("status", "allowed: ASSIGNED->DELIVERING and DELIVERING->SUCCESS|FAILED"));
     }
 
-    @Transactional
     public OrderTrackingPointView addTrackingPoint(UUID orderId, BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt) {
         Order order = requireOrder(orderId);
         if (order.getStatus() != OrderStatus.ASSIGNED && order.getStatus() != OrderStatus.DELIVERING) {
@@ -196,7 +184,6 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         return new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
     }
 
-    @Transactional(readOnly = true)
     public List<OrderTrackingPointView> customerTrackingPoints(UUID customerUserId, UUID orderId) {
         Order order = requireOrder(orderId);
         if (!order.getCustomerUserId().equals(customerUserId)) {

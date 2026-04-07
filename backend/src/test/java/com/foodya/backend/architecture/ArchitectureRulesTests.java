@@ -9,11 +9,18 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
- * Enforces Clean Architecture layering rules for Foodya backend.
+ * Enforces Clean Architecture layering rules for Foodya backend — STRICT POLICY.
  * 
  * Violations detected here indicate architecture decay—fix immediately.
  * 
- * Reference: Uncle Bob's Clean Architecture + backend-system.instructions.md
+ * Policy:
+ * - Domain: Pure business logic, no framework dependencies.
+ * - Application: Use-case orchestration, plain Java (no @Service, no @Transactional, no validation annotations).
+ *   Services are wired as beans in infrastructure/config/AppConfig.java.
+ * - Interfaces (REST): Controllers bind REST API DTOs (with validation) and map to application commands.
+ * - Infrastructure: Adapters, repositories, framework integration.
+ * 
+ * Reference: Uncle Bob's Clean Architecture + clean-architecture.md
  */
 class ArchitectureRulesTests {
 
@@ -29,6 +36,25 @@ class ArchitectureRulesTests {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("..application..")
                 .should().dependOnClassesThat().resideInAPackage("..infrastructure..");
+
+        rule.check(classes);
+    }
+
+    @Test
+    void applicationMustNotContainSpringFrameworkAnnotations() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..application..")
+                .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.stereotype.Service")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.transaction.annotation.Transactional");
+
+        rule.check(classes);
+    }
+
+    @Test
+    void applicationDtosMustNotContainJakartaValidationAnnotations() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..application.dto..")
+                .should().dependOnClassesThat().resideInAPackage("jakarta.validation..");
 
         rule.check(classes);
     }

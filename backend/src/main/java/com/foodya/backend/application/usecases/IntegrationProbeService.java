@@ -2,11 +2,9 @@ package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.ports.out.FirebaseConfigPort;
 import com.foodya.backend.application.ports.out.SupabaseConfigPort;
-import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-@Service
 public class IntegrationProbeService {
 
     private final FirebaseConfigPort firebaseConfigPort;

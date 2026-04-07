@@ -6,12 +6,14 @@ import com.foodya.backend.application.dto.LoginRequest;
 import com.foodya.backend.application.dto.RegisterRequest;
 import com.foodya.backend.application.dto.TokenPairResult;
 import com.foodya.backend.application.dto.VerifyOtpResult;
-import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.LoginApiRequest;
+import com.foodya.backend.interfaces.rest.dto.RegisterApiRequest;
 import com.foodya.backend.interfaces.rest.dto.ForgotPasswordApiRequest;
 import com.foodya.backend.interfaces.rest.dto.LogoutApiRequest;
 import com.foodya.backend.interfaces.rest.dto.RefreshApiRequest;
 import com.foodya.backend.interfaces.rest.dto.ResetPasswordApiRequest;
 import com.foodya.backend.interfaces.rest.dto.VerifyOtpApiRequest;
+import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,8 +48,17 @@ public class AuthController {
             @ApiResponse(responseCode = "422", description = "Validation failed"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> register(@Valid @RequestBody RegisterRequest request,
+    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> register(@Valid @RequestBody RegisterApiRequest apiRequest,
                                                                            HttpServletRequest httpServletRequest) {
+        // Map REST API DTO to application command (plain, validation-free)
+        RegisterRequest request = new RegisterRequest(
+                apiRequest.username(),
+                apiRequest.email(),
+                apiRequest.phoneNumber(),
+                apiRequest.fullName(),
+                apiRequest.password(),
+                apiRequest.role()
+        );
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(authService.register(request), RequestTrace.from(httpServletRequest)));
     }
@@ -60,8 +71,13 @@ public class AuthController {
             @ApiResponse(responseCode = "403", description = "Account not active"),
             @ApiResponse(responseCode = "429", description = "Rate limited")
         })
-    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> login(@Valid @RequestBody LoginRequest request,
+    public ResponseEntity<ApiSuccessResponse<TokenPairResult>> login(@Valid @RequestBody LoginApiRequest apiRequest,
                                                                         HttpServletRequest httpServletRequest) {
+        // Map REST API DTO to application command (plain, validation-free)
+        LoginRequest request = new LoginRequest(
+                apiRequest.usernameOrEmail(),
+                apiRequest.password()
+        );
         return ResponseEntity.ok(ApiSuccessResponse.of(authService.login(request), RequestTrace.from(httpServletRequest)));
     }
 

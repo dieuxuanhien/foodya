@@ -1,6 +1,6 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
 import com.foodya.backend.application.exception.NotFoundException;
@@ -10,14 +10,11 @@ import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.policies.PasswordPolicy;
 import com.foodya.backend.domain.services.PhoneNormalizer;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class ProfileService implements ProfileUseCase {
 
     private final UserAccountPort userAccountPort;
@@ -32,15 +29,13 @@ public class ProfileService implements ProfileUseCase {
         this.auditLogService = auditLogService;
     }
 
-    @Transactional(readOnly = true)
-    public UserAccountModel me(UUID userId) {
+    public UserAccountData me(UUID userId) {
         return userAccountPort.findById(userId)
                 .orElseThrow(() -> new NotFoundException("user not found"));
     }
 
-    @Transactional
-    public UserAccountModel update(UUID userId, UpdateProfileRequest request) {
-        UserAccountModel user = me(userId);
+    public UserAccountData update(UUID userId, UpdateProfileRequest request) {
+        UserAccountData user = me(userId);
         String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
         String normalizedPhone;
         try {
@@ -61,15 +56,14 @@ public class ProfileService implements ProfileUseCase {
         user.setEmail(normalizedEmail);
         user.setPhoneNumber(normalizedPhone);
         user.setAvatarUrl(request.avatarUrl());
-        UserAccountModel saved = userAccountPort.save(user);
+        UserAccountData saved = userAccountPort.save(user);
         String now = "{\"email\":\"" + saved.getEmail() + "\",\"phoneNumber\":\"" + saved.getPhoneNumber() + "\"}";
         auditLogService.securityEvent(saved.getId().toString(), "PROFILE_UPDATED", "USER", saved.getId().toString(), old, now);
         return saved;
     }
 
-    @Transactional
     public void changePassword(UUID userId, ChangePasswordRequest request) {
-        UserAccountModel user = me(userId);
+        UserAccountData user = me(userId);
         if (!passwordHashPort.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new ValidationException("currentPassword is invalid", Map.of("currentPassword", "does not match current password"));
         }

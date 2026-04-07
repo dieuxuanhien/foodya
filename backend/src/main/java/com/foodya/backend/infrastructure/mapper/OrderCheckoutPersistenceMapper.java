@@ -1,8 +1,8 @@
 package com.foodya.backend.infrastructure.mapper;
 
-import com.foodya.backend.application.dto.OrderItemModel;
-import com.foodya.backend.application.dto.OrderModel;
-import com.foodya.backend.application.dto.OrderPaymentModel;
+import com.foodya.backend.application.dto.OrderItemData;
+import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.OrderPaymentData;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.OrderItem;
 import com.foodya.backend.domain.entities.OrderPayment;
@@ -12,30 +12,30 @@ public final class OrderCheckoutPersistenceMapper {
     private OrderCheckoutPersistenceMapper() {
     }
 
-    public static OrderModel toModel(Order entity) {
-        OrderModel model = new OrderModel();
-        model.setId(entity.getId());
-        model.setOrderCode(entity.getOrderCode());
-        model.setCustomerUserId(entity.getCustomerUserId());
-        model.setIdempotencyKey(entity.getIdempotencyKey());
-        model.setRestaurantId(entity.getRestaurantId());
-        model.setStatus(entity.getStatus());
-        model.setDeliveryAddress(entity.getDeliveryAddress());
-        model.setDeliveryLatitude(entity.getDeliveryLatitude());
-        model.setDeliveryLongitude(entity.getDeliveryLongitude());
-        model.setCustomerNote(entity.getCustomerNote());
-        model.setSubtotalAmount(entity.getSubtotalAmount());
-        model.setDeliveryFee(entity.getDeliveryFee());
-        model.setTotalAmount(entity.getTotalAmount());
-        model.setPaymentMethod(entity.getPaymentMethod());
-        model.setPaymentStatus(entity.getPaymentStatus());
-        model.setCommissionAmount(entity.getCommissionAmount());
-        model.setShippingFeeMarginAmount(entity.getShippingFeeMarginAmount());
-        model.setPlatformProfitAmount(entity.getPlatformProfitAmount());
-        return model;
+    public static OrderData toData(Order entity) {
+        OrderData data = new OrderData();
+        data.setId(entity.getId());
+        data.setOrderCode(entity.getOrderCode());
+        data.setCustomerUserId(entity.getCustomerUserId());
+        data.setIdempotencyKey(entity.getIdempotencyKey());
+        data.setRestaurantId(entity.getRestaurantId());
+        data.setStatus(entity.getStatus());
+        data.setDeliveryAddress(entity.getDeliveryAddress());
+        data.setDeliveryLatitude(entity.getDeliveryLatitude());
+        data.setDeliveryLongitude(entity.getDeliveryLongitude());
+        data.setCustomerNote(entity.getCustomerNote());
+        data.setSubtotalAmount(entity.getSubtotalAmount());
+        data.setDeliveryFee(entity.getDeliveryFee());
+        data.setTotalAmount(entity.getTotalAmount());
+        data.setPaymentMethod(entity.getPaymentMethod());
+        data.setPaymentStatus(entity.getPaymentStatus());
+        data.setCommissionAmount(entity.getCommissionAmount());
+        data.setShippingFeeMarginAmount(entity.getShippingFeeMarginAmount());
+        data.setPlatformProfitAmount(entity.getPlatformProfitAmount());
+        return data;
     }
 
-    public static void copyToEntity(OrderModel model, Order entity) {
+    public static void copyToEntity(OrderData model, Order entity) {
         entity.setOrderCode(model.getOrderCode());
         entity.setCustomerUserId(model.getCustomerUserId());
         entity.setIdempotencyKey(model.getIdempotencyKey());
@@ -55,7 +55,7 @@ public final class OrderCheckoutPersistenceMapper {
         entity.setPlatformProfitAmount(model.getPlatformProfitAmount());
     }
 
-    public static OrderItem toEntity(OrderItemModel model) {
+    public static OrderItem toEntity(OrderItemData model) {
         OrderItem entity = new OrderItem();
         entity.setOrderId(model.getOrderId());
         entity.setMenuItemId(model.getMenuItemId());
@@ -66,7 +66,7 @@ public final class OrderCheckoutPersistenceMapper {
         return entity;
     }
 
-    public static OrderPayment toEntity(OrderPaymentModel model) {
+    public static OrderPayment toEntity(OrderPaymentData model) {
         OrderPayment entity = new OrderPayment();
         entity.setOrderId(model.getOrderId());
         entity.setPaymentMethod(model.getPaymentMethod());

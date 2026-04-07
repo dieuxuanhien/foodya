@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class AiChatHistoryModel {
+public class AiChatHistoryData {
 
     private UUID id;
     private UUID userId;

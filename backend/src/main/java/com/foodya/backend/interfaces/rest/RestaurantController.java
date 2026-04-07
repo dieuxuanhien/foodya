@@ -3,7 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.usecases.CatalogService;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantSearchView;
-import com.foodya.backend.application.dto.MenuItemModel;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
@@ -93,7 +93,7 @@ public class RestaurantController {
                                                                                             @RequestParam(required = false) Integer size,
                                                                                             HttpServletRequest httpServletRequest) {
         UUID restaurantId = parseUuid(id, "id");
-        PaginatedResult<MenuItemModel> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);
+        PaginatedResult<MenuItemData> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items().stream().map(CommonApiMapper::toMenuItemResponse).toList(),
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),

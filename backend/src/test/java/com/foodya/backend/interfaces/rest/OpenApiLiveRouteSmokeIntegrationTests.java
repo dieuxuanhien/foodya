@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.UserAccountModel;
+import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.ports.out.TokenPort;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
@@ -239,7 +239,7 @@ class OpenApiLiveRouteSmokeIntegrationTests {
     }
 
     private TokenPair issueSeedToken(UUID userId, String username, UserRole role) {
-        UserAccountModel user = new UserAccountModel();
+        UserAccountData user = new UserAccountData();
         user.setId(userId);
         user.setUsername(username);
         user.setEmail(username + "@foodya.local");

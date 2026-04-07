@@ -12,15 +12,12 @@ import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.OrderReview;
 import com.foodya.backend.domain.entities.Restaurant;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class OrderReviewService implements OrderReviewUseCase {
 
     private final OrderManagementPort orderManagementPort;
@@ -35,7 +32,6 @@ public class OrderReviewService implements OrderReviewUseCase {
         this.restaurantPort = restaurantPort;
     }
 
-    @Transactional
     public OrderReviewView createReview(UUID customerUserId, UUID orderId, int stars, String comment) {
         Order order = requireOrder(orderId);
         if (!order.getCustomerUserId().equals(customerUserId)) {
@@ -58,7 +54,6 @@ public class OrderReviewService implements OrderReviewUseCase {
         return toView(orderReviewPort.save(review));
     }
 
-    @Transactional
     public OrderReviewView merchantRespond(UUID merchantUserId, UUID reviewId, String response) {
         OrderReview review = orderReviewPort.findById(reviewId)
                 .orElseThrow(() -> new NotFoundException("review not found"));
@@ -75,7 +70,6 @@ public class OrderReviewService implements OrderReviewUseCase {
         return toView(orderReviewPort.save(review));
     }
 
-    @Transactional(readOnly = true)
     public List<OrderReviewView> listRestaurantReviews(UUID restaurantId) {
         if (restaurantPort.findById(restaurantId).isEmpty()) {
             throw new NotFoundException("restaurant not found");

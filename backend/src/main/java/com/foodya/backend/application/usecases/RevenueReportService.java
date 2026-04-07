@@ -6,8 +6,6 @@ import com.foodya.backend.application.dto.TopSellingItemView;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.RevenueReportUseCase;
 import com.foodya.backend.application.ports.out.RevenueReportPort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class RevenueReportService implements RevenueReportUseCase {
 
     private static final int DEFAULT_TOP_ITEMS = 5;
@@ -30,7 +27,6 @@ public class RevenueReportService implements RevenueReportUseCase {
         this.revenueReportPort = revenueReportPort;
     }
 
-    @Transactional(readOnly = true)
     public RevenueReportView platformRevenueReport(LocalDate from, LocalDate to) {
         DateRange range = normalizeRange(from, to);
         List<RevenueBucketView> buckets = revenueReportPort
@@ -42,7 +38,6 @@ public class RevenueReportService implements RevenueReportUseCase {
         return buildReport(range.fromDate(), range.toDate(), buckets, List.of());
     }
 
-    @Transactional(readOnly = true)
     public RevenueReportView merchantRevenueReport(UUID merchantUserId,
                                                    LocalDate from,
                                                    LocalDate to,

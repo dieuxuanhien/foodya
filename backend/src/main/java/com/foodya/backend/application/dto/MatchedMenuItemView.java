@@ -7,7 +7,7 @@ public record MatchedMenuItemView(
         String name,
         BigDecimal price
 ) {
-    public static MatchedMenuItemView from(MenuItemModel item) {
+    public static MatchedMenuItemView from(MenuItemData item) {
         return new MatchedMenuItemView(item.getId().toString(), item.getName(), item.getPrice());
     }
 }

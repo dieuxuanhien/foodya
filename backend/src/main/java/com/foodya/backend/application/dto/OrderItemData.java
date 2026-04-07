@@ -3,7 +3,7 @@ package com.foodya.backend.application.dto;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public class OrderItemModel {
+public class OrderItemData {
 
     private UUID orderId;
     private UUID menuItemId;

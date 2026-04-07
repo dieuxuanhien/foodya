@@ -93,7 +93,7 @@ class CustomerNotificationIntegrationTests {
         seedNotification(otherCustomer.getId(), "ORDER_CANCELLED", "Order cancelled");
 
         String customerToken = tokenService.issueAccessToken(
-                AuthPersistenceMapper.toModel(customer),
+                AuthPersistenceMapper.toData(customer),
                 UUID.randomUUID().toString()
         );
 
@@ -119,7 +119,7 @@ class CustomerNotificationIntegrationTests {
         NotificationLogPersistenceModel target = seedNotification(customer.getId(), "ORDER_READY", "Order is ready for pickup");
 
         String otherCustomerToken = tokenService.issueAccessToken(
-                AuthPersistenceMapper.toModel(otherCustomer),
+                AuthPersistenceMapper.toData(otherCustomer),
                 UUID.randomUUID().toString()
         );
 

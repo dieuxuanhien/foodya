@@ -1,8 +1,8 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.OrderModel;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.exception.ConflictException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -16,14 +16,11 @@ import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.Restaurant;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 public class AdminGovernanceService implements AdminGovernanceUseCase {
 
     private static final List<OrderStatus> BLOCKING_DELETE_STATUSES = List.of(
@@ -52,12 +49,11 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         this.auditLogService = auditLogService;
     }
 
-    @Transactional(readOnly = true)
-    public PaginatedResult<RestaurantModel> listRestaurants(String keyword, RestaurantStatus status, Integer page, Integer size) {
+    public PaginatedResult<RestaurantData> listRestaurants(String keyword, RestaurantStatus status, Integer page, Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<Restaurant> result = adminRestaurantPort.search(keyword, status, spec.page(), spec.size());
         return new PaginatedResult<>(
-                result.items().stream().map(this::toRestaurantModel).toList(),
+                result.items().stream().map(this::toRestaurantData).toList(),
                 result.page(),
                 result.size(),
                 result.totalElements(),
@@ -65,8 +61,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         );
     }
 
-    @Transactional
-    public RestaurantModel approveRestaurant(UUID restaurantId, UUID actorId) {
+    public RestaurantData approveRestaurant(UUID restaurantId, UUID actorId) {
         Restaurant restaurant = requireRestaurant(restaurantId);
         RestaurantStatus oldStatus = restaurant.getStatus();
         restaurant.setStatus(RestaurantStatus.ACTIVE);
@@ -79,11 +74,10 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                 oldStatus.name(),
                 saved.getStatus().name()
         );
-        return toRestaurantModel(saved);
+        return toRestaurantData(saved);
     }
 
-    @Transactional
-    public RestaurantModel rejectRestaurant(UUID restaurantId, UUID actorId) {
+    public RestaurantData rejectRestaurant(UUID restaurantId, UUID actorId) {
         Restaurant restaurant = requireRestaurant(restaurantId);
         RestaurantStatus oldStatus = restaurant.getStatus();
         restaurant.setStatus(RestaurantStatus.REJECTED);
@@ -96,10 +90,9 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                 oldStatus.name(),
                 saved.getStatus().name()
         );
-        return toRestaurantModel(saved);
+        return toRestaurantData(saved);
     }
 
-    @Transactional
     public void deleteRestaurant(UUID restaurantId, UUID actorId) {
         Restaurant restaurant = requireRestaurant(restaurantId);
         if (adminRestaurantPort.hasOrdersInStatuses(restaurantId, BLOCKING_DELETE_STATUSES)) {
@@ -109,12 +102,11 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         auditLogService.securityEvent(actorId.toString(), "ADMIN_RESTAURANT_DELETE", "RESTAURANT", restaurantId.toString(), null, "hard-deleted");
     }
 
-    @Transactional(readOnly = true)
-    public PaginatedResult<OrderModel> listOrders(OrderStatus status, Integer page, Integer size) {
+    public PaginatedResult<OrderData> listOrders(OrderStatus status, Integer page, Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         PaginatedResult<Order> result = adminOrderPort.search(status, spec.page(), spec.size());
         return new PaginatedResult<>(
-                result.items().stream().map(this::toOrderModel).toList(),
+                result.items().stream().map(this::toOrderData).toList(),
                 result.page(),
                 result.size(),
                 result.totalElements(),
@@ -122,8 +114,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         );
     }
 
-    @Transactional
-    public OrderModel updateOrderStatus(UUID orderId, OrderStatus targetStatus, UUID actorId) {
+    public OrderData updateOrderStatus(UUID orderId, OrderStatus targetStatus, UUID actorId) {
         Order order = requireOrder(orderId);
         OrderStatus current = order.getStatus();
         if (!isValidTransition(current, targetStatus)) {
@@ -143,17 +134,15 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                 current.name(),
                 saved.getStatus().name()
         );
-        return toOrderModel(saved);
+        return toOrderData(saved);
     }
 
-    @Transactional
     public void deleteOrder(UUID orderId, UUID actorId) {
         Order order = requireOrder(orderId);
         adminOrderPort.delete(order);
         auditLogService.securityEvent(actorId.toString(), "ADMIN_ORDER_DELETE", "ORDER", orderId.toString(), null, "hard-deleted");
     }
 
-    @Transactional
     public void hardDeleteMenuItem(UUID menuItemId, UUID actorId) {
         MenuItem menuItem = adminMenuItemPort.findById(menuItemId)
                 .orElseThrow(() -> new NotFoundException("menu item not found"));
@@ -188,8 +177,8 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         };
     }
 
-    private RestaurantModel toRestaurantModel(Restaurant restaurant) {
-        RestaurantModel model = new RestaurantModel();
+    private RestaurantData toRestaurantData(Restaurant restaurant) {
+        RestaurantData model = new RestaurantData();
         model.setId(restaurant.getId());
         model.setOwnerUserId(restaurant.getOwnerUserId());
         model.setName(restaurant.getName());
@@ -207,8 +196,8 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         return model;
     }
 
-    private OrderModel toOrderModel(Order order) {
-        OrderModel model = new OrderModel();
+    private OrderData toOrderData(Order order) {
+        OrderData model = new OrderData();
         model.setId(order.getId());
         model.setOrderCode(order.getOrderCode());
         model.setCustomerUserId(order.getCustomerUserId());

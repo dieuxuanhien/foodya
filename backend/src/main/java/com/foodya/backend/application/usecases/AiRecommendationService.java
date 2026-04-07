@@ -24,8 +24,6 @@ import com.foodya.backend.domain.entities.Restaurant;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uber.h3core.H3Core;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -46,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Service
 public class AiRecommendationService implements AiRecommendationUseCase {
 
     private static final int H3_WEATHER_RES = 8;
@@ -177,14 +174,14 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             conversationContext);
         String responseSummary = buildSummary(aiDraft, recommendations, intent);
 
-        AiChatHistoryModel history = new AiChatHistoryModel();
+        AiChatHistoryData history = new AiChatHistoryData();
         history.setUserId(customerUserId);
         history.setPrompt(normalizedPrompt);
         history.setResponseSummary(responseSummary);
         history.setContextLatitude(request.lat());
         history.setContextLongitude(request.lng());
         history.setWeatherH3IndexRes8(weather.weatherH3IndexRes8());
-        AiChatHistoryModel saved = aiChatHistoryPort.save(history);
+        AiChatHistoryData saved = aiChatHistoryPort.save(history);
 
         return new AiChatResponseView(
                 saved.getId(),
@@ -1035,7 +1032,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     }
 
     private String recentConversationContext(UUID customerUserId) {
-        List<AiChatHistoryModel> recent = aiChatHistoryPort.findByUserIdOrderByCreatedAtDesc(customerUserId)
+        List<AiChatHistoryData> recent = aiChatHistoryPort.findByUserIdOrderByCreatedAtDesc(customerUserId)
                 .stream()
                 .limit(3)
                 .toList();
@@ -1045,7 +1042,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
 
         List<String> lines = new ArrayList<>();
         for (int i = recent.size() - 1; i >= 0; i--) {
-            AiChatHistoryModel chat = recent.get(i);
+            AiChatHistoryData chat = recent.get(i);
             lines.add("Q: " + truncate(chat.getPrompt(), 120));
             lines.add("A: " + truncate(chat.getResponseSummary(), 180));
         }

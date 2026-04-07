@@ -3,11 +3,11 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.in.MerchantCatalogUseCase;
 import com.foodya.backend.application.dto.CreateMenuCategoryRequest;
 import com.foodya.backend.application.dto.CreateMenuItemRequest;
-import com.foodya.backend.application.dto.MenuCategoryModel;
-import com.foodya.backend.application.dto.MenuItemModel;
+import com.foodya.backend.application.dto.MenuCategoryData;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.dto.CreateRestaurantRequest;
 import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.RestaurantModel;
+import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.dto.UpdateMenuCategoryRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemAvailabilityRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemRequest;
@@ -57,7 +57,7 @@ public class MerchantCatalogController {
                                                                                           @Valid @RequestBody CreateRestaurantRequest request,
                                                                                           HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        RestaurantModel restaurant = merchantCatalogService.createRestaurant(merchantId, request);
+        RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
@@ -69,7 +69,7 @@ public class MerchantCatalogController {
                                                                                           @Valid @RequestBody UpdateRestaurantRequest request,
                                                                                           HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        RestaurantModel restaurant = merchantCatalogService.updateRestaurant(merchantId, parseUuid(id, "id"), request);
+        RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
 
@@ -80,7 +80,7 @@ public class MerchantCatalogController {
                                                                                     @Valid @RequestBody CreateMenuCategoryRequest request,
                                                                                     HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuCategoryModel category = merchantCatalogService.createCategory(merchantId, parseUuid(id, "id"), request);
+        MenuCategoryData category = merchantCatalogService.createCategory(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(CommonApiMapper.toMenuCategoryResponse(category), RequestTrace.from(httpServletRequest)));
     }
@@ -93,7 +93,7 @@ public class MerchantCatalogController {
                                                                                                     @RequestParam(required = false) Integer size,
                                                                                                     HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        PaginatedResult<MenuCategoryModel> result = merchantCatalogService.listCategories(merchantId, parseUuid(id, "id"), page, size);
+        PaginatedResult<MenuCategoryData> result = merchantCatalogService.listCategories(merchantId, parseUuid(id, "id"), page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items().stream().map(CommonApiMapper::toMenuCategoryResponse).toList(),
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
@@ -108,7 +108,7 @@ public class MerchantCatalogController {
                                                                                     @Valid @RequestBody UpdateMenuCategoryRequest request,
                                                                                     HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuCategoryModel category = merchantCatalogService.updateCategory(merchantId, parseUuid(id, "id"), request);
+        MenuCategoryData category = merchantCatalogService.updateCategory(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuCategoryResponse(category), RequestTrace.from(httpServletRequest)));
     }
 
@@ -141,7 +141,7 @@ public class MerchantCatalogController {
                                                                                                @RequestParam(required = false) Integer size,
                                                                                                HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        PaginatedResult<MenuItemModel> result = merchantCatalogService.listMenuItems(merchantId, parseUuid(id, "id"), page, size);
+        PaginatedResult<MenuItemData> result = merchantCatalogService.listMenuItems(merchantId, parseUuid(id, "id"), page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items().stream().map(CommonApiMapper::toMenuItemResponse).toList(),
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
@@ -156,7 +156,7 @@ public class MerchantCatalogController {
                                                                                 @Valid @RequestBody UpdateMenuItemRequest request,
                                                                                 HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuItemModel menuItem = merchantCatalogService.updateMenuItem(merchantId, parseUuid(id, "id"), request);
+        MenuItemData menuItem = merchantCatalogService.updateMenuItem(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
     }
 
@@ -176,7 +176,7 @@ public class MerchantCatalogController {
                                                                                    @Valid @RequestBody UpdateMenuItemAvailabilityRequest request,
                                                                                    HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuItemModel menuItem = merchantCatalogService.updateAvailability(merchantId, parseUuid(id, "id"), request);
+        MenuItemData menuItem = merchantCatalogService.updateAvailability(merchantId, parseUuid(id, "id"), request);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
     }
 

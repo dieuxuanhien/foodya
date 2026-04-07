@@ -3,11 +3,9 @@ package com.foodya.backend.application.support;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.SystemParameter;
 import com.foodya.backend.application.exception.ValidationException;
-import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-@Service
 public class PaginationPolicy {
 
     public record PaginationSpec(int page, int size, int offset) {

@@ -4,7 +4,7 @@ import com.foodya.backend.domain.value_objects.ParameterValueType;
 import com.foodya.backend.domain.catalog.SystemParameterCatalog;
 import com.foodya.backend.domain.entities.SystemParameter;
 import com.foodya.backend.domain.entities.AuditLog;
-import com.foodya.backend.application.dto.SystemParameterModel;
+import com.foodya.backend.application.dto.SystemParameterData;
 import com.foodya.backend.application.dto.SystemParameterPatchRequest;
 import com.foodya.backend.application.dto.SystemParameterPutRequest;
 import com.foodya.backend.application.exception.ForbiddenException;
@@ -14,13 +14,10 @@ import com.foodya.backend.application.ports.in.SystemParameterUseCase;
 import com.foodya.backend.application.ports.out.AuditLogPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import jakarta.annotation.PostConstruct;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 
-@Service
 public class SystemParameterService implements SystemParameterUseCase {
 
     private static final String ADMIN_ROLE = "ADMIN";
@@ -36,7 +33,6 @@ public class SystemParameterService implements SystemParameterUseCase {
     }
 
     @PostConstruct
-    @Transactional
     void bootstrapDefaults() {
         for (Map.Entry<String, SystemParameterCatalog.ParameterRule> entry : rules.entrySet()) {
             String key = entry.getKey();
@@ -57,13 +53,11 @@ public class SystemParameterService implements SystemParameterUseCase {
         }
     }
 
-    @Transactional(readOnly = true)
-    public List<SystemParameterModel> listAll() {
-        return systemParameterPort.findAllOrderedByKey().stream().map(this::toModel).toList();
+    public List<SystemParameterData> listAll() {
+        return systemParameterPort.findAllOrderedByKey().stream().map(this::toData).toList();
     }
 
-    @Transactional
-    public SystemParameterModel replace(String key, SystemParameterPutRequest request, String actorRole, String actorId) {
+    public SystemParameterData replace(String key, SystemParameterPutRequest request, String actorRole, String actorId) {
         assertAdmin(actorRole);
 
         SystemParameterCatalog.ParameterRule rule = requiredRule(key);
@@ -90,11 +84,10 @@ public class SystemParameterService implements SystemParameterUseCase {
         SystemParameter saved = systemParameterPort.save(existing);
         AuditLog auditLog = AuditLog.parameterUpdate(actorId, key, oldSnapshot, snapshot(saved));
         auditLogPort.save(auditLog);
-        return toModel(saved);
+        return toData(saved);
     }
 
-    @Transactional
-    public SystemParameterModel patch(String key, SystemParameterPatchRequest request, String actorRole, String actorId) {
+    public SystemParameterData patch(String key, SystemParameterPatchRequest request, String actorRole, String actorId) {
         assertAdmin(actorRole);
         SystemParameter existing = requiredParameter(key);
         SystemParameterCatalog.ParameterRule rule = requiredRule(key);
@@ -126,7 +119,7 @@ public class SystemParameterService implements SystemParameterUseCase {
         SystemParameter saved = systemParameterPort.save(existing);
         AuditLog auditLog = AuditLog.parameterUpdate(actorId, key, oldSnapshot, snapshot(saved));
         auditLogPort.save(auditLog);
-        return toModel(saved);
+        return toData(saved);
     }
 
     private void assertAdmin(String actorRole) {
@@ -206,16 +199,16 @@ public class SystemParameterService implements SystemParameterUseCase {
                 "}";
     }
 
-    private SystemParameterModel toModel(SystemParameter parameter) {
-        SystemParameterModel model = new SystemParameterModel();
-        model.setKey(parameter.getKey());
-        model.setValueType(parameter.getValueType());
-        model.setValue(parameter.getValue());
-        model.setRuntimeApplicable(parameter.isRuntimeApplicable());
-        model.setVersion(parameter.getVersion());
-        model.setDescription(parameter.getDescription());
-        model.setUpdatedByActor(parameter.getUpdatedByActor());
-        model.setUpdatedAt(parameter.getUpdatedAt());
-        return model;
+    private SystemParameterData toData(SystemParameter parameter) {
+        SystemParameterData data = new SystemParameterData();
+        data.setKey(parameter.getKey());
+        data.setValueType(parameter.getValueType());
+        data.setValue(parameter.getValue());
+        data.setRuntimeApplicable(parameter.isRuntimeApplicable());
+        data.setVersion(parameter.getVersion());
+        data.setDescription(parameter.getDescription());
+        data.setUpdatedByActor(parameter.getUpdatedByActor());
+        data.setUpdatedAt(parameter.getUpdatedAt());
+        return data;
     }
 }

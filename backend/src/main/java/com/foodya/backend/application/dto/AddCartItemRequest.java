@@ -1,11 +1,8 @@
 package com.foodya.backend.application.dto;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-
 public record AddCartItemRequest(
-        @NotBlank String menuItemId,
-        @Min(1) int quantity,
+        String menuItemId,
+        int quantity,
         String note
 ) {
 }
