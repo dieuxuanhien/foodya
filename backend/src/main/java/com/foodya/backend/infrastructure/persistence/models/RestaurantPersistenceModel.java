@@ -30,8 +30,14 @@ public class RestaurantPersistenceModel {
     @Column(name = "cuisine_type", nullable = false, length = 80)
     private String cuisineType;
 
+    @Column(name = "cuisine_types", columnDefinition = "text")
+    private String cuisineTypes;
+
     @Column(columnDefinition = "text")
     private String description;
+
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;
 
     @Column(name = "address_line", nullable = false, columnDefinition = "text")
     private String addressLine;
@@ -120,12 +126,28 @@ public class RestaurantPersistenceModel {
         this.cuisineType = cuisineType;
     }
 
+    public String getCuisineTypes() {
+        return cuisineTypes;
+    }
+
+    public void setCuisineTypes(String cuisineTypes) {
+        this.cuisineTypes = cuisineTypes;
+    }
+
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getAddressLine() {

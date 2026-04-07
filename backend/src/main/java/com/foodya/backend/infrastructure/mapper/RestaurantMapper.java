@@ -4,6 +4,9 @@ import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.infrastructure.persistence.models.RestaurantPersistenceModel;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Component
 public class RestaurantMapper {
 
@@ -17,7 +20,9 @@ public class RestaurantMapper {
         domain.setOwnerUserId(model.getOwnerUserId());
         domain.setName(model.getName());
         domain.setCuisineType(model.getCuisineType());
+        domain.setCuisineTypes(parseCuisineTypes(model.getCuisineTypes()));
         domain.setDescription(model.getDescription());
+        domain.setImageUrl(model.getImageUrl());
         domain.setAddressLine(model.getAddressLine());
         domain.setLatitude(model.getLatitude());
         domain.setLongitude(model.getLongitude());
@@ -42,7 +47,9 @@ public class RestaurantMapper {
         model.setOwnerUserId(domain.getOwnerUserId());
         model.setName(domain.getName());
         model.setCuisineType(domain.getCuisineType());
+        model.setCuisineTypes(String.join(",", domain.getCuisineTypes()));
         model.setDescription(domain.getDescription());
+        model.setImageUrl(domain.getImageUrl());
         model.setAddressLine(domain.getAddressLine());
         model.setLatitude(domain.getLatitude());
         model.setLongitude(domain.getLongitude());
@@ -55,5 +62,15 @@ public class RestaurantMapper {
         model.setCreatedAt(domain.getCreatedAt());
         model.setUpdatedAt(domain.getUpdatedAt());
         return model;
+    }
+
+    private static List<String> parseCuisineTypes(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .toList();
     }
 }

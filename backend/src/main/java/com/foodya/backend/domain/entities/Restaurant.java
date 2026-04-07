@@ -4,6 +4,8 @@ import com.foodya.backend.domain.value_objects.RestaurantStatus;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class Restaurant {
@@ -15,6 +17,10 @@ public class Restaurant {
     private String name;
 
     private String cuisineType;
+
+    private List<String> cuisineTypes = new ArrayList<>();
+
+    private String imageUrl;
 
     private String description;
 
@@ -70,6 +76,22 @@ public class Restaurant {
 
     public void setCuisineType(String cuisineType) {
         this.cuisineType = cuisineType;
+    }
+
+    public List<String> getCuisineTypes() {
+        return cuisineTypes;
+    }
+
+    public void setCuisineTypes(List<String> cuisineTypes) {
+        this.cuisineTypes = cuisineTypes == null ? new ArrayList<>() : new ArrayList<>(cuisineTypes);
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getDescription() {

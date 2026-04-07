@@ -3,6 +3,8 @@ package com.foodya.backend.application.dto;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class RestaurantData {
@@ -11,7 +13,9 @@ public class RestaurantData {
     private UUID ownerUserId;
     private String name;
     private String cuisineType;
+    private List<String> cuisineTypes = new ArrayList<>();
     private String description;
+    private String imageUrl;
     private String addressLine;
     private BigDecimal latitude;
     private BigDecimal longitude;
@@ -54,12 +58,28 @@ public class RestaurantData {
         this.cuisineType = cuisineType;
     }
 
+    public List<String> getCuisineTypes() {
+        return cuisineTypes;
+    }
+
+    public void setCuisineTypes(List<String> cuisineTypes) {
+        this.cuisineTypes = cuisineTypes == null ? new ArrayList<>() : new ArrayList<>(cuisineTypes);
+    }
+
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getAddressLine() {

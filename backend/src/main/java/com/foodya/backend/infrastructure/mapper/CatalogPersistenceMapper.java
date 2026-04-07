@@ -16,7 +16,9 @@ public final class CatalogPersistenceMapper {
         data.setOwnerUserId(entity.getOwnerUserId());
         data.setName(entity.getName());
         data.setCuisineType(entity.getCuisineType());
+        data.setCuisineTypes(entity.getCuisineTypes());
         data.setDescription(entity.getDescription());
+        data.setImageUrl(entity.getImageUrl());
         data.setAddressLine(entity.getAddressLine());
         data.setLatitude(entity.getLatitude());
         data.setLongitude(entity.getLongitude());

@@ -183,7 +183,9 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         model.setOwnerUserId(restaurant.getOwnerUserId());
         model.setName(restaurant.getName());
         model.setCuisineType(restaurant.getCuisineType());
+        model.setCuisineTypes(restaurant.getCuisineTypes());
         model.setDescription(restaurant.getDescription());
+        model.setImageUrl(restaurant.getImageUrl());
         model.setAddressLine(restaurant.getAddressLine());
         model.setLatitude(restaurant.getLatitude());
         model.setLongitude(restaurant.getLongitude());
