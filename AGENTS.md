@@ -1,4 +1,59 @@
+## Project Guidelines
+
+### Workspace Scope
+
+- Active implementation is in `backend/`.
+- `web/` and `mobile/` are currently empty placeholders.
+- Prefer backend-focused changes unless the task explicitly asks for frontend/mobile scaffolding.
+
+### Architecture
+
+- Backend follows clean architecture package boundaries:
+  - `domain` for entities/value objects and business invariants
+  - `application` for use cases, DTOs, and ports
+  - `infrastructure` for adapters, repositories, and framework integration
+  - `interfaces/rest` for controllers and API DTOs
+- Application services are explicitly wired in `backend/src/main/java/com/foodya/backend/infrastructure/config/AppConfig.java`.
+- REST controllers should validate API DTOs and map to application DTOs before invoking use cases.
+
+### Build and Test
+
+- Run backend commands from `backend/`.
+- Main dev loop:
+  - `mvn spring-boot:run`
+  - `mvn test`
+- Containerized run:
+  - `docker-compose up`
+- For migration reset/reseed, use the command documented in `backend/README.md`.
+
+### Conventions
+
+- Respect architecture rules in `backend/src/test/java/com/foodya/backend/architecture/ArchitectureRulesTests.java`.
+- Keep `application` layer framework-free (no direct infrastructure or REST dependencies).
+- Prefer adding new integrations behind outbound ports in `application/ports/out` and implement adapters in `infrastructure/adapter`.
+- Keep role-scoped API routes under explicit prefixes (`/api/v1/admin/**`, `/api/v1/merchant/**`, `/api/v1/customer/**`, `/api/v1/delivery/**`).
+- Apply schema changes via Flyway migrations:
+  - SQL: `backend/src/main/resources/db/migration`
+  - Java migrations: `backend/src/main/java/db/migration`
+
+### Setup Pitfalls
+
+- Copy `backend/.env.example` to `.env` and provide required secrets before running locally.
+- `FOODYA_JWT_SECRET` must be set and strong (32+ chars).
+- Default runtime DB is PostgreSQL; tests use H2 in-memory (`backend/src/test/resources/application.yml`).
+- If Supabase direct DB host fails on IPv4-only networks, use Supabase connection pooler host/port from dashboard (port `6543`, `sslmode=require`).
+- In PowerShell, prefer `mvn --% ...` when passing multiple `-D...` arguments to avoid shell parsing issues.
+- Keep secrets out of git; use env vars or local secret file configuration as documented in `backend/README.md`.
+
+### References
+
+- Project requirements/spec: `docs/FOODYA_SRS.md`
+- Backend setup and commands: `backend/README.md`
+- Seeded test accounts: `backend/docs/SEED_ACCOUNTS.md`
+- Notification implementation details: `backend/docs/NOTIFICATION_FEATURE_COMPLETION.md`
+
 <!-- gitnexus:start -->
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **foodya** (4264 symbols, 15159 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
@@ -35,35 +90,36 @@ This project is indexed by GitNexus as **foodya** (4264 symbols, 15159 relations
 
 ## Tools Quick Reference
 
-| Tool | When to use | Command |
-|------|-------------|---------|
-| `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
-| `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
-| `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
-| `detect_changes` | Pre-commit scope check | `gitnexus_detect_changes({scope: "staged"})` |
-| `rename` | Safe multi-file rename | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
-| `cypher` | Custom graph queries | `gitnexus_cypher({query: "MATCH ..."})` |
+| Tool             | When to use                   | Command                                                                 |
+| ---------------- | ----------------------------- | ----------------------------------------------------------------------- |
+| `query`          | Find code by concept          | `gitnexus_query({query: "auth validation"})`                            |
+| `context`        | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})`                              |
+| `impact`         | Blast radius before editing   | `gitnexus_impact({target: "X", direction: "upstream"})`                 |
+| `detect_changes` | Pre-commit scope check        | `gitnexus_detect_changes({scope: "staged"})`                            |
+| `rename`         | Safe multi-file rename        | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
+| `cypher`         | Custom graph queries          | `gitnexus_cypher({query: "MATCH ..."})`                                 |
 
 ## Impact Risk Levels
 
-| Depth | Meaning | Action |
-|-------|---------|--------|
-| d=1 | WILL BREAK — direct callers/importers | MUST update these |
-| d=2 | LIKELY AFFECTED — indirect deps | Should test |
-| d=3 | MAY NEED TESTING — transitive | Test if critical path |
+| Depth | Meaning                               | Action                |
+| ----- | ------------------------------------- | --------------------- |
+| d=1   | WILL BREAK — direct callers/importers | MUST update these     |
+| d=2   | LIKELY AFFECTED — indirect deps       | Should test           |
+| d=3   | MAY NEED TESTING — transitive         | Test if critical path |
 
 ## Resources
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/foodya/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/foodya/clusters` | All functional areas |
-| `gitnexus://repo/foodya/processes` | All execution flows |
-| `gitnexus://repo/foodya/process/{name}` | Step-by-step execution trace |
+| Resource                                | Use for                                  |
+| --------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/foodya/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/foodya/clusters`       | All functional areas                     |
+| `gitnexus://repo/foodya/processes`      | All execution flows                      |
+| `gitnexus://repo/foodya/process/{name}` | Step-by-step execution trace             |
 
 ## Self-Check Before Finishing
 
 Before completing any code modification task, verify:
+
 1. `gitnexus_impact` was run for all modified symbols
 2. No HIGH/CRITICAL risk warnings were ignored
 3. `gitnexus_detect_changes()` confirms changes match expected scope
@@ -89,13 +145,13 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->
