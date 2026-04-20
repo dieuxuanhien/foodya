@@ -1,16 +1,19 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodya.backend.infrastructure.integration.GoongMapsClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Objects;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,6 +31,9 @@ class ProfileIntegrationTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+        @MockitoBean
+        private GoongMapsClient goongMapsClient;
 
     @Test
     void meAndUpdateAndChangePasswordFlow() throws Exception {
@@ -93,6 +99,30 @@ class ProfileIntegrationTests {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
+
+                    @Test
+                    void resolveAddressFromLatLng() throws Exception {
+                        String first = register("u4", "u4@example.com", "+84901000004");
+                        String access = objectMapper.readTree(first).path("data").path("accessToken").asText();
+
+                        given(goongMapsClient.reverseGeocodeRaw("10.7769,106.7009"))
+                                .willReturn("""
+                                        {
+                                          "results": [
+                                            {
+                                              "formatted_address": "Bến Nghé, Quận 1, Thành phố Hồ Chí Minh, Việt Nam"
+                                            }
+                                          ]
+                                        }
+                                        """);
+
+                        mockMvc.perform(get("/api/v1/me/location-address")
+                                        .header("Authorization", "Bearer " + access)
+                                        .param("lat", "10.7769")
+                                        .param("lng", "106.7009"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.address").value("Bến Nghé, Quận 1, Thành phố Hồ Chí Minh, Việt Nam"));
+                    }
 
     private String register(String username, String email, String phone) throws Exception {
         String body = """

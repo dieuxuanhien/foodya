@@ -33,4 +33,19 @@ public class GoongMapsClient {
                 .retrieve()
                 .body(String.class);
     }
+
+                public String reverseGeocodeRaw(String latLng) {
+                String apiKey = apiSecretsProvider.get(IntegrationKeyCatalog.GOONG_API_KEY)
+                    .orElseThrow(() -> new IllegalStateException("Missing Goong API key"));
+
+                return restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                        .path("/Geocode")
+                        .queryParam("latlng", latLng)
+                        .queryParam("language", "vi")
+                        .queryParam("api_key", apiKey)
+                        .build())
+                    .retrieve()
+                    .body(String.class);
+                }
 }

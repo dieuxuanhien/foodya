@@ -78,10 +78,12 @@ public class AppConfig {
 	@Bean
 	public OrderCheckoutService orderCheckoutService(
 			OrderCheckoutPort orderCheckoutPort,
+			CartPort cartPort,
+			CartItemPort cartItemPort,
 			RouteDistancePort routeDistancePort,
 			SystemParameterPort systemParameterPort,
 			OrderEventPublisherPort orderEventPublisherPort) {
-		return new OrderCheckoutService(orderCheckoutPort, routeDistancePort, systemParameterPort, orderEventPublisherPort);
+		return new OrderCheckoutService(orderCheckoutPort, cartPort, cartItemPort, routeDistancePort, systemParameterPort, orderEventPublisherPort);
 	}
 
 	@Bean

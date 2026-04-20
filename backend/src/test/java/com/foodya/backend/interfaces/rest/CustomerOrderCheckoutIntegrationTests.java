@@ -3,6 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.ports.out.RouteDistancePort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.CartStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
@@ -11,6 +12,8 @@ import com.foodya.backend.domain.entities.MenuCategory;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.infrastructure.persistence.models.CartItemPersistenceModel;
+import com.foodya.backend.infrastructure.persistence.models.CartPersistenceModel;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
@@ -106,16 +109,14 @@ class CustomerOrderCheckoutIntegrationTests {
     @Test
     void createOrderAndRespectIdempotencyKey() throws Exception {
         String customerToken = customerAccessToken("checkout-customer", "checkout@example.com", "+84907000001");
+        UUID customerUserId = extractUserIdFromToken(customerToken);
         Restaurant restaurant = seedRestaurant("Order Place", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
         MenuCategory category = seedCategory(restaurant, "Main", 1);
         MenuItem first = seedMenuItem(restaurant, category, "Pho", new BigDecimal("50000"));
         MenuItem second = seedMenuItem(restaurant, category, "Tea", new BigDecimal("10000"));
+        seedActiveCart(customerUserId, restaurant, first, 1, second, 2);
 
         String body = "{" +
-                "\"restaurantId\":\"" + restaurant.getId() + "\"," +
-                "\"items\":[{" +
-                "\"menuItemId\":\"" + first.getId() + "\",\"quantity\":1},{" +
-                "\"menuItemId\":\"" + second.getId() + "\",\"quantity\":2}]," +
                 "\"deliveryAddress\":\"123 Main Street\"," +
                 "\"deliveryLatitude\":10.7800000," +
                 "\"deliveryLongitude\":106.7100000," +
@@ -152,6 +153,34 @@ class CustomerOrderCheckoutIntegrationTests {
         org.junit.jupiter.api.Assertions.assertEquals(1L, orderRepository.count());
     }
 
+    @Test
+    void reviewCurrentCartCostWithoutCreatingOrder() throws Exception {
+        String customerToken = customerAccessToken("review-customer", "review@example.com", "+84907000002");
+        UUID customerUserId = extractUserIdFromToken(customerToken);
+        Restaurant restaurant = seedRestaurant("Review Place", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
+        MenuCategory category = seedCategory(restaurant, "Main", 1);
+        MenuItem first = seedMenuItem(restaurant, category, "Bun", new BigDecimal("40000"));
+        MenuItem second = seedMenuItem(restaurant, category, "Juice", new BigDecimal("15000"));
+        seedActiveCart(customerUserId, restaurant, first, 1, second, 2);
+
+        String body = "{" +
+                "\"deliveryAddress\":\"123 Main Street\"," +
+                "\"deliveryLatitude\":10.7800000," +
+                "\"deliveryLongitude\":106.7100000," +
+                "\"customerNote\":\"less ice\"}";
+
+        mockMvc.perform(post("/api/v1/customer/orders/review")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.subtotalAmount").value(70000))
+                .andExpect(jsonPath("$.data.deliveryFee").value(15000))
+                .andExpect(jsonPath("$.data.totalAmount").value(85000));
+
+        org.junit.jupiter.api.Assertions.assertEquals(0L, orderRepository.count());
+    }
+
     private static String extractField(String response, String field) {
         String marker = "\"" + field + "\":\"";
         int start = response.indexOf(marker);
@@ -171,6 +200,37 @@ class CustomerOrderCheckoutIntegrationTests {
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
         UserAccount saved = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
         return tokenService.issueAccessToken(AuthPersistenceMapper.toData(saved), UUID.randomUUID().toString());
+    }
+
+    private UUID extractUserIdFromToken(String token) {
+        return UUID.fromString(tokenService.parseClaims(token).subject());
+    }
+
+    private void seedActiveCart(UUID customerUserId,
+                                Restaurant restaurant,
+                                MenuItem first,
+                                int firstQty,
+                                MenuItem second,
+                                int secondQty) {
+        CartPersistenceModel cart = new CartPersistenceModel();
+        cart.setCustomerUserId(customerUserId);
+        cart.setRestaurantId(restaurant.getId());
+        cart.setStatus(CartStatus.ACTIVE);
+        CartPersistenceModel savedCart = cartRepository.save(cart);
+
+        CartItemPersistenceModel firstLine = new CartItemPersistenceModel();
+        firstLine.setCartId(savedCart.getId());
+        firstLine.setMenuItemId(first.getId());
+        firstLine.setQuantity(firstQty);
+        firstLine.setUnitPriceSnapshot(first.getPrice());
+        cartItemRepository.save(firstLine);
+
+        CartItemPersistenceModel secondLine = new CartItemPersistenceModel();
+        secondLine.setCartId(savedCart.getId());
+        secondLine.setMenuItemId(second.getId());
+        secondLine.setQuantity(secondQty);
+        secondLine.setUnitPriceSnapshot(second.getPrice());
+        cartItemRepository.save(secondLine);
     }
 
     private Restaurant seedRestaurant(String name, BigDecimal lat, BigDecimal lng) {
