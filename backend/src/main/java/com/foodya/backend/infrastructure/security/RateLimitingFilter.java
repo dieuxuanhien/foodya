@@ -1,6 +1,7 @@
 package com.foodya.backend.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodya.backend.interfaces.rest.dto.ApiErrorResponse;
 import com.foodya.backend.infrastructure.config.RateLimitProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -56,7 +57,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (counter.count > limit) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            SecurityErrorResponse body = new SecurityErrorResponse(
+            ApiErrorResponse body = new ApiErrorResponse(
                     "RATE_LIMITED",
                     "rate limit exceeded",
                     null,

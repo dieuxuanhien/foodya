@@ -1,6 +1,7 @@
 package com.foodya.backend.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodya.backend.interfaces.rest.dto.ApiErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +28,7 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        SecurityErrorResponse body = new SecurityErrorResponse(
+        ApiErrorResponse body = new ApiErrorResponse(
                 "UNAUTHORIZED",
                 "authentication is required",
                 null,
