@@ -2,8 +2,11 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.usecases.IntegrationStatusService;
 import com.foodya.backend.domain.value_objects.IntegrationStatus;
+import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +27,7 @@ public class IntegrationStatusController {
 
     @GetMapping("/status")
     @Operation(summary = "Get integration key readiness", description = "Returns key presence status without exposing secret values")
-    public ResponseEntity<List<IntegrationStatus>> status() {
-        return ResponseEntity.ok(integrationStatusService.getStatuses());
+    public ResponseEntity<ApiSuccessResponse<List<IntegrationStatus>>> status(HttpServletRequest request) {
+        return ResponseEntity.ok(ApiSuccessResponse.of(integrationStatusService.getStatuses(), RequestTrace.from(request)));
     }
 }
