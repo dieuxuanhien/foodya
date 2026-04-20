@@ -18,8 +18,11 @@ import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -37,6 +40,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
+@Validated
 public class AdminGovernanceController {
 
     private final AdminGovernanceUseCase adminGovernanceService;
@@ -48,8 +52,8 @@ public class AdminGovernanceController {
     @GetMapping("/restaurants")
     public ResponseEntity<ApiSuccessResponse<List<RestaurantDetailResponse>>> listRestaurants(@RequestParam(required = false) String q,
                                                                                                 @RequestParam(required = false) String status,
-                                                                                                @RequestParam(required = false) Integer page,
-                                                                                                @RequestParam(required = false) Integer size,
+                                                                                                @RequestParam(required = false) @Min(0) Integer page,
+                                                                                                @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                                 HttpServletRequest request) {
         RestaurantStatus restaurantStatus = parseRestaurantStatus(status);
         PaginatedResult<RestaurantData> result = adminGovernanceService.listRestaurants(q, restaurantStatus, page, size);
@@ -89,8 +93,8 @@ public class AdminGovernanceController {
 
     @GetMapping("/orders")
     public ResponseEntity<ApiSuccessResponse<List<OrderSummaryResponse>>> listOrders(@RequestParam(required = false) String status,
-                                                                                      @RequestParam(required = false) Integer page,
-                                                                                      @RequestParam(required = false) Integer size,
+                                                                                      @RequestParam(required = false) @Min(0) Integer page,
+                                                                                      @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                       HttpServletRequest request) {
         OrderStatus orderStatus = parseOrderStatus(status);
         PaginatedResult<OrderData> result = adminGovernanceService.listOrders(orderStatus, page, size);

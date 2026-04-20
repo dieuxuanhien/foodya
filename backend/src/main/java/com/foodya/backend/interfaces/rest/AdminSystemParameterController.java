@@ -88,7 +88,7 @@ public class AdminSystemParameterController {
     @PatchMapping("/{key}")
     @Operation(summary = "Patch a system parameter", description = "Admin-only partial update")
     public ResponseEntity<ApiSuccessResponse<SystemParameterResponse>> patch(@PathVariable String key,
-                                                                              @RequestBody SystemParameterPatchApiRequest request,
+	                                                                          @Valid @RequestBody SystemParameterPatchApiRequest request,
                                                                               @RequestHeader(value = "X-User-Role", required = false) String actorRole,
                                                                               @RequestHeader(value = "X-Actor-Id", required = false, defaultValue = "unknown") String actorId,
                                                                               HttpServletRequest httpServletRequest) {
@@ -98,7 +98,7 @@ public class AdminSystemParameterController {
                 request.runtimeApplicable(),
                 request.description()
         );
-                SystemParameterData updated = systemParameterService.patch(key, command, actorRole, actorId);
+		SystemParameterData updated = systemParameterService.patch(key, command, actorRole, actorId);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toSystemParameterResponse(updated), RequestTrace.from(httpServletRequest)));
     }
 }

@@ -14,7 +14,12 @@ import com.foodya.backend.application.exception.ValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +32,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/restaurants")
 @Tag(name = "Catalog", description = "Public restaurant and menu browsing")
+@Validated
 public class RestaurantController {
 
     private final CatalogService catalogService;
@@ -41,12 +47,12 @@ public class RestaurantController {
                                                                                                  @RequestParam(required = false) String cuisine,
                                                                                                  @RequestParam(required = false) BigDecimal minRating,
                                                                                                  @RequestParam(required = false) Boolean openNow,
-                                                                                                 @RequestParam(required = false) Integer page,
-                                                                                                 @RequestParam(required = false) Integer size,
+                                                                                                 @RequestParam(required = false) @Min(0) Integer page,
+                                                                                                 @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                                  @RequestParam(required = false, defaultValue = "relevance") String sort,
-                                                                                                 @RequestParam(required = false) BigDecimal lat,
-                                                                                                 @RequestParam(required = false) BigDecimal lng,
-                                                                                                 @RequestParam(required = false) BigDecimal radiusKm,
+                                                                                                 @RequestParam(required = false) @DecimalMin(value = "-90.0") @DecimalMax(value = "90.0") BigDecimal lat,
+                                                                                                 @RequestParam(required = false) @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0") BigDecimal lng,
+                                                                                                 @RequestParam(required = false) @DecimalMin(value = "0.1") BigDecimal radiusKm,
                                                                                                  HttpServletRequest httpServletRequest) {
         PaginatedResult<RestaurantSearchView> result = catalogService.searchRestaurants(q, cuisine, minRating, openNow, page, size, sort, lat, lng, radiusKm);
         return ResponseEntity.ok(ApiSuccessResponse.of(
@@ -58,11 +64,11 @@ public class RestaurantController {
 
     @GetMapping("/nearby")
     @Operation(summary = "Nearby restaurants", description = "Nearby list using H3 prefilter and Haversine distance ordering")
-    public ResponseEntity<ApiSuccessResponse<java.util.List<RestaurantSearchView>>> nearby(@RequestParam BigDecimal lat,
-                                                                                                 @RequestParam BigDecimal lng,
-                                                                                                 @RequestParam BigDecimal radiusKm,
-                                                                                                 @RequestParam(required = false) Integer page,
-                                                                                                 @RequestParam(required = false) Integer size,
+    public ResponseEntity<ApiSuccessResponse<java.util.List<RestaurantSearchView>>> nearby(@RequestParam @DecimalMin(value = "-90.0") @DecimalMax(value = "90.0") BigDecimal lat,
+                                                                                                 @RequestParam @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0") BigDecimal lng,
+                                                                                                 @RequestParam @DecimalMin(value = "0.1") BigDecimal radiusKm,
+                                                                                                 @RequestParam(required = false) @Min(0) Integer page,
+                                                                                                 @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                                  HttpServletRequest httpServletRequest) {
         PaginatedResult<RestaurantSearchView> result = catalogService.nearby(lat, lng, radiusKm, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
@@ -89,8 +95,8 @@ public class RestaurantController {
                                                                                             @RequestParam(required = false) String q,
                                                                                             @RequestParam(required = false) String categoryId,
                                                                                             @RequestParam(required = false, defaultValue = "popularity_desc") String sort,
-                                                                                            @RequestParam(required = false) Integer page,
-                                                                                            @RequestParam(required = false) Integer size,
+                                                                                            @RequestParam(required = false) @Min(0) Integer page,
+                                                                                            @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                             HttpServletRequest httpServletRequest) {
         UUID restaurantId = parseUuid(id, "id");
         PaginatedResult<MenuItemData> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);

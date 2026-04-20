@@ -2,7 +2,6 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.in.ProfileUseCase;
 import com.foodya.backend.application.ports.out.GeoPort;
-import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
@@ -20,8 +19,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -31,11 +33,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/me")
 @Tag(name = "Profile", description = "Authenticated profile endpoints")
+@Validated
 public class ProfileController {
 
     private final ProfileUseCase profileService;
@@ -66,11 +68,10 @@ public class ProfileController {
                         @ApiResponse(responseCode = "422", description = "Validation failed")
         })
         public ResponseEntity<ApiSuccessResponse<LocationAddressResponse>> resolveAddress(Authentication authentication,
-                                                                                                                                                                           @RequestParam BigDecimal lat,
-                                                                                                                                                                           @RequestParam BigDecimal lng,
+                                                                                                                                                                           @RequestParam @DecimalMin(value = "-90.0") @DecimalMax(value = "90.0") BigDecimal lat,
+                                                                                                                                                                           @RequestParam @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0") BigDecimal lng,
                                                                                                                                                                            HttpServletRequest httpServletRequest) {
                 CurrentUser.userId(authentication);
-                validateLatLng(lat, lng);
                 String address = geoPort.reverseGeocodeVi(lat.doubleValue(), lng.doubleValue());
                 return ResponseEntity.ok(ApiSuccessResponse.of(new LocationAddressResponse(lat, lng, address), RequestTrace.from(httpServletRequest)));
         }
@@ -114,15 +115,4 @@ public class ProfileController {
         return ResponseEntity.ok(ApiSuccessResponse.of("password-updated", RequestTrace.from(httpServletRequest)));
     }
 
-        private static void validateLatLng(BigDecimal lat, BigDecimal lng) {
-                if (lat == null || lng == null) {
-                        throw new ValidationException("invalid location", Map.of("location", "lat and lng are required"));
-                }
-                if (lat.compareTo(BigDecimal.valueOf(-90)) < 0 || lat.compareTo(BigDecimal.valueOf(90)) > 0) {
-                        throw new ValidationException("invalid lat", Map.of("lat", "must be in [-90, 90]"));
-                }
-                if (lng.compareTo(BigDecimal.valueOf(-180)) < 0 || lng.compareTo(BigDecimal.valueOf(180)) > 0) {
-                        throw new ValidationException("invalid lng", Map.of("lng", "must be in [-180, 180]"));
-                }
-        }
 }

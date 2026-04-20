@@ -114,6 +114,7 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "POST /api/v1/auth/logout-all" -> assertNot5xx(request("POST", "/api/v1/auth/logout-all", auth.customerAccess, "{}"));
 
             case "GET /api/v1/me" -> assertNot5xx(request("GET", "/api/v1/me", auth.customerAccess, null));
+            case "GET /api/v1/me/location-address" -> assertNot5xx(request("GET", "/api/v1/me/location-address?lat=10.77&lng=106.70", auth.customerAccess, null));
             case "PATCH /api/v1/me" -> assertNot5xx(request("PATCH", "/api/v1/me", auth.customerAccess,
                     "{\"fullName\":\"API Customer Updated\"}"));
             case "PUT /api/v1/me/password" -> assertNot5xx(request("PUT", "/api/v1/me/password", auth.customerAccess,
@@ -131,8 +132,10 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "PATCH /api/v1/customer/carts/active/items/{menuItemId}" -> assertNot5xx(request("PATCH", "/api/v1/customer/carts/active/items/" + SEEDED_MENU_ITEM_ID, auth.customerAccess,
                     "{\"quantity\":2}"));
             case "DELETE /api/v1/customer/carts/active/items/{menuItemId}" -> assertNot5xx(request("DELETE", "/api/v1/customer/carts/active/items/" + SEEDED_MENU_ITEM_ID, auth.customerAccess, null));
-            case "DELETE /api/v1/customer/carts/active/items" -> assertNot5xx(request("DELETE", "/api/v1/customer/carts/active/items", auth.customerAccess, null));
+            case "DELETE /api/v1/customer/carts/active/items" -> assertNot5xx(request("DELETE", "/api/v1/customer/carts/active/items", null, null));
 
+            case "POST /api/v1/customer/orders/review" -> assertNot5xx(request("POST", "/api/v1/customer/orders/review", auth.customerAccess,
+                    "{}"));
             case "POST /api/v1/customer/orders" -> assertNot5xx(requestWithHeaders("POST", "/api/v1/customer/orders", auth.customerAccess,
                     "{}", Map.of("Idempotency-Key", "smoke-idem-" + UUID.randomUUID())));
             case "GET /api/v1/customer/orders" -> assertNot5xx(request("GET", "/api/v1/customer/orders", auth.customerAccess, null));
@@ -152,6 +155,7 @@ class OpenApiLiveRouteSmokeIntegrationTests {
 
             case "POST /api/v1/merchant/restaurants" -> assertNot5xx(request("POST", "/api/v1/merchant/restaurants", auth.merchantAccess,
                     "{\"name\":\"Smoke Merchant Rest\",\"cuisineType\":\"Vietnamese\",\"description\":\"smoke\",\"addressLine\":\"1 smoke road\",\"latitude\":10.77,\"longitude\":106.70,\"maxDeliveryKm\":5.0}"));
+            case "GET /api/v1/merchant/cuisine-types" -> assertNot5xx(request("GET", "/api/v1/merchant/cuisine-types", auth.merchantAccess, null));
             case "PATCH /api/v1/merchant/restaurants/{id}" -> assertNot5xx(request("PATCH", "/api/v1/merchant/restaurants/" + SEEDED_RESTAURANT_ID, auth.merchantAccess,
                     "{\"name\":\"API Smoke Bistro Updated\",\"isOpen\":true}"));
             case "POST /api/v1/merchant/restaurants/{id}/menu-categories" -> assertNot5xx(request("POST", "/api/v1/merchant/restaurants/" + SEEDED_RESTAURANT_ID + "/menu-categories", auth.merchantAccess,
