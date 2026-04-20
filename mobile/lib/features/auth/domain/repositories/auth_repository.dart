@@ -1,7 +1,17 @@
-import '../../../../core/auth/user_role.dart';
+import '../models/auth_session.dart';
+import '../models/login_request.dart';
+import '../models/register_request.dart';
 
 abstract class AuthRepository {
-  Future<void> loginAs(UserRole role);
+  Future<AuthSession> register(RegisterRequest request);
 
-  Future<void> logout();
+  Future<AuthSession> login(LoginRequest request);
+
+  Future<AuthSession?> restoreSession();
+
+  Future<AuthSession> refreshSession();
+
+  Future<void> logoutAll();
+
+  Future<void> clearSession();
 }

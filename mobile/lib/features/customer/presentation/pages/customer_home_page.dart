@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../auth/presentation/cubit/login_cubit.dart';
 
+enum _CustomerSessionAction { refresh, logoutAll }
+
 class CustomerHomePage extends StatelessWidget {
   const CustomerHomePage({super.key});
 
@@ -12,12 +14,39 @@ class CustomerHomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Customer Home'),
         actions: [
-          IconButton(
-            onPressed: () async {
-              await context.read<LoginCubit>().logout();
+          PopupMenuButton<_CustomerSessionAction>(
+            onSelected: (action) async {
+              final cubit = context.read<LoginCubit>();
+              switch (action) {
+                case _CustomerSessionAction.refresh:
+                  await cubit.refreshToken();
+                  break;
+                case _CustomerSessionAction.logoutAll:
+                  await cubit.logoutAll();
+                  break;
+              }
+
+              final state = cubit.state;
+              final message = state.errorMessage ?? state.infoMessage;
+              if (message != null && context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(message)));
+                cubit.clearFeedback();
+              }
             },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            itemBuilder:
+                (context) => const [
+                  PopupMenuItem(
+                    value: _CustomerSessionAction.refresh,
+                    child: Text('Refresh Token'),
+                  ),
+                  PopupMenuItem(
+                    value: _CustomerSessionAction.logoutAll,
+                    child: Text('Logout All Sessions'),
+                  ),
+                ],
+            icon: const Icon(Icons.more_vert),
           ),
         ],
       ),

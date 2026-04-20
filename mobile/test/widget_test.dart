@@ -9,9 +9,12 @@ import 'package:foodya_mobile/features/auth/domain/repositories/auth_repository.
 import 'package:foodya_mobile/features/auth/presentation/cubit/login_cubit.dart';
 
 void main() {
-  testWidgets('shows role-based login actions', (WidgetTester tester) async {
+  testWidgets('shows login and register auth forms', (
+    WidgetTester tester,
+  ) async {
     final authRepository = MockAuthRepository();
     final sessionCubit = SessionCubit();
+    sessionCubit.signOut();
 
     await tester.pumpWidget(
       RepositoryProvider<AuthRepository>.value(
@@ -34,7 +37,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Continue as Customer'), findsOneWidget);
-    expect(find.text('Continue as Merchant'), findsOneWidget);
+    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('Register'), findsOneWidget);
+    expect(find.text('Sign In'), findsOneWidget);
   });
 }

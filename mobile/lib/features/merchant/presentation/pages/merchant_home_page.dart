@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../auth/presentation/cubit/login_cubit.dart';
 
+enum _MerchantSessionAction { refresh, logoutAll }
+
 class MerchantHomePage extends StatelessWidget {
   const MerchantHomePage({super.key});
 
@@ -12,12 +14,39 @@ class MerchantHomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Merchant Home'),
         actions: [
-          IconButton(
-            onPressed: () async {
-              await context.read<LoginCubit>().logout();
+          PopupMenuButton<_MerchantSessionAction>(
+            onSelected: (action) async {
+              final cubit = context.read<LoginCubit>();
+              switch (action) {
+                case _MerchantSessionAction.refresh:
+                  await cubit.refreshToken();
+                  break;
+                case _MerchantSessionAction.logoutAll:
+                  await cubit.logoutAll();
+                  break;
+              }
+
+              final state = cubit.state;
+              final message = state.errorMessage ?? state.infoMessage;
+              if (message != null && context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(message)));
+                cubit.clearFeedback();
+              }
             },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            itemBuilder:
+                (context) => const [
+                  PopupMenuItem(
+                    value: _MerchantSessionAction.refresh,
+                    child: Text('Refresh Token'),
+                  ),
+                  PopupMenuItem(
+                    value: _MerchantSessionAction.logoutAll,
+                    child: Text('Logout All Sessions'),
+                  ),
+                ],
+            icon: const Icon(Icons.more_vert),
           ),
         ],
       ),

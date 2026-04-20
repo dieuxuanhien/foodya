@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/pages/auth_loading_page.dart';
 import '../../features/auth/presentation/pages/role_login_page.dart';
 import '../../features/customer/presentation/pages/customer_home_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
@@ -14,10 +15,15 @@ class AppRouter {
   final SessionCubit _sessionCubit;
 
   late final GoRouter router = GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/auth/loading',
     refreshListenable: GoRouterRefreshStream(_sessionCubit.stream),
     redirect: _redirect,
     routes: [
+      GoRoute(
+        path: '/auth/loading',
+        name: 'auth-loading',
+        builder: (context, state) => const AuthLoadingPage(),
+      ),
       GoRoute(
         path: '/login',
         name: 'login',
@@ -39,7 +45,12 @@ class AppRouter {
   String? _redirect(BuildContext context, GoRouterState state) {
     final session = _sessionCubit.state;
     final location = state.matchedLocation;
+    final isLoading = location == '/auth/loading';
     final isLogin = location == '/login';
+
+    if (session.isChecking) {
+      return isLoading ? null : '/auth/loading';
+    }
 
     if (!session.isAuthenticated) {
       return isLogin ? null : '/login';
@@ -50,7 +61,7 @@ class AppRouter {
       return '/login';
     }
 
-    if (isLogin || location == '/') {
+    if (isLoading || isLogin || location == '/') {
       return role.homePath;
     }
 
