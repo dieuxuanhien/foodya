@@ -1,6 +1,7 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.usecases.CatalogService;
+import com.foodya.backend.interfaces.rest.dto.CategoryTaxonomyResponse;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantSearchView;
 import com.foodya.backend.application.dto.MenuItemData;
@@ -47,6 +48,7 @@ public class RestaurantController {
                                                                                                  @RequestParam(required = false) String cuisine,
                                                                                                  @RequestParam(required = false) BigDecimal minRating,
                                                                                                  @RequestParam(required = false) Boolean openNow,
+                                                                                                 @RequestParam(required = false) java.util.List<String> taxonomyCodes,
                                                                                                  @RequestParam(required = false) @Min(0) Integer page,
                                                                                                  @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                                  @RequestParam(required = false, defaultValue = "relevance") String sort,
@@ -54,7 +56,7 @@ public class RestaurantController {
                                                                                                  @RequestParam(required = false) @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0") BigDecimal lng,
                                                                                                  @RequestParam(required = false) @DecimalMin(value = "0.1") BigDecimal radiusKm,
                                                                                                  HttpServletRequest httpServletRequest) {
-        PaginatedResult<RestaurantSearchView> result = catalogService.searchRestaurants(q, cuisine, minRating, openNow, page, size, sort, lat, lng, radiusKm);
+        PaginatedResult<RestaurantSearchView> result = catalogService.searchRestaurants(q, cuisine, minRating, openNow, taxonomyCodes, page, size, sort, lat, lng, radiusKm);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items(),
             new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
@@ -93,16 +95,25 @@ public class RestaurantController {
     @Operation(summary = "Restaurant menu items")
     public ResponseEntity<ApiSuccessResponse<java.util.List<MenuItemResponse>>> menuItems(@PathVariable String id,
                                                                                             @RequestParam(required = false) String q,
-                                                                                            @RequestParam(required = false) String categoryId,
+                                                                                            @RequestParam(required = false) java.util.List<String> taxonomyCodes,
                                                                                             @RequestParam(required = false, defaultValue = "popularity_desc") String sort,
                                                                                             @RequestParam(required = false) @Min(0) Integer page,
                                                                                             @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                             HttpServletRequest httpServletRequest) {
         UUID restaurantId = parseUuid(id, "id");
-        PaginatedResult<MenuItemData> result = catalogService.publicMenuItems(restaurantId, q, categoryId, sort, page, size);
+        PaginatedResult<MenuItemData> result = catalogService.publicMenuItems(restaurantId, q, taxonomyCodes, sort, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(
             result.items().stream().map(CommonApiMapper::toMenuItemResponse).toList(),
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
+                RequestTrace.from(httpServletRequest)
+        ));
+    }
+
+    @GetMapping("/category-taxonomies")
+    @Operation(summary = "List app-level category taxonomies")
+    public ResponseEntity<ApiSuccessResponse<java.util.List<CategoryTaxonomyResponse>>> categoryTaxonomies(HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+                catalogService.listCategoryTaxonomies().stream().map(CommonApiMapper::toCategoryTaxonomyResponse).toList(),
                 RequestTrace.from(httpServletRequest)
         ));
     }

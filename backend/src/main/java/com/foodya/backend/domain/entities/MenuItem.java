@@ -2,6 +2,8 @@ package com.foodya.backend.domain.entities;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -17,6 +19,8 @@ public class MenuItem {
     private UUID restaurantId;
 
     private UUID categoryId;
+
+    private Set<String> taxonomyCodes = new LinkedHashSet<>();
 
     private String name;
 
@@ -58,6 +62,14 @@ public class MenuItem {
 
     public void setCategoryId(UUID categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public Set<String> getTaxonomyCodes() {
+        return taxonomyCodes;
+    }
+
+    public void setTaxonomyCodes(Set<String> taxonomyCodes) {
+        this.taxonomyCodes = taxonomyCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(taxonomyCodes);
     }
 
     public String getName() {

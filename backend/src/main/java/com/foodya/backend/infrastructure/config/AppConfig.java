@@ -47,10 +47,11 @@ public class AppConfig {
 	@Bean
 	public CatalogService catalogService(
 			CatalogQueryPort catalogQueryPort,
+			CategoryTaxonomyPort categoryTaxonomyPort,
 			SystemParameterPort systemParameterPort,
 			PaginationPolicy paginationPolicy,
 			GeoPort geoPort) {
-		return new CatalogService(catalogQueryPort, systemParameterPort, paginationPolicy, geoPort);
+		return new CatalogService(catalogQueryPort, categoryTaxonomyPort, systemParameterPort, paginationPolicy, geoPort);
 	}
 
 	@Bean
@@ -58,6 +59,7 @@ public class AppConfig {
 			RestaurantPort restaurantPort,
 			MenuCategoryPort menuCategoryPort,
 			MenuItemPort menuItemPort,
+			CategoryTaxonomyPort categoryTaxonomyPort,
 			SystemParameterPort systemParameterPort,
 			PaginationPolicy paginationPolicy,
 			GeoPort geoPort,
@@ -67,6 +69,7 @@ public class AppConfig {
 				restaurantPort,
 				menuCategoryPort,
 				menuItemPort,
+				categoryTaxonomyPort,
 				systemParameterPort,
 				paginationPolicy,
 				geoPort,
@@ -142,6 +145,13 @@ public class AppConfig {
 			PaginationPolicy paginationPolicy,
 			AuditLogService auditLogService) {
 		return new AdminGovernanceService(adminRestaurantPort, adminOrderPort, adminMenuItemPort, paginationPolicy, auditLogService);
+	}
+
+	@Bean
+	public AdminCategoryTaxonomyService adminCategoryTaxonomyService(
+			CategoryTaxonomyPort categoryTaxonomyPort,
+			AuditLogService auditLogService) {
+		return new AdminCategoryTaxonomyService(categoryTaxonomyPort, auditLogService);
 	}
 
 	@Bean

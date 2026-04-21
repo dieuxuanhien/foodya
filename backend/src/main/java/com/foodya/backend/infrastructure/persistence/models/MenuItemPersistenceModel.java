@@ -1,14 +1,20 @@
 package com.foodya.backend.infrastructure.persistence.models;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -23,6 +29,11 @@ public class MenuItemPersistenceModel {
 
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "menu_item_taxonomies", joinColumns = @JoinColumn(name = "menu_item_id"))
+    @Column(name = "taxonomy_code", nullable = false, length = 64)
+    private Set<String> taxonomyCodes = new LinkedHashSet<>();
 
     @Column(nullable = false, length = 180)
     private String name;
@@ -88,6 +99,14 @@ public class MenuItemPersistenceModel {
 
     public void setCategoryId(UUID categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public Set<String> getTaxonomyCodes() {
+        return taxonomyCodes;
+    }
+
+    public void setTaxonomyCodes(Set<String> taxonomyCodes) {
+        this.taxonomyCodes = taxonomyCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(taxonomyCodes);
     }
 
     public String getName() {

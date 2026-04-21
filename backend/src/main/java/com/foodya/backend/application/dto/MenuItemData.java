@@ -2,6 +2,7 @@ package com.foodya.backend.application.dto;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class MenuItemData {
@@ -9,6 +10,7 @@ public class MenuItemData {
     private UUID id;
     private UUID restaurantId;
     private UUID categoryId;
+    private List<String> taxonomyCodes;
     private String name;
     private String description;
     private String imageUrl;
@@ -39,6 +41,14 @@ public class MenuItemData {
 
     public void setCategoryId(UUID categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public List<String> getTaxonomyCodes() {
+        return taxonomyCodes;
+    }
+
+    public void setTaxonomyCodes(List<String> taxonomyCodes) {
+        this.taxonomyCodes = taxonomyCodes;
     }
 
     public String getName() {

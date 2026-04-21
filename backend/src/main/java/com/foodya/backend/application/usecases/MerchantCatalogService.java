@@ -20,6 +20,7 @@ import com.foodya.backend.application.constants.AppCuisineCatalog;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.out.CategoryTaxonomyPort;
 import com.foodya.backend.application.ports.in.MerchantCatalogUseCase;
 import com.foodya.backend.application.ports.out.MenuCategoryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
@@ -44,6 +45,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
     private final RestaurantPort restaurantPort;
     private final MenuCategoryPort menuCategoryPort;
     private final MenuItemPort menuItemPort;
+    private final CategoryTaxonomyPort categoryTaxonomyPort;
     private final SystemParameterPort systemParameterPort;
     private final PaginationPolicy paginationPolicy;
     private final GeoPort geoPort;
@@ -53,6 +55,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
     public MerchantCatalogService(RestaurantPort restaurantPort,
                                   MenuCategoryPort menuCategoryPort,
                                   MenuItemPort menuItemPort,
+                                  CategoryTaxonomyPort categoryTaxonomyPort,
                                   SystemParameterPort systemParameterPort,
                                   PaginationPolicy paginationPolicy,
                                   GeoPort geoPort,
@@ -61,6 +64,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         this.restaurantPort = restaurantPort;
         this.menuCategoryPort = menuCategoryPort;
         this.menuItemPort = menuItemPort;
+        this.categoryTaxonomyPort = categoryTaxonomyPort;
         this.systemParameterPort = systemParameterPort;
         this.paginationPolicy = paginationPolicy;
         this.geoPort = geoPort;
@@ -204,6 +208,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
 
     public MenuItemData createMenuItem(UUID merchantUserId, UUID restaurantId, CreateMenuItemRequest request) {
         requireText(request.categoryId(), "categoryId");
+        requireNonEmptyTaxonomyCodes(request.taxonomyCodes(), "taxonomyCodes");
         requireText(request.name(), "name");
         requireText(request.description(), "description");
         requireNonNull(request.price(), "price");
@@ -216,9 +221,13 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         menuCategoryPort.findByIdAndRestaurantId(categoryId, restaurantId)
                 .orElseThrow(() -> new ValidationException("invalid category", Map.of("categoryId", "does not belong to restaurant")));
 
+        List<String> taxonomyCodes = normalizeTaxonomyCodes(request.taxonomyCodes());
+        validateTaxonomyCodes(taxonomyCodes);
+
         MenuItem item = new MenuItem();
         item.setRestaurantId(restaurantId);
         item.setCategoryId(categoryId);
+        item.setTaxonomyCodes(new LinkedHashSet<>(taxonomyCodes));
         item.setName(request.name().trim());
         item.setDescription(request.description());
         item.setPrice(request.price());
@@ -242,6 +251,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
 
     public MenuItemData updateMenuItem(UUID merchantUserId, UUID menuItemId, UpdateMenuItemRequest request) {
         requireText(request.categoryId(), "categoryId");
+        requireNonEmptyTaxonomyCodes(request.taxonomyCodes(), "taxonomyCodes");
         requireText(request.name(), "name");
         requireText(request.description(), "description");
         requireNonNull(request.price(), "price");
@@ -256,7 +266,11 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         menuCategoryPort.findByIdAndRestaurantId(categoryId, item.getRestaurantId())
                 .orElseThrow(() -> new ValidationException("invalid category", Map.of("categoryId", "does not belong to restaurant")));
 
+        List<String> taxonomyCodes = normalizeTaxonomyCodes(request.taxonomyCodes());
+        validateTaxonomyCodes(taxonomyCodes);
+
         item.setCategoryId(categoryId);
+        item.setTaxonomyCodes(new LinkedHashSet<>(taxonomyCodes));
         item.setName(request.name().trim());
         item.setDescription(request.description());
         item.setPrice(request.price());
@@ -410,6 +424,30 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         return List.copyOf(normalized);
     }
 
+    private void validateTaxonomyCodes(List<String> taxonomyCodes) {
+        for (String taxonomyCode : taxonomyCodes) {
+            categoryTaxonomyPort.findByCode(taxonomyCode)
+                    .orElseThrow(() -> new ValidationException("invalid taxonomyCode", Map.of("taxonomyCode", taxonomyCode + " does not exist or is inactive")));
+        }
+    }
+
+    private static List<String> normalizeTaxonomyCodes(List<String> taxonomyCodes) {
+        if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
+            return List.of();
+        }
+        return taxonomyCodes.stream()
+                .filter(code -> code != null && !code.isBlank())
+                .map(code -> code.trim().toUpperCase(Locale.ROOT))
+                .distinct()
+                .toList();
+    }
+
+    private static void requireNonEmptyTaxonomyCodes(List<String> taxonomyCodes, String field) {
+        if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be empty"));
+        }
+    }
+
     private RestaurantData toRestaurantData(Restaurant restaurant) {
         RestaurantData model = new RestaurantData();
         model.setId(restaurant.getId());
@@ -447,6 +485,7 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         model.setId(item.getId());
         model.setRestaurantId(item.getRestaurantId());
         model.setCategoryId(item.getCategoryId());
+        model.setTaxonomyCodes(item.getTaxonomyCodes() == null ? List.of() : new java.util.ArrayList<>(item.getTaxonomyCodes()));
         model.setName(item.getName());
         model.setDescription(item.getDescription());
         model.setImageUrl(item.getImageUrl());
