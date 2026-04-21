@@ -1,9 +1,11 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.CreateOrderRequest;
+import com.foodya.backend.application.dto.CreateOrderFromCartRequest;
+import com.foodya.backend.application.dto.OrderCostReviewView;
 import com.foodya.backend.application.dto.OrderCreatedView;
 import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.OrderCostReviewResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderCreatedResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
@@ -34,6 +36,20 @@ public class CustomerOrderController {
         this.orderCheckoutService = orderCheckoutService;
     }
 
+    @PostMapping("/review")
+    @Operation(summary = "Review cart order cost", description = "Calculates order cost from current active cart without creating an order")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cart cost reviewed"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "422", description = "Validation failed")
+    })
+    public ResponseEntity<ApiSuccessResponse<OrderCostReviewResponse>> reviewCurrentCartCost(Authentication authentication,
+                                                                                             @Valid @RequestBody CreateOrderFromCartRequest request,
+                                                                                             HttpServletRequest httpServletRequest) {
+        OrderCostReviewView view = orderCheckoutService.reviewCurrentCartCost(CurrentUser.userId(authentication), request);
+        return ResponseEntity.ok(ApiSuccessResponse.of(OrderApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
+    }
+
     @PostMapping
     @Operation(summary = "Create order", description = "Creates an order with idempotency support")
     @ApiResponses({
@@ -43,7 +59,7 @@ public class CustomerOrderController {
     })
     public ResponseEntity<ApiSuccessResponse<OrderCreatedResponse>> createOrder(Authentication authentication,
                                                                                  @RequestHeader("Idempotency-Key") String idempotencyKey,
-                                                                                 @Valid @RequestBody CreateOrderRequest request,
+                                                                                 @Valid @RequestBody CreateOrderFromCartRequest request,
                                                                                  HttpServletRequest httpServletRequest) {
         OrderCreatedView view = orderCheckoutService.createOrder(CurrentUser.userId(authentication), idempotencyKey, request);
         return ResponseEntity.status(HttpStatus.CREATED)

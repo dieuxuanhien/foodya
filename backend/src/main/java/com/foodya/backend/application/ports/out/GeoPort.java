@@ -10,4 +10,6 @@ public interface GeoPort {
     Set<String> h3KRingRes9(double lat, double lng, double radiusKm);
 
     BigDecimal haversineKm(double lat1, double lng1, double lat2, double lng2);
+
+    String reverseGeocodeVi(double lat, double lng);
 }

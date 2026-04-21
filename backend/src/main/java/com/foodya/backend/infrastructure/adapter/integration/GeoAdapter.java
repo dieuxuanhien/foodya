@@ -1,7 +1,10 @@
 package com.foodya.backend.infrastructure.adapter.integration;
 
 import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.infrastructure.integration.GoongMapsClient;
 import com.uber.h3core.H3Core;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -17,8 +20,12 @@ public class GeoAdapter implements GeoPort {
     private static final int H3_RESTAURANT_RES = 9;
 
     private final H3Core h3Core;
+    private final GoongMapsClient goongMapsClient;
+    private final ObjectMapper objectMapper;
 
-    public GeoAdapter() {
+    public GeoAdapter(GoongMapsClient goongMapsClient, ObjectMapper objectMapper) {
+        this.goongMapsClient = goongMapsClient;
+        this.objectMapper = objectMapper;
         try {
             this.h3Core = H3Core.newInstance();
         } catch (IOException ex) {
@@ -48,5 +55,21 @@ public class GeoAdapter implements GeoPort {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         double distance = EARTH_RADIUS_KM * c;
         return BigDecimal.valueOf(distance).setScale(3, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public String reverseGeocodeVi(double lat, double lng) {
+        String raw = goongMapsClient.reverseGeocodeRaw(lat + "," + lng);
+        try {
+            JsonNode root = objectMapper.readTree(raw);
+            JsonNode firstResult = root.path("results").path(0);
+            String formattedAddress = firstResult.path("formatted_address").asText(null);
+            if (formattedAddress == null || formattedAddress.isBlank()) {
+                throw new IllegalStateException("Goong response missing formatted_address");
+            }
+            return formattedAddress;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Cannot parse Goong reverse geocode", ex);
+        }
     }
 }
