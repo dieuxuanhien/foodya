@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -70,6 +71,8 @@ class AuthRemoteDataSource {
     );
   }
 
+  static const Duration _requestTimeout = Duration(seconds: 12);
+
   Future<Map<String, dynamic>> _post(
     String path, {
     Map<String, dynamic>? body,
@@ -77,10 +80,19 @@ class AuthRemoteDataSource {
   }) async {
     late final http.Response response;
     try {
-      response = await _client.post(
-        Uri.parse('$_baseUrl$path'),
-        headers: {'Content-Type': 'application/json', ...?headers},
-        body: body == null ? null : jsonEncode(body),
+      response = await _client
+          .post(
+            Uri.parse('$_baseUrl$path'),
+            headers: {'Content-Type': 'application/json', ...?headers},
+            body: body == null ? null : jsonEncode(body),
+          )
+          .timeout(_requestTimeout);
+    } on TimeoutException catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        code: 'NETWORK_TIMEOUT',
+        message: 'Auth request timed out. Check API base URL and network.',
+        details: error.toString(),
       );
     } catch (error) {
       throw ApiException(

@@ -59,6 +59,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         providers: [
           BlocProvider<SessionCubit>.value(value: _sessionCubit),
           BlocProvider<LoginCubit>(
+            lazy: false,
             create:
                 (context) => LoginCubit(
                   authRepository: context.read<AuthRepository>(),
