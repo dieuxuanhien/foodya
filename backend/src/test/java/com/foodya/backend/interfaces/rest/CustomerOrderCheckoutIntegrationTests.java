@@ -1,0 +1,290 @@
+package com.foodya.backend.interfaces.rest;
+
+import com.foodya.backend.application.ports.out.RouteDistancePort;
+import com.foodya.backend.application.ports.out.GeoPort;
+import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.value_objects.CartStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
+import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.domain.entities.MenuCategory;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.infrastructure.persistence.models.CartItemPersistenceModel;
+import com.foodya.backend.infrastructure.persistence.models.CartPersistenceModel;
+import com.foodya.backend.infrastructure.repository.CartItemRepository;
+import com.foodya.backend.infrastructure.repository.CartRepository;
+import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
+import com.foodya.backend.infrastructure.repository.MenuItemRepository;
+import com.foodya.backend.infrastructure.repository.OrderRepository;
+import com.foodya.backend.infrastructure.repository.RestaurantRepository;
+import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+import com.foodya.backend.infrastructure.mapper.MenuCategoryMapper;
+import com.foodya.backend.infrastructure.mapper.MenuItemMapper;
+import com.foodya.backend.infrastructure.mapper.RestaurantMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.Objects;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class CustomerOrderCheckoutIntegrationTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    @Autowired
+    private RestaurantRepository restaurantRepository;
+
+    @Autowired
+    private MenuCategoryRepository menuCategoryRepository;
+
+    @Autowired
+    private MenuItemRepository menuItemRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private TokenPort tokenService;
+
+    @Autowired
+    private GeoPort geoService;
+
+    @Autowired
+    private RestaurantMapper restaurantMapper;
+
+    @Autowired
+    private MenuCategoryMapper menuCategoryMapper;
+
+    @Autowired
+    private MenuItemMapper menuItemMapper;
+
+    @MockitoBean
+    private RouteDistancePort routeDistancePort;
+
+    @BeforeEach
+    void setUp() {
+        cartItemRepository.deleteAll();
+        cartRepository.deleteAll();
+        orderRepository.deleteAll();
+        menuItemRepository.deleteAll();
+        menuCategoryRepository.deleteAll();
+        restaurantRepository.deleteAll();
+        userAccountRepository.deleteAll();
+
+        given(routeDistancePort.routeDistanceKm(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .willReturn(new BigDecimal("3.000"));
+    }
+
+    @Test
+    void createOrderAndRespectIdempotencyKey() throws Exception {
+        String customerToken = customerAccessToken("checkout-customer", "checkout@example.com", "+84907000001");
+        UUID customerUserId = extractUserIdFromToken(customerToken);
+        Restaurant restaurant = seedRestaurant("Order Place", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
+        MenuCategory category = seedCategory(restaurant, "Main", 1);
+        MenuItem first = seedMenuItem(restaurant, category, "Pho", new BigDecimal("50000"));
+        MenuItem second = seedMenuItem(restaurant, category, "Tea", new BigDecimal("10000"));
+        seedActiveCart(customerUserId, restaurant, first, 1, second, 2);
+
+        String body = "{" +
+                "\"deliveryAddress\":\"123 Main Street\"," +
+                "\"deliveryLatitude\":10.7800000," +
+                "\"deliveryLongitude\":106.7100000," +
+                "\"customerNote\":\"no chili\"}";
+
+        String idemKey = "checkout-key-001";
+
+        String firstResponse = mockMvc.perform(post("/api/v1/customer/orders")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .header("Idempotency-Key", idemKey)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.paymentMethod").value("COD"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("UNPAID"))
+                .andExpect(jsonPath("$.data.subtotalAmount").value(70000))
+                .andExpect(jsonPath("$.data.deliveryFee").value(15000))
+                .andExpect(jsonPath("$.data.totalAmount").value(85000))
+                .andReturn().getResponse().getContentAsString();
+
+        String secondResponse = mockMvc.perform(post("/api/v1/customer/orders")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .header("Idempotency-Key", idemKey)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String firstOrderId = extractField(firstResponse, "orderId");
+        String secondOrderId = extractField(secondResponse, "orderId");
+
+        org.junit.jupiter.api.Assertions.assertEquals(firstOrderId, secondOrderId);
+        org.junit.jupiter.api.Assertions.assertEquals(1L, orderRepository.count());
+    }
+
+    @Test
+    void reviewCurrentCartCostWithoutCreatingOrder() throws Exception {
+        String customerToken = customerAccessToken("review-customer", "review@example.com", "+84907000002");
+        UUID customerUserId = extractUserIdFromToken(customerToken);
+        Restaurant restaurant = seedRestaurant("Review Place", new BigDecimal("10.7770000"), new BigDecimal("106.7000000"));
+        MenuCategory category = seedCategory(restaurant, "Main", 1);
+        MenuItem first = seedMenuItem(restaurant, category, "Bun", new BigDecimal("40000"));
+        MenuItem second = seedMenuItem(restaurant, category, "Juice", new BigDecimal("15000"));
+        seedActiveCart(customerUserId, restaurant, first, 1, second, 2);
+
+        String body = "{" +
+                "\"deliveryAddress\":\"123 Main Street\"," +
+                "\"deliveryLatitude\":10.7800000," +
+                "\"deliveryLongitude\":106.7100000," +
+                "\"customerNote\":\"less ice\"}";
+
+        mockMvc.perform(post("/api/v1/customer/orders/review")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.subtotalAmount").value(70000))
+                .andExpect(jsonPath("$.data.deliveryFee").value(15000))
+                .andExpect(jsonPath("$.data.totalAmount").value(85000));
+
+        org.junit.jupiter.api.Assertions.assertEquals(0L, orderRepository.count());
+    }
+
+    private static String extractField(String response, String field) {
+        String marker = "\"" + field + "\":\"";
+        int start = response.indexOf(marker);
+        int from = start + marker.length();
+        int to = response.indexOf('"', from);
+        return response.substring(from, to);
+    }
+
+    private String customerAccessToken(String username, String email, String phoneNumber) {
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel user = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPhoneNumber(phoneNumber);
+        user.setFullName(username);
+        user.setRole(UserRole.CUSTOMER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
+        UserAccount saved = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
+        return tokenService.issueAccessToken(AuthPersistenceMapper.toData(saved), UUID.randomUUID().toString());
+    }
+
+    private UUID extractUserIdFromToken(String token) {
+        return UUID.fromString(tokenService.parseClaims(token).subject());
+    }
+
+    private void seedActiveCart(UUID customerUserId,
+                                Restaurant restaurant,
+                                MenuItem first,
+                                int firstQty,
+                                MenuItem second,
+                                int secondQty) {
+        CartPersistenceModel cart = new CartPersistenceModel();
+        cart.setCustomerUserId(customerUserId);
+        cart.setRestaurantId(restaurant.getId());
+        cart.setStatus(CartStatus.ACTIVE);
+        CartPersistenceModel savedCart = cartRepository.save(cart);
+
+        CartItemPersistenceModel firstLine = new CartItemPersistenceModel();
+        firstLine.setCartId(savedCart.getId());
+        firstLine.setMenuItemId(first.getId());
+        firstLine.setQuantity(firstQty);
+        firstLine.setUnitPriceSnapshot(first.getPrice());
+        cartItemRepository.save(firstLine);
+
+        CartItemPersistenceModel secondLine = new CartItemPersistenceModel();
+        secondLine.setCartId(savedCart.getId());
+        secondLine.setMenuItemId(second.getId());
+        secondLine.setQuantity(secondQty);
+        secondLine.setUnitPriceSnapshot(second.getPrice());
+        cartItemRepository.save(secondLine);
+    }
+
+    private Restaurant seedRestaurant(String name, BigDecimal lat, BigDecimal lng) {
+        com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel owner = new com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel();
+        owner.setUsername("owner-" + name.toLowerCase().replace(" ", "-"));
+        owner.setEmail(name.toLowerCase().replace(" ", "") + "@merchant.test");
+        owner.setPhoneNumber("+8490" + Math.abs(name.hashCode() % 10000000));
+        owner.setFullName(name + " Owner");
+        owner.setRole(UserRole.MERCHANT);
+        owner.setStatus(UserStatus.ACTIVE);
+        owner.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
+        UserAccount savedOwner = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(owner));
+        Restaurant restaurant = new Restaurant();
+        restaurant.setOwnerUserId(savedOwner.getId());
+        restaurant.setName(name);
+        restaurant.setCuisineType("Vietnamese");
+        restaurant.setDescription(name + " description");
+        restaurant.setAddressLine("123 Test Street");
+        restaurant.setLatitude(lat);
+        restaurant.setLongitude(lng);
+        restaurant.setH3IndexRes9(geoService.h3Res9(lat.doubleValue(), lng.doubleValue()));
+        restaurant.setStatus(RestaurantStatus.ACTIVE);
+        restaurant.setOpen(true);
+        restaurant.setMaxDeliveryKm(new BigDecimal("5.0"));
+        var persistenceModel = restaurantMapper.toPersistence(restaurant);
+        @SuppressWarnings("null")
+        var saved = restaurantRepository.save(persistenceModel);
+        return restaurantMapper.toDomain(saved);
+    }
+
+    private MenuCategory seedCategory(Restaurant restaurant, String name, int sortOrder) {
+        MenuCategory category = new MenuCategory();
+        category.setRestaurantId(restaurant.getId());
+        category.setName(name);
+        category.setSortOrder(sortOrder);
+        category.setActive(true);
+        var persistenceModel = menuCategoryMapper.toPersistence(category);
+        @SuppressWarnings("null")
+        var saved = menuCategoryRepository.save(persistenceModel);
+        return menuCategoryMapper.toDomain(saved);
+    }
+
+    private MenuItem seedMenuItem(Restaurant restaurant, MenuCategory category, String name, BigDecimal price) {
+        MenuItem item = new MenuItem();
+        item.setRestaurantId(restaurant.getId());
+        item.setCategoryId(category.getId());
+        item.setName(name);
+        item.setDescription(name + " description");
+        item.setPrice(price);
+        item.setActive(true);
+        item.setAvailable(true);
+        var persistenceModel = menuItemMapper.toPersistence(item);
+        @SuppressWarnings("null")
+        var saved = menuItemRepository.save(persistenceModel);
+        return menuItemMapper.toDomain(saved);
+    }
+}

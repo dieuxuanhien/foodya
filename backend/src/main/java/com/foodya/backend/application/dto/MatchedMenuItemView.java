@@ -1,0 +1,19 @@
+package com.foodya.backend.application.dto;
+
+import java.math.BigDecimal;
+
+public record MatchedMenuItemView(
+        String id,
+        String name,
+        BigDecimal price,
+    String imageUrl
+) {
+    public static MatchedMenuItemView from(MenuItemData item) {
+        return new MatchedMenuItemView(
+                item.getId().toString(),
+                item.getName(),
+                item.getPrice(),
+        item.getImageUrl()
+        );
+    }
+}

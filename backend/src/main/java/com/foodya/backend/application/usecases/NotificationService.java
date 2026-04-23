@@ -1,0 +1,115 @@
+package com.foodya.backend.application.usecases;
+
+import com.foodya.backend.application.dto.NotificationLogView;
+import com.foodya.backend.application.dto.NotificationLogData;
+import com.foodya.backend.application.dto.PaginatedResult;
+import com.foodya.backend.application.exception.NotFoundException;
+import com.foodya.backend.application.ports.in.NotificationUseCase;
+import com.foodya.backend.application.ports.out.NotificationLogPort;
+import com.foodya.backend.application.ports.out.PushNotificationPort;
+import com.foodya.backend.application.support.PaginationPolicy;
+import com.foodya.backend.domain.value_objects.NotificationReceiverType;
+import com.foodya.backend.domain.value_objects.NotificationStatus;
+import com.foodya.backend.domain.value_objects.UserRole;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+public class NotificationService implements NotificationUseCase {
+
+    private final NotificationLogPort notificationLogPort;
+    private final PushNotificationPort pushNotificationPort;
+    private final PaginationPolicy paginationPolicy;
+
+    public NotificationService(NotificationLogPort notificationLogPort,
+                               PushNotificationPort pushNotificationPort,
+                               PaginationPolicy paginationPolicy) {
+        this.notificationLogPort = notificationLogPort;
+        this.pushNotificationPort = pushNotificationPort;
+        this.paginationPolicy = paginationPolicy;
+    }
+
+    public NotificationLogView notifyUser(UUID receiverUserId,
+                                          UserRole receiverRole,
+                                          String eventType,
+                                          String title,
+                                          String message,
+                                          UUID orderId) {
+        NotificationLogData log = new NotificationLogData();
+        log.setReceiverUserId(receiverUserId);
+        log.setReceiverType(mapRole(receiverRole));
+        log.setEventType(eventType);
+        log.setTitle(title);
+        log.setMessage(message);
+        log.setOrderId(orderId);
+
+        PushNotificationPort.DeliveryResult result = pushNotificationPort.sendToUser(receiverUserId, title, message);
+        if (result.delivered()) {
+            log.setStatus(NotificationStatus.SENT);
+            log.setSentAt(OffsetDateTime.now());
+        } else {
+            log.setStatus(NotificationStatus.SKIPPED);
+        }
+        log.setProviderResponse(result.providerResponse());
+
+        NotificationLogData saved = notificationLogPort.save(log);
+        return toView(saved);
+    }
+
+    public PaginatedResult<NotificationLogView> list(Integer page, Integer size) {
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<NotificationLogData> result = notificationLogPort.list(spec.page(), spec.size());
+
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toView).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
+    }
+
+    public PaginatedResult<NotificationLogView> listForUser(UUID receiverUserId, Integer page, Integer size) {
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<NotificationLogData> result = notificationLogPort.listByReceiver(receiverUserId, spec.page(), spec.size());
+
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toView).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
+    }
+
+    public NotificationLogView markAsRead(UUID receiverUserId, UUID notificationId) {
+        NotificationLogData model = notificationLogPort.markAsRead(receiverUserId, notificationId, OffsetDateTime.now())
+                .orElseThrow(() -> new NotFoundException("notification not found"));
+        return toView(model);
+    }
+
+    private NotificationReceiverType mapRole(UserRole role) {
+        return switch (role) {
+            case CUSTOMER -> NotificationReceiverType.CUSTOMER;
+            case MERCHANT -> NotificationReceiverType.MERCHANT;
+            case DELIVERY -> NotificationReceiverType.DELIVERY;
+            case ADMIN -> NotificationReceiverType.ADMIN;
+        };
+    }
+
+    private NotificationLogView toView(NotificationLogData log) {
+        return new NotificationLogView(
+                log.getId(),
+                log.getReceiverUserId(),
+                log.getReceiverType(),
+                log.getEventType(),
+                log.getTitle(),
+                log.getMessage(),
+                log.getStatus(),
+                log.getOrderId(),
+                log.getSentAt(),
+                log.getReadAt(),
+                log.getCreatedAt()
+        );
+    }
+}

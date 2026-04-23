@@ -1,0 +1,2 @@
+ALTER TABLE carts
+    ALTER COLUMN restaurant_id DROP NOT NULL;

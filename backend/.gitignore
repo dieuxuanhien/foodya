@@ -1,0 +1,6 @@
+.env
+config/api-keys.json
+src/main/resources/config/api-keys.json
+firebase-service-account.json
+.idea/
+target/

@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:foodya_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+foodya:
+  security:
+    jwt-secret: test-secret-key-for-jwt-signing-at-least-32-bytes
+    access-token-minutes: 15
+    refresh-token-days: 7
+    reset-token-minutes: 10
+    otp-expiry-minutes: 10
+  rate-limit:
+    auth-requests-per-minute: 30
+    ai-requests-per-minute: 30
