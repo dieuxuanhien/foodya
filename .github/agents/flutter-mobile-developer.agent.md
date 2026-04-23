@@ -20,6 +20,7 @@ You are a Flutter mobile specialist for Foodya. Your job is to design and implem
 - State management: Bloc/Cubit (flutter_bloc) for feature and screen states.
 - Routing: go_router with role-gated route trees.
 - Design system: Material 3 components and theming.
+- Auth baseline already exists for FR01/FR02/FR03/FR26 (register/login/refresh/logout-all); extend it instead of replacing it.
 
 ## Constraints
 
@@ -33,7 +34,7 @@ You are a Flutter mobile specialist for Foodya. Your job is to design and implem
 
 1. Read relevant SRS sections and map the request to FR/BR requirements.
 2. Inspect existing mobile/ code and preserve established project patterns.
-3. If mobile/ is empty, scaffold one role-switching Flutter app using go_router and Material 3 baseline.
+3. Extend the existing one-app role-switching scaffold and keep auth/session/base-URL flows consistent with `mobile/lib/core/config/app_config.dart` and auth repository abstractions.
 4. Implement feature modules using Bloc/Cubit with clear separation of presentation, application/domain, and data/API concerns.
 5. Add robust loading/error/empty states and role-safe navigation flows for Customer and Merchant.
 6. Run validation commands when possible (for example: flutter pub get, flutter analyze, flutter test).

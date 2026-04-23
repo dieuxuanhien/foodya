@@ -31,6 +31,16 @@ applyTo: "mobile/**/*.dart"
 - Centralize route definitions and role guards in a core routing module.
 - Redirect unauthorized role access to a safe fallback route.
 
+## Auth Lifecycle
+
+- Keep FR01/FR02/FR03/FR26 behavior intact unless explicitly changing auth requirements:
+  - Register: `POST /api/v1/auth/register`
+  - Login: `POST /api/v1/auth/login`
+  - Refresh: `POST /api/v1/auth/refresh`
+  - Logout all: `POST /api/v1/auth/logout-all`
+- Persist token pairs with secure storage and keep token/session logic in core auth modules.
+- Prefer deriving role from JWT role claim for post-auth route gating.
+
 ## UI and Theming
 
 - Use Material 3 components and centralized ThemeData.
@@ -44,6 +54,7 @@ applyTo: "mobile/**/*.dart"
   - /api/v1/customer/\*\*
   - /api/v1/merchant/\*\*
 - Keep auth token/session handling centralized in core auth services.
+- Use `mobile/lib/core/config/app_config.dart` as the single source for API base URL selection and `FOODYA_API_BASE_URL` override.
 
 ## Quality Gates
 
