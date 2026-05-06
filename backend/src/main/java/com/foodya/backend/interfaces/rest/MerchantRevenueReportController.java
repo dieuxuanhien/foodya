@@ -13,9 +13,12 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,6 +28,7 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/merchant/reports")
+@Validated
 public class MerchantRevenueReportController {
 
     private final RevenueReportUseCase revenueReportService;
@@ -52,7 +56,7 @@ public class MerchantRevenueReportController {
                                                                               @Parameter(description = "End date (yyyy-MM-dd)")
                                                                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
                                                                               @Parameter(description = "Top selling items limit (1..20)")
-                                                                              @RequestParam(required = false) Integer topItems,
+                                                                              @RequestParam(required = false) @Min(1) @Max(20) Integer topItems,
                                                                               HttpServletRequest request) {
         RevenueReportResponse data = RevenueReportApiMapper.toResponse(
                 revenueReportService.merchantRevenueReport(CurrentUser.userId(authentication), from, to, topItems)

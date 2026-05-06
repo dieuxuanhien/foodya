@@ -1,11 +1,13 @@
 package com.foodya.backend.interfaces.rest.mapper;
 
 import com.foodya.backend.application.dto.UserAccountData;
+import com.foodya.backend.application.dto.CategoryTaxonomyData;
 import com.foodya.backend.application.dto.MenuCategoryData;
 import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.dto.SystemParameterData;
 import com.foodya.backend.interfaces.rest.dto.ProfileResponse;
+import com.foodya.backend.interfaces.rest.dto.CategoryTaxonomyResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
@@ -39,11 +41,21 @@ public final class CommonApiMapper {
         );
     }
 
+    public static CategoryTaxonomyResponse toCategoryTaxonomyResponse(CategoryTaxonomyData taxonomy) {
+        return new CategoryTaxonomyResponse(
+                taxonomy.getCode(),
+                taxonomy.getDisplayName(),
+                taxonomy.getSortOrder(),
+                taxonomy.isActive()
+        );
+    }
+
     public static MenuItemResponse toMenuItemResponse(MenuItemData item) {
         return new MenuItemResponse(
                 item.getId().toString(),
                 item.getRestaurantId().toString(),
                 item.getCategoryId().toString(),
+                item.getTaxonomyCodes(),
                 item.getName(),
                 item.getDescription(),
                 item.getImageUrl(),

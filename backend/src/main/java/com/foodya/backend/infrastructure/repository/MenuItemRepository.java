@@ -34,6 +34,40 @@ public interface MenuItemRepository extends JpaRepository<MenuItemPersistenceMod
                         """)
         List<MenuItemPersistenceModel> findActiveMenuItemsByKeyword(@Param("keyword") String keyword);
 
+    @Query("""
+                    select distinct mi
+                    from MenuItemPersistenceModel mi
+                    where mi.restaurantId = :restaurantId
+                        and mi.active = true
+                        and mi.available = true
+                        and mi.deletedAt is null
+                    """)
+    List<MenuItemPersistenceModel> findPublicMenuItemsByRestaurant(@Param("restaurantId") UUID restaurantId);
+
+    @Query("""
+                    select distinct mi
+                    from MenuItemPersistenceModel mi
+                    join mi.taxonomyCodes tc
+                    where mi.restaurantId = :restaurantId
+                        and mi.active = true
+                        and mi.available = true
+                        and mi.deletedAt is null
+                        and tc in :taxonomyCodes
+                    """)
+    List<MenuItemPersistenceModel> findPublicMenuItemsByRestaurantAndTaxonomyCodes(@Param("restaurantId") UUID restaurantId,
+                                                                                   @Param("taxonomyCodes") Collection<String> taxonomyCodes);
+
+    @Query("""
+                    select distinct mi
+                    from MenuItemPersistenceModel mi
+                    join mi.taxonomyCodes tc
+                    where mi.active = true
+                        and mi.available = true
+                        and mi.deletedAt is null
+                        and tc in :taxonomyCodes
+                    """)
+    List<MenuItemPersistenceModel> findPublicMenuItemsByTaxonomyCodes(@Param("taxonomyCodes") Collection<String> taxonomyCodes);
+
     List<MenuItemPersistenceModel> findByActiveTrueAndAvailableTrueAndDeletedAtIsNull();
 
     List<MenuItemPersistenceModel> findByRestaurantIdInAndActiveTrueAndDeletedAtIsNullAndNameContainingIgnoreCase(Collection<UUID> restaurantIds,

@@ -16,6 +16,7 @@ public class MenuItemMapper {
         domain.setId(model.getId());
         domain.setRestaurantId(model.getRestaurantId());
         domain.setCategoryId(model.getCategoryId());
+        domain.setTaxonomyCodes(model.getTaxonomyCodes());
         domain.setName(model.getName());
         domain.setDescription(model.getDescription());
         domain.setImageUrl(model.getImageUrl());
@@ -37,6 +38,7 @@ public class MenuItemMapper {
         model.setId(domain.getId());
         model.setRestaurantId(domain.getRestaurantId());
         model.setCategoryId(domain.getCategoryId());
+        model.setTaxonomyCodes(domain.getTaxonomyCodes());
         model.setName(domain.getName());
         model.setDescription(domain.getDescription());
         model.setImageUrl(domain.getImageUrl());

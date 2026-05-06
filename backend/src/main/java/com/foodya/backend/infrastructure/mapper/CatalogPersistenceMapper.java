@@ -37,6 +37,7 @@ public final class CatalogPersistenceMapper {
         data.setId(entity.getId());
         data.setRestaurantId(entity.getRestaurantId());
         data.setCategoryId(entity.getCategoryId());
+        data.setTaxonomyCodes(entity.getTaxonomyCodes() == null ? null : new java.util.ArrayList<>(entity.getTaxonomyCodes()));
         data.setName(entity.getName());
         data.setDescription(entity.getDescription());
         data.setImageUrl(entity.getImageUrl());

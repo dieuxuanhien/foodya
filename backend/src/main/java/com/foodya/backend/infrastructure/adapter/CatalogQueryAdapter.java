@@ -61,7 +61,25 @@ public class CatalogQueryAdapter implements CatalogQueryPort {
 
     @Override
     public List<MenuItemData> findPublicMenuItemsByRestaurant(UUID restaurantId) {
-        return menuItemRepository.findByRestaurantIdAndActiveTrueAndAvailableTrueAndDeletedAtIsNull(restaurantId)
+        return menuItemRepository.findPublicMenuItemsByRestaurant(restaurantId)
+                .stream()
+            .map(menuItemMapper::toDomain)
+                .map(CatalogPersistenceMapper::toData)
+                .toList();
+    }
+
+    @Override
+    public List<MenuItemData> findPublicMenuItemsByRestaurant(UUID restaurantId, Collection<String> taxonomyCodes) {
+        return menuItemRepository.findPublicMenuItemsByRestaurantAndTaxonomyCodes(restaurantId, taxonomyCodes)
+                .stream()
+            .map(menuItemMapper::toDomain)
+                .map(CatalogPersistenceMapper::toData)
+                .toList();
+    }
+
+    @Override
+    public List<MenuItemData> findPublicMenuItemsByTaxonomyCodes(Collection<String> taxonomyCodes) {
+        return menuItemRepository.findPublicMenuItemsByTaxonomyCodes(taxonomyCodes)
                 .stream()
             .map(menuItemMapper::toDomain)
                 .map(CatalogPersistenceMapper::toData)
@@ -70,7 +88,7 @@ public class CatalogQueryAdapter implements CatalogQueryPort {
 
     @Override
     public List<MenuItemData> findActiveMenuItemsByKeyword(String keyword) {
-        return menuItemRepository.findByActiveTrueAndDeletedAtIsNull()
+        return menuItemRepository.findActiveMenuItemsByKeyword(keyword)
                 .stream()
             .map(menuItemMapper::toDomain)
                 .map(CatalogPersistenceMapper::toData)

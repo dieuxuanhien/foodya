@@ -26,10 +26,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -48,6 +51,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/merchant")
 @Tag(name = "Merchant Catalog", description = "Merchant restaurant, category, and menu item management")
+@Validated
 public class MerchantCatalogController {
 
     private final MerchantCatalogUseCase merchantCatalogService;
@@ -129,8 +133,8 @@ public class MerchantCatalogController {
     @Operation(summary = "List menu categories")
     public ResponseEntity<ApiSuccessResponse<java.util.List<MenuCategoryResponse>>> listCategories(Authentication authentication,
                                                                                                     @PathVariable String id,
-                                                                                                    @RequestParam(required = false) Integer page,
-                                                                                                    @RequestParam(required = false) Integer size,
+                                                                                                    @RequestParam(required = false) @Min(0) Integer page,
+                                                                                                    @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                                     HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
         PaginatedResult<MenuCategoryData> result = merchantCatalogService.listCategories(merchantId, parseUuid(id, "id"), page, size);
@@ -204,8 +208,8 @@ public class MerchantCatalogController {
     @Operation(summary = "List menu items")
     public ResponseEntity<ApiSuccessResponse<java.util.List<MenuItemResponse>>> listMenuItems(Authentication authentication,
                                                                                                @PathVariable String id,
-                                                                                               @RequestParam(required = false) Integer page,
-                                                                                               @RequestParam(required = false) Integer size,
+                                                                                               @RequestParam(required = false) @Min(0) Integer page,
+                                                                                               @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                                                HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
         PaginatedResult<MenuItemData> result = merchantCatalogService.listMenuItems(merchantId, parseUuid(id, "id"), page, size);

@@ -19,5 +19,9 @@ public interface CatalogQueryPort {
 
     List<MenuItemData> findPublicMenuItemsByRestaurant(UUID restaurantId);
 
+    List<MenuItemData> findPublicMenuItemsByRestaurant(UUID restaurantId, Collection<String> taxonomyCodes);
+
+    List<MenuItemData> findPublicMenuItemsByTaxonomyCodes(Collection<String> taxonomyCodes);
+
     List<MenuItemData> findActiveMenuItemsByKeyword(String keyword);
 }

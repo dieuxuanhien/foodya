@@ -14,8 +14,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +34,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @Tag(name = "Admin Users", description = "Admin governance for user lifecycle")
+@Validated
 public class AdminUserController {
 
     private final AdminUserUseCase adminUserService;
@@ -47,8 +51,8 @@ public class AdminUserController {
             @ApiResponse(responseCode = "403", description = "Forbidden")
     })
     public ResponseEntity<ApiSuccessResponse<List<AdminUserResponse>>> list(@RequestParam(required = false) String q,
-                                                                             @RequestParam(required = false) Integer page,
-                                                                             @RequestParam(required = false) Integer size,
+                                                                             @RequestParam(required = false) @Min(0) Integer page,
+                                                                             @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                              HttpServletRequest httpServletRequest) {
         PaginatedResult<AdminUserSummaryView> result = adminUserService.list(q, page, size);
         List<AdminUserResponse> data = result.items().stream().map(this::toResponse).toList();

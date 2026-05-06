@@ -1,12 +1,14 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.MatchedMenuItemView;
+import com.foodya.backend.application.dto.CategoryTaxonomyData;
 import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.dto.RestaurantSearchView;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.out.CategoryTaxonomyPort;
 import com.foodya.backend.application.ports.out.CatalogQueryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
@@ -33,24 +35,41 @@ public class CatalogService {
     private static final List<RestaurantStatus> PUBLIC_STATUSES = List.of(RestaurantStatus.ACTIVE);
 
     private final CatalogQueryPort catalogQueryPort;
+    private final CategoryTaxonomyPort categoryTaxonomyPort;
     private final SystemParameterPort systemParameterPort;
     private final PaginationPolicy paginationPolicy;
     private final GeoPort geoPort;
 
     public CatalogService(CatalogQueryPort catalogQueryPort,
+                          CategoryTaxonomyPort categoryTaxonomyPort,
                           SystemParameterPort systemParameterPort,
                           PaginationPolicy paginationPolicy,
                           GeoPort geoPort) {
         this.catalogQueryPort = catalogQueryPort;
+        this.categoryTaxonomyPort = categoryTaxonomyPort;
         this.systemParameterPort = systemParameterPort;
         this.paginationPolicy = paginationPolicy;
         this.geoPort = geoPort;
+    }
+
+    public List<CategoryTaxonomyData> listCategoryTaxonomies() {
+        return categoryTaxonomyPort.findActive().stream().map(taxonomy -> {
+            CategoryTaxonomyData data = new CategoryTaxonomyData();
+            data.setCode(taxonomy.getCode());
+            data.setDisplayName(taxonomy.getDisplayName());
+            data.setSortOrder(taxonomy.getSortOrder());
+            data.setActive(taxonomy.isActive());
+            data.setCreatedAt(taxonomy.getCreatedAt());
+            data.setUpdatedAt(taxonomy.getUpdatedAt());
+            return data;
+        }).toList();
     }
 
     public PaginatedResult<RestaurantSearchView> searchRestaurants(String q,
                                                                        String cuisine,
                                                                        BigDecimal minRating,
                                                                        Boolean openNow,
+                                                                       List<String> taxonomyCodes,
                                                                        Integer page,
                                                                        Integer size,
                                                                        String sort,
@@ -59,11 +78,27 @@ public class CatalogService {
                                                                        BigDecimal radiusKm) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String keyword = q == null ? "" : q.trim();
+        List<String> normalizedTaxonomyCodes = normalizeTaxonomyCodes(taxonomyCodes);
+        for (String taxonomyCode : normalizedTaxonomyCodes) {
+            categoryTaxonomyPort.findByCode(taxonomyCode)
+                .orElseThrow(() -> new ValidationException("invalid taxonomyCode", Map.of("taxonomyCode", taxonomyCode + " does not exist or is inactive")));
+        }
 
+        Map<UUID, List<MenuItemData>> matchedItemsByRestaurant = matchedItemsByRestaurant(keyword, normalizedTaxonomyCodes);
+        Set<UUID> keywordMatchedRestaurantIds = keyword == null || keyword.isBlank()
+            ? Set.of()
+            : catalogQueryPort.findActiveMenuItemsByKeyword(keyword).stream()
+            .filter(item -> matchesKeyword(item, keyword))
+            .map(MenuItemData::getRestaurantId)
+            .collect(Collectors.toSet());
 
-        Map<UUID, List<MenuItemData>> matchedItemsByRestaurant = matchedItemsByRestaurant(keyword);
-        List<RestaurantData> candidates = filterByKeyword(keyword, matchedItemsByRestaurant.keySet());
+        List<RestaurantData> candidates = filterByKeyword(keyword, keywordMatchedRestaurantIds);
         candidates = applyRestaurantFilters(candidates, cuisine, minRating, openNow);
+        if (!normalizedTaxonomyCodes.isEmpty()) {
+            candidates = candidates.stream()
+                    .filter(restaurant -> matchedItemsByRestaurant.containsKey(restaurant.getId()))
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
 
         Map<UUID, BigDecimal> distanceByRestaurant = Map.of();
         if (lat != null || lng != null || radiusKm != null) {
@@ -133,17 +168,24 @@ public class CatalogService {
 
     public PaginatedResult<MenuItemData> publicMenuItems(UUID restaurantId,
                                                           String keyword,
-                                                          String categoryId,
+                                                          List<String> taxonomyCodes,
                                                           String sort,
                                                           Integer page,
                                                           Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         restaurantDetail(restaurantId);
 
-        List<MenuItemData> filtered = catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId)
+        List<String> normalizedTaxonomyCodes = normalizeTaxonomyCodes(taxonomyCodes);
+        for (String taxonomyCode : normalizedTaxonomyCodes) {
+            categoryTaxonomyPort.findByCode(taxonomyCode)
+                .orElseThrow(() -> new ValidationException("invalid taxonomyCode", Map.of("taxonomyCode", taxonomyCode + " does not exist or is inactive")));
+        }
+
+        List<MenuItemData> filtered = normalizedTaxonomyCodes.isEmpty()
+            ? catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId)
+            : catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId, normalizedTaxonomyCodes)
                 .stream()
                 .filter(item -> matchesKeyword(item, keyword))
-                .filter(item -> matchesCategory(item, categoryId))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         sortMenuItems(filtered, sort);
@@ -182,16 +224,38 @@ public class CatalogService {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private Map<UUID, List<MenuItemData>> matchedItemsByRestaurant(String keyword) {
-        if (keyword.isBlank()) {
+    private Map<UUID, List<MenuItemData>> matchedItemsByRestaurant(String keyword, Collection<String> taxonomyCodes) {
+        if ((keyword == null || keyword.isBlank()) && (taxonomyCodes == null || taxonomyCodes.isEmpty())) {
             return Map.of();
         }
 
-        return catalogQueryPort.findActiveMenuItemsByKeyword(keyword)
-                .stream()
-                .filter(item -> matchesKeyword(item, keyword))
-                .collect(Collectors.groupingBy(MenuItemData::getRestaurantId, LinkedHashMap::new, Collectors.toList()));
+        List<MenuItemData> keywordMatches = keyword == null || keyword.isBlank()
+                ? List.of()
+                : catalogQueryPort.findActiveMenuItemsByKeyword(keyword);
+        List<MenuItemData> taxonomyMatches = taxonomyCodes == null || taxonomyCodes.isEmpty()
+                ? List.of()
+                : catalogQueryPort.findPublicMenuItemsByTaxonomyCodes(taxonomyCodes);
+
+        return java.util.stream.Stream.concat(keywordMatches.stream(), taxonomyMatches.stream())
+            .collect(Collectors.toMap(
+                MenuItemData::getId,
+                item -> item,
+                (left, right) -> left,
+                LinkedHashMap::new
+            ))
+            .values().stream()
+            .filter(item -> matchesKeyword(item, keyword))
+            .filter(item -> matchesTaxonomy(item, taxonomyCodes))
+            .collect(Collectors.groupingBy(MenuItemData::getRestaurantId, LinkedHashMap::new, Collectors.toList()));
     }
+
+        private static boolean matchesTaxonomy(MenuItemData item, Collection<String> taxonomyCodes) {
+        if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
+            return true;
+        }
+        List<String> itemTaxonomyCodes = item.getTaxonomyCodes() == null ? List.of() : item.getTaxonomyCodes();
+        return itemTaxonomyCodes.stream().anyMatch(taxonomyCodes::contains);
+        }
 
 
     private List<RestaurantData> applyNearbyFilter(List<RestaurantData> restaurants,
@@ -258,15 +322,15 @@ public class CatalogService {
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
-    private static boolean matchesCategory(MenuItemData item, String categoryId) {
-        if (categoryId == null || categoryId.isBlank()) {
-            return true;
+    private static List<String> normalizeTaxonomyCodes(Collection<String> taxonomyCodes) {
+        if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
+            return List.of();
         }
-        try {
-            return item.getCategoryId().equals(UUID.fromString(categoryId));
-        } catch (IllegalArgumentException ex) {
-            throw new ValidationException("invalid categoryId", Map.of("categoryId", "must be a valid UUID"));
-        }
+        return taxonomyCodes.stream()
+                .filter(code -> code != null && !code.isBlank())
+                .map(code -> code.trim().toUpperCase(Locale.ROOT))
+                .distinct()
+                .toList();
     }
 
     private static void sortMenuItems(List<MenuItemData> items, String sort) {
