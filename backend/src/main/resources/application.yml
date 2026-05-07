@@ -46,6 +46,8 @@ springdoc:
 foodya:
   secrets:
     json-file: ${FOODYA_SECRETS_JSON_FILE:config/api-keys.json}
+  cors:
+    allowed-origins: ${FOODYA_CORS_ALLOWED_ORIGINS:http://localhost:61679}
   security:
     jwt-secret: ${FOODYA_JWT_SECRET:}
     access-token-minutes: ${FOODYA_ACCESS_TOKEN_MINUTES:15}
