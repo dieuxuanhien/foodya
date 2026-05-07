@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/auth/auth_form_validators.dart';
 import '../../../../core/auth/user_role.dart';
 import '../cubit/login_cubit.dart';
 import '../cubit/login_state.dart';
@@ -15,6 +16,9 @@ class RoleLoginPage extends StatefulWidget {
 }
 
 class _RoleLoginPageState extends State<RoleLoginPage> {
+  final _loginFormKey = GlobalKey<FormState>();
+  final _registerFormKey = GlobalKey<FormState>();
+
   final _loginIdentityController = TextEditingController();
   final _loginPasswordController = TextEditingController();
 
@@ -23,8 +27,11 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
   final _registerPhoneController = TextEditingController();
   final _registerNameController = TextEditingController();
   final _registerPasswordController = TextEditingController();
+  final _registerConfirmPasswordController = TextEditingController();
 
   _AuthFormMode _mode = _AuthFormMode.login;
+  bool _loginSubmitted = false;
+  bool _registerSubmitted = false;
 
   @override
   void dispose() {
@@ -35,6 +42,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     _registerPhoneController.dispose();
     _registerNameController.dispose();
     _registerPasswordController.dispose();
+    _registerConfirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -108,6 +116,8 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                 : (selection) {
                                   setState(() {
                                     _mode = selection.first;
+                                    _loginSubmitted = false;
+                                    _registerSubmitted = false;
                                   });
                                 },
                       ),
@@ -140,42 +150,60 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _loginIdentityController,
-              enabled: !isBusy,
-              decoration: const InputDecoration(
-                labelText: 'Username or Email',
-                hintText: 'api_customer or api_customer@foodya.local',
+        child: Form(
+          key: _loginFormKey,
+          autovalidateMode:
+              _loginSubmitted
+                  ? AutovalidateMode.onUserInteraction
+                  : AutovalidateMode.disabled,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _loginIdentityController,
+                enabled: !isBusy,
+                decoration: const InputDecoration(
+                  labelText: 'Username or Email',
+                  hintText: 'api_customer or api_customer@foodya.local',
+                ),
+                validator: AuthFormValidators.loginIdentity,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _loginPasswordController,
-              enabled: !isBusy,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                hintText: 'Strong@123',
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _loginPasswordController,
+                enabled: !isBusy,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Strong@123',
+                ),
+                validator: AuthFormValidators.loginPassword,
               ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed:
-                  isBusy
-                      ? null
-                      : () {
-                        context.read<LoginCubit>().signIn(
-                          usernameOrEmail: _loginIdentityController.text,
-                          password: _loginPasswordController.text,
-                        );
-                      },
-              icon: const Icon(Icons.login),
-              label: const Text('Sign In'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed:
+                    isBusy
+                        ? null
+                        : () {
+                          setState(() {
+                            _loginSubmitted = true;
+                          });
+                          final isValid =
+                              _loginFormKey.currentState?.validate() ?? false;
+                          if (!isValid) {
+                            return;
+                          }
+
+                          context.read<LoginCubit>().signIn(
+                            usernameOrEmail: _loginIdentityController.text,
+                            password: _loginPasswordController.text,
+                          );
+                        },
+                icon: const Icon(Icons.login),
+                label: const Text('Sign In'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -189,82 +217,120 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _registerUsernameController,
-              enabled: !isBusy,
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _registerEmailController,
-              enabled: !isBusy,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _registerPhoneController,
-              enabled: !isBusy,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone Number'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _registerNameController,
-              enabled: !isBusy,
-              decoration: const InputDecoration(labelText: 'Full Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _registerPasswordController,
-              enabled: !isBusy,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<UserRole>(
-              value: state.registrationRole,
-              decoration: const InputDecoration(labelText: 'Role'),
-              items:
-                  UserRole.values
-                      .map(
-                        (role) => DropdownMenuItem<UserRole>(
-                          value: role,
-                          child: Text(role.label),
-                        ),
-                      )
-                      .toList(),
-              onChanged:
-                  isBusy
-                      ? null
-                      : (role) {
-                        if (role != null) {
-                          context.read<LoginCubit>().setRegistrationRole(role);
-                        }
-                      },
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed:
-                  isBusy
-                      ? null
-                      : () {
-                        context.read<LoginCubit>().register(
-                          username: _registerUsernameController.text,
-                          email: _registerEmailController.text,
-                          phoneNumber: _registerPhoneController.text,
-                          fullName: _registerNameController.text,
-                          password: _registerPasswordController.text,
-                          role: state.registrationRole,
-                        );
-                      },
-              icon: const Icon(Icons.app_registration),
-              label: const Text('Create Account'),
-            ),
-          ],
+        child: Form(
+          key: _registerFormKey,
+          autovalidateMode:
+              _registerSubmitted
+                  ? AutovalidateMode.onUserInteraction
+                  : AutovalidateMode.disabled,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _registerUsernameController,
+                enabled: !isBusy,
+                decoration: const InputDecoration(labelText: 'Username'),
+                validator: AuthFormValidators.requiredField,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _registerEmailController,
+                enabled: !isBusy,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: AuthFormValidators.email,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _registerPhoneController,
+                enabled: !isBusy,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Phone Number'),
+                validator: AuthFormValidators.phoneNumber,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _registerNameController,
+                enabled: !isBusy,
+                decoration: const InputDecoration(labelText: 'Full Name'),
+                validator: AuthFormValidators.requiredField,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _registerPasswordController,
+                enabled: !isBusy,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+                validator: AuthFormValidators.password,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _registerConfirmPasswordController,
+                enabled: !isBusy,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                ),
+                validator:
+                    (value) => AuthFormValidators.confirmPassword(
+                      password: _registerPasswordController.text,
+                      confirmPassword: value,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<UserRole>(
+                value: state.registrationRole,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items:
+                    UserRole.values
+                        .map(
+                          (role) => DropdownMenuItem<UserRole>(
+                            value: role,
+                            child: Text(role.label),
+                          ),
+                        )
+                        .toList(),
+                onChanged:
+                    isBusy
+                        ? null
+                        : (role) {
+                          if (role != null) {
+                            context.read<LoginCubit>().setRegistrationRole(
+                              role,
+                            );
+                          }
+                        },
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed:
+                    isBusy
+                        ? null
+                        : () {
+                          setState(() {
+                            _registerSubmitted = true;
+                          });
+                          final isValid =
+                              _registerFormKey.currentState?.validate() ??
+                              false;
+                          if (!isValid) {
+                            return;
+                          }
+
+                          context.read<LoginCubit>().register(
+                            username: _registerUsernameController.text,
+                            email: _registerEmailController.text,
+                            phoneNumber: _registerPhoneController.text,
+                            fullName: _registerNameController.text,
+                            password: _registerPasswordController.text,
+                            role: state.registrationRole,
+                          );
+                        },
+                icon: const Icon(Icons.app_registration),
+                label: const Text('Create Account'),
+              ),
+            ],
+          ),
         ),
       ),
     );
