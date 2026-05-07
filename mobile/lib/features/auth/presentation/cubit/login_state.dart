@@ -18,6 +18,7 @@ class LoginState extends Equatable {
     required this.registrationRole,
     this.errorMessage,
     this.infoMessage,
+    this.fieldErrors = const {},
   });
 
   const LoginState.initial()
@@ -27,6 +28,7 @@ class LoginState extends Equatable {
   final UserRole registrationRole;
   final String? errorMessage;
   final String? infoMessage;
+  final Map<String, String> fieldErrors;
 
   bool get isBusy {
     return status == LoginStatus.restoring ||
@@ -41,14 +43,20 @@ class LoginState extends Equatable {
     UserRole? registrationRole,
     String? errorMessage,
     String? infoMessage,
+    Map<String, String>? fieldErrors,
     bool clearError = false,
     bool clearInfo = false,
+    bool clearFieldErrors = false,
   }) {
+    final resolvedFieldErrors =
+        fieldErrors ?? (clearFieldErrors ? const {} : this.fieldErrors);
+
     return LoginState(
       status: status ?? this.status,
       registrationRole: registrationRole ?? this.registrationRole,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       infoMessage: clearInfo ? null : (infoMessage ?? this.infoMessage),
+      fieldErrors: resolvedFieldErrors,
     );
   }
 
@@ -58,5 +66,6 @@ class LoginState extends Equatable {
     registrationRole,
     errorMessage,
     infoMessage,
+    fieldErrors,
   ];
 }

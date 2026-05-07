@@ -1,4 +1,5 @@
 import '../../../../core/auth/auth_tokens.dart';
+import '../../../../core/auth/auth_session_recovery.dart';
 import '../../../../core/auth/jwt_claims_decoder.dart';
 import '../../../../core/auth/token_store.dart';
 import '../../../../core/network/api_exception.dart';
@@ -13,10 +14,15 @@ class HttpAuthRepository implements AuthRepository {
     required AuthRemoteDataSource remoteDataSource,
     required TokenStore tokenStore,
   }) : _remoteDataSource = remoteDataSource,
-       _tokenStore = tokenStore;
+       _tokenStore = tokenStore,
+       _sessionRecovery = AuthSessionRecovery(
+         tokenStore: tokenStore,
+         refreshTokenExchange: remoteDataSource.refresh,
+       );
 
   final AuthRemoteDataSource _remoteDataSource;
   final TokenStore _tokenStore;
+  final AuthSessionRecovery _sessionRecovery;
 
   @override
   Future<AuthSession> register(RegisterRequest request) async {
@@ -57,29 +63,19 @@ class HttpAuthRepository implements AuthRepository {
 
   @override
   Future<AuthSession> refreshSession() async {
-    final stored = await _tokenStore.read();
-    if (stored == null) {
-      throw const ApiException(
-        statusCode: 401,
-        code: 'NO_REFRESH_TOKEN',
-        message: 'No stored refresh token found.',
-      );
-    }
-
-    final refreshed = await _remoteDataSource.refresh(stored.refreshToken);
+    final refreshed = await _sessionRecovery.refreshNow();
     return _persistSession(refreshed.accessToken, refreshed.refreshToken);
   }
 
   @override
   Future<void> logoutAll() async {
-    final stored = await _tokenStore.read();
-    if (stored != null) {
-      try {
-        await _remoteDataSource.logoutAll(stored.accessToken);
-      } on ApiException catch (error) {
-        if (error.statusCode != 401) {
-          rethrow;
-        }
+    try {
+      await _sessionRecovery.runAuthorized((accessToken) {
+        return _remoteDataSource.logoutAll(accessToken);
+      });
+    } on ApiException catch (error) {
+      if (error.statusCode != 401) {
+        rethrow;
       }
     }
 
