@@ -111,22 +111,27 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                         children: [
                           Icon(
                             Icons.error_outline,
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               state.errorMessage!,
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onErrorContainer,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
                               ),
                             ),
                           ),
                           TextButton(
                             onPressed:
-                                () => context
-                                    .read<RestaurantDetailCubit>()
-                                    .refreshMenu(),
+                                () =>
+                                    context
+                                        .read<RestaurantDetailCubit>()
+                                        .refreshMenu(),
                             child: const Text('Retry'),
                           ),
                         ],

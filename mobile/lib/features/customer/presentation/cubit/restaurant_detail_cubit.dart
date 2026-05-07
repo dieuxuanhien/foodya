@@ -128,9 +128,10 @@ class RestaurantDetailCubit extends Cubit<RestaurantDetailState> {
       if (state.restaurant != null) {
         emit(
           state.copyWith(
-            status: state.menuItems.isEmpty
-                ? RestaurantDetailStatus.empty
-                : RestaurantDetailStatus.success,
+            status:
+                state.menuItems.isEmpty
+                    ? RestaurantDetailStatus.empty
+                    : RestaurantDetailStatus.success,
             errorMessage: presentation.message,
           ),
         );
