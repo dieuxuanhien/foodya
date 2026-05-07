@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/auth_loading_page.dart';
 import '../../features/auth/presentation/pages/role_login_page.dart';
 import '../../features/customer/presentation/pages/customer_home_page.dart';
+import '../../features/customer/presentation/pages/restaurant_browse_page.dart';
+import '../../features/customer/presentation/pages/restaurant_detail_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../auth/session_cubit.dart';
 import '../auth/user_role.dart';
@@ -33,6 +35,19 @@ class AppRouter {
         path: '/customer/home',
         name: 'customer-home',
         builder: (context, state) => const CustomerHomePage(),
+      ),
+      GoRoute(
+        path: '/customer/restaurants',
+        name: 'customer-restaurant-browse',
+        builder: (context, state) => const RestaurantBrowsePage(),
+      ),
+      GoRoute(
+        path: '/customer/restaurants/:id',
+        name: 'customer-restaurant-detail',
+        builder:
+            (context, state) => RestaurantDetailPage(
+              restaurantId: state.pathParameters['id'] ?? '',
+            ),
       ),
       GoRoute(
         path: '/merchant/home',
