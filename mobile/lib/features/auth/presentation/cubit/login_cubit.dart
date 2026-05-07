@@ -130,7 +130,10 @@ class LoginCubit extends Cubit<LoginState> {
         ),
       );
     } catch (error) {
-      final presentation = _mapAuthError(error, fallback: 'Unable to login.');
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to login.',
+      );
       emit(
         state.copyWith(
           status: LoginStatus.failure,
@@ -200,7 +203,7 @@ class LoginCubit extends Cubit<LoginState> {
         ),
       );
     } catch (error) {
-      final presentation = _mapAuthError(
+      final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
         fallback: 'Unable to register account.',
       );
@@ -245,7 +248,7 @@ class LoginCubit extends Cubit<LoginState> {
         await _authRepository.clearSession();
         _sessionCubit.signOut();
       }
-      final presentation = _mapAuthError(
+      final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
         fallback: 'Unable to refresh token.',
       );
@@ -290,7 +293,7 @@ class LoginCubit extends Cubit<LoginState> {
         await _authRepository.clearSession();
         _sessionCubit.signOut();
       }
-      final presentation = _mapAuthError(
+      final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
         fallback: 'Unable to logout all sessions.',
       );
@@ -303,20 +306,5 @@ class LoginCubit extends Cubit<LoginState> {
         ),
       );
     }
-  }
-
-  ApiErrorUiMessage _mapAuthError(Object error, {required String fallback}) {
-    if (error is ApiException) {
-      return ApiErrorUiMessageMapper.fromException(
-        error,
-        fallbackMessage: fallback,
-      );
-    }
-
-    if (error is StateError) {
-      return ApiErrorUiMessage(message: error.message);
-    }
-
-    return ApiErrorUiMessage(message: fallback);
   }
 }

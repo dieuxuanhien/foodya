@@ -125,6 +125,20 @@ class ApiErrorUiMessageMapper {
     return ApiErrorUiMessage(message: fallbackMessage);
   }
 
+  /// Convenience helper that accepts any error and returns a UI-friendly
+  /// message. Use this from presentation layers to uniformly map errors.
+  static ApiErrorUiMessage mapAny(Object error, {required String fallback}) {
+    if (error is ApiException) {
+      return fromException(error, fallbackMessage: fallback);
+    }
+
+    if (error is StateError) {
+      return ApiErrorUiMessage(message: error.message);
+    }
+
+    return ApiErrorUiMessage(message: fallback);
+  }
+
   static Map<String, String> _extractFieldErrors(Object? details) {
     if (details is! Map) {
       return const {};
