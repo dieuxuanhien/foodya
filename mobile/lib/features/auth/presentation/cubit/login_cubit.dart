@@ -262,6 +262,10 @@ class LoginCubit extends Cubit<LoginState> {
         ),
       );
     } catch (error) {
+      if (error is ApiException && error.statusCode == 401) {
+        await _authRepository.clearSession();
+        _sessionCubit.signOut();
+      }
       emit(
         state.copyWith(
           status: LoginStatus.failure,
