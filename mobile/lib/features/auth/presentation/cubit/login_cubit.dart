@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/session_cubit.dart';
 import '../../../../core/auth/user_role.dart';
+import '../../../../core/network/api_error_ui_message.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/login_request.dart';
 import '../../domain/models/register_request.dart';
@@ -30,6 +31,7 @@ class LoginCubit extends Cubit<LoginState> {
         status: LoginStatus.restoring,
         clearError: true,
         clearInfo: true,
+        clearFieldErrors: true,
       ),
     );
 
@@ -42,6 +44,7 @@ class LoginCubit extends Cubit<LoginState> {
             status: LoginStatus.idle,
             clearError: true,
             clearInfo: true,
+            clearFieldErrors: true,
           ),
         );
         return;
@@ -53,6 +56,7 @@ class LoginCubit extends Cubit<LoginState> {
           status: LoginStatus.idle,
           infoMessage: 'Session restored for ${session.role.label}.',
           clearError: true,
+          clearFieldErrors: true,
         ),
       );
     } catch (_) {
@@ -63,6 +67,7 @@ class LoginCubit extends Cubit<LoginState> {
           status: LoginStatus.idle,
           clearError: true,
           clearInfo: true,
+          clearFieldErrors: true,
         ),
       );
     }
@@ -75,7 +80,9 @@ class LoginCubit extends Cubit<LoginState> {
   }
 
   void clearFeedback() {
-    emit(state.copyWith(clearError: true, clearInfo: true));
+    emit(
+      state.copyWith(clearError: true, clearInfo: true, clearFieldErrors: true),
+    );
   }
 
   Future<void> signIn({
@@ -102,6 +109,7 @@ class LoginCubit extends Cubit<LoginState> {
         status: LoginStatus.signingIn,
         clearError: true,
         clearInfo: true,
+        clearFieldErrors: true,
       ),
     );
 
@@ -118,13 +126,16 @@ class LoginCubit extends Cubit<LoginState> {
           status: LoginStatus.idle,
           infoMessage: 'Signed in as ${session.role.label}.',
           clearError: true,
+          clearFieldErrors: true,
         ),
       );
     } catch (error) {
+      final presentation = _mapAuthError(error, fallback: 'Unable to login.');
       emit(
         state.copyWith(
           status: LoginStatus.failure,
-          errorMessage: _buildErrorMessage(error, 'Unable to login.'),
+          errorMessage: presentation.message,
+          fieldErrors: presentation.fieldErrors,
           clearInfo: true,
         ),
       );
@@ -163,6 +174,7 @@ class LoginCubit extends Cubit<LoginState> {
         status: LoginStatus.registering,
         clearError: true,
         clearInfo: true,
+        clearFieldErrors: true,
       ),
     );
 
@@ -184,16 +196,19 @@ class LoginCubit extends Cubit<LoginState> {
           infoMessage:
               'Account created and signed in as ${session.role.label}.',
           clearError: true,
+          clearFieldErrors: true,
         ),
       );
     } catch (error) {
+      final presentation = _mapAuthError(
+        error,
+        fallback: 'Unable to register account.',
+      );
       emit(
         state.copyWith(
           status: LoginStatus.failure,
-          errorMessage: _buildErrorMessage(
-            error,
-            'Unable to register account.',
-          ),
+          errorMessage: presentation.message,
+          fieldErrors: presentation.fieldErrors,
           clearInfo: true,
         ),
       );
@@ -210,6 +225,7 @@ class LoginCubit extends Cubit<LoginState> {
         status: LoginStatus.refreshing,
         clearError: true,
         clearInfo: true,
+        clearFieldErrors: true,
       ),
     );
 
@@ -221,6 +237,7 @@ class LoginCubit extends Cubit<LoginState> {
           status: LoginStatus.idle,
           infoMessage: 'Session token refreshed.',
           clearError: true,
+          clearFieldErrors: true,
         ),
       );
     } catch (error) {
@@ -228,10 +245,15 @@ class LoginCubit extends Cubit<LoginState> {
         await _authRepository.clearSession();
         _sessionCubit.signOut();
       }
+      final presentation = _mapAuthError(
+        error,
+        fallback: 'Unable to refresh token.',
+      );
       emit(
         state.copyWith(
           status: LoginStatus.failure,
-          errorMessage: _buildErrorMessage(error, 'Unable to refresh token.'),
+          errorMessage: presentation.message,
+          fieldErrors: presentation.fieldErrors,
           clearInfo: true,
         ),
       );
@@ -248,6 +270,7 @@ class LoginCubit extends Cubit<LoginState> {
         status: LoginStatus.loggingOutAll,
         clearError: true,
         clearInfo: true,
+        clearFieldErrors: true,
       ),
     );
 
@@ -259,6 +282,7 @@ class LoginCubit extends Cubit<LoginState> {
           status: LoginStatus.idle,
           infoMessage: 'Logged out from all sessions.',
           clearError: true,
+          clearFieldErrors: true,
         ),
       );
     } catch (error) {
@@ -266,28 +290,33 @@ class LoginCubit extends Cubit<LoginState> {
         await _authRepository.clearSession();
         _sessionCubit.signOut();
       }
+      final presentation = _mapAuthError(
+        error,
+        fallback: 'Unable to logout all sessions.',
+      );
       emit(
         state.copyWith(
           status: LoginStatus.failure,
-          errorMessage: _buildErrorMessage(
-            error,
-            'Unable to logout all sessions.',
-          ),
+          errorMessage: presentation.message,
+          fieldErrors: presentation.fieldErrors,
           clearInfo: true,
         ),
       );
     }
   }
 
-  String _buildErrorMessage(Object error, String fallback) {
+  ApiErrorUiMessage _mapAuthError(Object error, {required String fallback}) {
     if (error is ApiException) {
-      return error.message;
+      return ApiErrorUiMessageMapper.fromException(
+        error,
+        fallbackMessage: fallback,
+      );
     }
 
     if (error is StateError) {
-      return error.message;
+      return ApiErrorUiMessage(message: error.message);
     }
 
-    return fallback;
+    return ApiErrorUiMessage(message: fallback);
   }
 }

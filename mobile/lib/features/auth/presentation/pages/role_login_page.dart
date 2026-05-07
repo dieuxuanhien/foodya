@@ -123,7 +123,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                       ),
                       const SizedBox(height: 20),
                       if (_mode == _AuthFormMode.login)
-                        _buildLoginForm(context, isBusy)
+                        _buildLoginForm(context, state, isBusy)
                       else
                         _buildRegisterForm(context, state, isBusy),
                       const SizedBox(height: 16),
@@ -146,7 +146,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     );
   }
 
-  Widget _buildLoginForm(BuildContext context, bool isBusy) {
+  Widget _buildLoginForm(BuildContext context, LoginState state, bool isBusy) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -162,6 +162,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
               TextFormField(
                 controller: _loginIdentityController,
                 enabled: !isBusy,
+                forceErrorText: state.fieldErrors['usernameOrEmail'],
                 decoration: const InputDecoration(
                   labelText: 'Username or Email',
                   hintText: 'api_customer or api_customer@foodya.local',
@@ -173,6 +174,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 controller: _loginPasswordController,
                 enabled: !isBusy,
                 obscureText: true,
+                forceErrorText: state.fieldErrors['password'],
                 decoration: const InputDecoration(
                   labelText: 'Password',
                   hintText: 'Strong@123',
@@ -229,6 +231,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
               TextFormField(
                 controller: _registerUsernameController,
                 enabled: !isBusy,
+                forceErrorText: state.fieldErrors['username'],
                 decoration: const InputDecoration(labelText: 'Username'),
                 validator: AuthFormValidators.requiredField,
               ),
@@ -237,6 +240,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 controller: _registerEmailController,
                 enabled: !isBusy,
                 keyboardType: TextInputType.emailAddress,
+                forceErrorText: state.fieldErrors['email'],
                 decoration: const InputDecoration(labelText: 'Email'),
                 validator: AuthFormValidators.email,
               ),
@@ -245,6 +249,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 controller: _registerPhoneController,
                 enabled: !isBusy,
                 keyboardType: TextInputType.phone,
+                forceErrorText: state.fieldErrors['phoneNumber'],
                 decoration: const InputDecoration(labelText: 'Phone Number'),
                 validator: AuthFormValidators.phoneNumber,
               ),
@@ -252,6 +257,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
               TextFormField(
                 controller: _registerNameController,
                 enabled: !isBusy,
+                forceErrorText: state.fieldErrors['fullName'],
                 decoration: const InputDecoration(labelText: 'Full Name'),
                 validator: AuthFormValidators.requiredField,
               ),
@@ -260,6 +266,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 controller: _registerPasswordController,
                 enabled: !isBusy,
                 obscureText: true,
+                forceErrorText: state.fieldErrors['password'],
                 decoration: const InputDecoration(labelText: 'Password'),
                 validator: AuthFormValidators.password,
               ),
@@ -268,6 +275,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 controller: _registerConfirmPasswordController,
                 enabled: !isBusy,
                 obscureText: true,
+                forceErrorText: state.fieldErrors['confirmPassword'],
                 decoration: const InputDecoration(
                   labelText: 'Confirm Password',
                 ),
@@ -280,7 +288,10 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
               const SizedBox(height: 12),
               DropdownButtonFormField<UserRole>(
                 value: state.registrationRole,
-                decoration: const InputDecoration(labelText: 'Role'),
+                decoration: InputDecoration(
+                  labelText: 'Role',
+                  errorText: state.fieldErrors['role'],
+                ),
                 items:
                     UserRole.values
                         .map(
