@@ -20,6 +20,10 @@ class RestaurantBrowseState extends Equatable {
     required this.selectedTaxonomyCodes,
     required this.keyword,
     required this.sort,
+    required this.isNearby,
+    required this.latitude,
+    required this.longitude,
+    required this.radiusKm,
     required this.openNow,
     required this.minRating,
     required this.page,
@@ -35,6 +39,10 @@ class RestaurantBrowseState extends Equatable {
         selectedTaxonomyCodes: const [],
         keyword: '',
         sort: 'relevance',
+        isNearby: false,
+        latitude: null,
+        longitude: null,
+        radiusKm: 5.0,
         openNow: null,
         minRating: null,
         page: 0,
@@ -47,6 +55,10 @@ class RestaurantBrowseState extends Equatable {
   final List<String> selectedTaxonomyCodes;
   final String keyword;
   final String sort;
+  final bool isNearby;
+  final double? latitude;
+  final double? longitude;
+  final double radiusKm;
   final bool? openNow;
   final double? minRating;
   final int page;
@@ -67,6 +79,10 @@ class RestaurantBrowseState extends Equatable {
     List<String>? selectedTaxonomyCodes,
     String? keyword,
     String? sort,
+    bool? isNearby,
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
     bool? openNow,
     double? minRating,
     int? page,
@@ -84,6 +100,10 @@ class RestaurantBrowseState extends Equatable {
           selectedTaxonomyCodes ?? this.selectedTaxonomyCodes,
       keyword: keyword ?? this.keyword,
       sort: sort ?? this.sort,
+      isNearby: isNearby ?? this.isNearby,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      radiusKm: radiusKm ?? this.radiusKm,
       openNow: resetOpenNow ? null : (openNow ?? this.openNow),
       minRating: resetMinRating ? null : (minRating ?? this.minRating),
       page: page ?? this.page,
@@ -100,6 +120,10 @@ class RestaurantBrowseState extends Equatable {
     selectedTaxonomyCodes,
     keyword,
     sort,
+    isNearby,
+    latitude,
+    longitude,
+    radiusKm,
     openNow,
     minRating,
     page,

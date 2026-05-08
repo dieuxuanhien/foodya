@@ -14,6 +14,7 @@ import 'features/auth/presentation/cubit/login_cubit.dart';
 import 'features/customer/data/data_sources/customer_catalog_remote_data_source.dart';
 import 'features/customer/data/repositories/http_customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
+import 'core/location/geolocation_service.dart';
 
 void main() {
   runApp(FoodyaMobileBootstrap());
@@ -67,6 +68,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
+        RepositoryProvider<GeolocationService>(
+          create: (_) => GeolocationService(),
+        ),
         RepositoryProvider<CustomerCatalogRepository>.value(
           value: _customerCatalogRepository,
         ),

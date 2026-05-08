@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/models/restaurant_search_item.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
+import '../../../../core/location/geolocation_service.dart';
 import '../cubit/restaurant_browse_cubit.dart';
 import '../cubit/restaurant_browse_state.dart';
 
@@ -16,6 +17,7 @@ class RestaurantBrowsePage extends StatelessWidget {
       create:
           (context) => RestaurantBrowseCubit(
             repository: context.read<CustomerCatalogRepository>(),
+            geolocationService: context.read<GeolocationService>(),
           )..initialize(),
       child: const _RestaurantBrowseView(),
     );
@@ -84,6 +86,10 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                       (sort) => context
                           .read<RestaurantBrowseCubit>()
                           .changeSort(sort),
+                  onNearbyToggle:
+                      (enabled) => context
+                          .read<RestaurantBrowseCubit>()
+                          .toggleNearby(enabled),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -159,17 +165,27 @@ class _SearchSection extends StatelessWidget {
     required this.state,
     required this.onSearch,
     required this.onSortChanged,
+    required this.onNearbyToggle,
   });
 
   final TextEditingController controller;
   final RestaurantBrowseState state;
   final ValueChanged<String> onSearch;
   final ValueChanged<String> onSortChanged;
+  final ValueChanged<bool> onNearbyToggle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        Row(
+          children: [
+            const Text('Nearby'),
+            const SizedBox(width: 8),
+            Switch(value: state.isNearby, onChanged: onNearbyToggle),
+          ],
+        ),
+        const SizedBox(height: 8),
         Expanded(
           child: TextField(
             controller: controller,
@@ -199,9 +215,20 @@ class _SearchSection extends StatelessWidget {
               onSortChanged(value);
             }
           },
-          items: const [
-            DropdownMenuItem(value: 'relevance', child: Text('Relevance')),
-            DropdownMenuItem(value: 'rating_desc', child: Text('Top rated')),
+          items: [
+            const DropdownMenuItem(
+              value: 'relevance',
+              child: Text('Relevance'),
+            ),
+            const DropdownMenuItem(
+              value: 'rating_desc',
+              child: Text('Top rated'),
+            ),
+            if (state.latitude != null && state.longitude != null)
+              const DropdownMenuItem(
+                value: 'distance_asc',
+                child: Text('Closest'),
+              ),
           ],
         ),
       ],

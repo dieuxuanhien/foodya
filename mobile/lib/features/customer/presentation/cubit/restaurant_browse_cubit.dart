@@ -1,15 +1,21 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../../../core/location/geolocation_service.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
 import 'restaurant_browse_state.dart';
 
 class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
-  RestaurantBrowseCubit({required CustomerCatalogRepository repository})
-    : _repository = repository,
-      super(const RestaurantBrowseState.initial());
+  RestaurantBrowseCubit({
+    required CustomerCatalogRepository repository,
+    GeolocationService? geolocationService,
+  }) : _repository = repository,
+       _geolocationService = geolocationService,
+       super(const RestaurantBrowseState.initial());
 
   final CustomerCatalogRepository _repository;
+  final GeolocationService? _geolocationService;
 
   Future<void> initialize() async {
     emit(
@@ -46,6 +52,45 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
   Future<void> changeSort(String sort) async {
     emit(state.copyWith(sort: sort));
     await refresh();
+  }
+
+  Future<void> toggleNearby(bool enabled) async {
+    if (!enabled) {
+      emit(state.copyWith(isNearby: false, latitude: null, longitude: null));
+      await refresh();
+      return;
+    }
+
+    if (_geolocationService == null) {
+      emit(state.copyWith(errorMessage: 'Location services not available.'));
+      return;
+    }
+
+    try {
+      final permission = await _geolocationService.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        emit(state.copyWith(errorMessage: 'Location permission denied.'));
+        return;
+      }
+
+      final pos = await _geolocationService.getCurrentPosition();
+      emit(
+        state.copyWith(
+          isNearby: true,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+        ),
+      );
+
+      await refresh();
+    } catch (error) {
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to access location. Please try again.',
+      );
+      emit(state.copyWith(errorMessage: presentation.message));
+    }
   }
 
   Future<void> toggleOpenNow(bool enabled) async {
@@ -108,15 +153,26 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
     );
 
     try {
-      final page = await _repository.searchRestaurants(
-        keyword: state.keyword.trim().isEmpty ? null : state.keyword.trim(),
-        minRating: state.minRating,
-        openNow: state.openNow,
-        sort: state.sort,
-        taxonomyCodes: state.selectedTaxonomyCodes,
-        page: nextPage,
-        size: 10,
-      );
+      final page =
+          state.isNearby && state.latitude != null && state.longitude != null
+              ? await _repository.nearbyRestaurants(
+                lat: state.latitude!,
+                lng: state.longitude!,
+                radiusKm: state.radiusKm,
+                sort: state.sort,
+                page: nextPage,
+                size: 10,
+              )
+              : await _repository.searchRestaurants(
+                keyword:
+                    state.keyword.trim().isEmpty ? null : state.keyword.trim(),
+                minRating: state.minRating,
+                openNow: state.openNow,
+                sort: state.sort,
+                taxonomyCodes: state.selectedTaxonomyCodes,
+                page: nextPage,
+                size: 10,
+              );
 
       final merged = reset ? page.items : [...state.restaurants, ...page.items];
 

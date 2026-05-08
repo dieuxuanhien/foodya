@@ -64,4 +64,23 @@ class HttpCustomerCatalogRepository implements CustomerCatalogRepository {
   Future<List<CategoryTaxonomy>> listCategoryTaxonomies() {
     return _remoteDataSource.listCategoryTaxonomies();
   }
+
+  @override
+  Future<PagedResult<RestaurantSearchItem>> nearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5.0,
+    String? sort,
+    int page = 0,
+    int size = 10,
+  }) {
+    return _remoteDataSource.nearbyRestaurants(
+      lat: lat,
+      lng: lng,
+      radiusKm: radiusKm,
+      sort: sort,
+      page: page,
+      size: size,
+    );
+  }
 }

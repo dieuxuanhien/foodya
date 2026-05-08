@@ -28,4 +28,13 @@ abstract class CustomerCatalogRepository {
   });
 
   Future<List<CategoryTaxonomy>> listCategoryTaxonomies();
+
+  Future<PagedResult<RestaurantSearchItem>> nearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5.0,
+    String? sort,
+    int page = 0,
+    int size = 10,
+  });
 }

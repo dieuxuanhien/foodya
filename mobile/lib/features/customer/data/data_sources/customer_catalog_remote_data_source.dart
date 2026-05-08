@@ -83,6 +83,32 @@ class CustomerCatalogRemoteDataSource {
     );
   }
 
+  Future<PagedResult<RestaurantSearchItem>> nearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5.0,
+    String? sort,
+    int page = 0,
+    int size = 10,
+  }) async {
+    final response = await _get(
+      '/api/v1/restaurants/nearby',
+      queryParameters: {
+        'lat': lat.toString(),
+        'lng': lng.toString(),
+        'radiusKm': radiusKm.toString(),
+        'sort': sort,
+        'page': page.toString(),
+        'size': size.toString(),
+      },
+    );
+
+    return _mapPagedData(
+      response,
+      (entry) => RestaurantSearchItem.fromJson(entry),
+    );
+  }
+
   Future<List<CategoryTaxonomy>> listCategoryTaxonomies() async {
     final response = await _get('/api/v1/restaurants/category-taxonomies');
     final data = _extractDataList(response);
