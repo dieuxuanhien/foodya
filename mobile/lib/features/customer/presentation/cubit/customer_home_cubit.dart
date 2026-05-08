@@ -50,6 +50,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
             locationMessage: 'Location service is turned off.',
             nearbyMessage:
                 'Turn on location service to see nearby restaurants.',
+            friendlyAddress: null,
             clearCoordinates: true,
           ),
         );
@@ -67,6 +68,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
             locationMessage: 'Location permission denied.',
             nearbyMessage:
                 'Grant location permission to load nearby restaurants.',
+            friendlyAddress: null,
             clearCoordinates: true,
           ),
         );
@@ -78,10 +80,15 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
         timeLimit: const Duration(seconds: 10),
       );
 
+      final friendlyAddress = await _geolocationService.getFriendlyAddress(
+        position,
+      );
+
       emit(
         state.copyWith(
           latitude: position.latitude,
           longitude: position.longitude,
+          friendlyAddress: friendlyAddress,
           clearLocationMessage: true,
         ),
       );
@@ -100,6 +107,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
           nearbyRestaurants: const [],
           locationMessage: presentation.message,
           nearbyMessage: 'Nearby restaurants are unavailable right now.',
+          friendlyAddress: null,
           clearCoordinates: true,
         ),
       );

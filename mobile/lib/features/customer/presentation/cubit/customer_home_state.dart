@@ -14,6 +14,7 @@ class CustomerHomeState extends Equatable {
     required this.nearbyRestaurants,
     this.locationMessage,
     this.nearbyMessage,
+    this.friendlyAddress,
   });
 
   const CustomerHomeState.initial()
@@ -26,6 +27,7 @@ class CustomerHomeState extends Equatable {
         nearbyRestaurants: const [],
         locationMessage: null,
         nearbyMessage: null,
+        friendlyAddress: null,
       );
 
   final CustomerHomeStatus status;
@@ -36,8 +38,13 @@ class CustomerHomeState extends Equatable {
   final List<RestaurantSearchItem> nearbyRestaurants;
   final String? locationMessage;
   final String? nearbyMessage;
+  final String? friendlyAddress;
 
   String get locationLabel {
+    if (friendlyAddress != null && friendlyAddress!.trim().isNotEmpty) {
+      return friendlyAddress!;
+    }
+
     if (latitude == null || longitude == null) {
       return locationMessage ?? 'Location unavailable';
     }
@@ -54,6 +61,7 @@ class CustomerHomeState extends Equatable {
     List<RestaurantSearchItem>? nearbyRestaurants,
     String? locationMessage,
     String? nearbyMessage,
+    String? friendlyAddress,
     bool clearLocationMessage = false,
     bool clearNearbyMessage = false,
     bool clearCoordinates = false,
@@ -71,6 +79,7 @@ class CustomerHomeState extends Equatable {
               : (locationMessage ?? this.locationMessage),
       nearbyMessage:
           clearNearbyMessage ? null : (nearbyMessage ?? this.nearbyMessage),
+      friendlyAddress: friendlyAddress ?? this.friendlyAddress,
     );
   }
 
@@ -84,5 +93,6 @@ class CustomerHomeState extends Equatable {
     nearbyRestaurants,
     locationMessage,
     nearbyMessage,
+    friendlyAddress,
   ];
 }
