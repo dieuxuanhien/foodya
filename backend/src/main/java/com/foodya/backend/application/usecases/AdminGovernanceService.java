@@ -61,6 +61,52 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         );
     }
 
+    public RestaurantData getRestaurantById(UUID restaurantId) {
+        Restaurant restaurant = requireRestaurant(restaurantId);
+        return toRestaurantData(restaurant);
+    }
+
+    public RestaurantData createRestaurant(com.foodya.backend.application.dto.AdminRestaurantCreateCommand command, UUID actorId) {
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(UUID.randomUUID());
+        restaurant.setOwnerUserId(command.ownerUserId());
+        restaurant.setName(command.name());
+        restaurant.setDescription(command.description());
+        restaurant.setAddressLine(command.addressLine());
+        restaurant.setCuisineType(command.cuisineType());
+        restaurant.setOpen(command.isOpen());
+        restaurant.setStatus(command.status());
+        restaurant.setLatitude(command.latitude());
+        restaurant.setLongitude(command.longitude());
+        restaurant.setMaxDeliveryKm(command.maxDeliveryKm());
+        restaurant.setCreatedAt(java.time.OffsetDateTime.now());
+        restaurant.setUpdatedAt(restaurant.getCreatedAt());
+
+        Restaurant saved = adminRestaurantPort.save(restaurant);
+        auditLogService.securityEvent(actorId.toString(), "ADMIN_RESTAURANT_CREATE", "RESTAURANT", saved.getId().toString(), null, saved.getStatus().name());
+        return toRestaurantData(saved);
+    }
+
+    public RestaurantData updateRestaurant(UUID restaurantId, com.foodya.backend.application.dto.AdminRestaurantUpdateCommand command, UUID actorId) {
+        Restaurant restaurant = requireRestaurant(restaurantId);
+        
+        restaurant.setOwnerUserId(command.ownerUserId());
+        restaurant.setName(command.name());
+        restaurant.setDescription(command.description());
+        restaurant.setAddressLine(command.addressLine());
+        restaurant.setCuisineType(command.cuisineType());
+        restaurant.setOpen(command.isOpen());
+        restaurant.setStatus(command.status());
+        restaurant.setLatitude(command.latitude());
+        restaurant.setLongitude(command.longitude());
+        restaurant.setMaxDeliveryKm(command.maxDeliveryKm());
+        restaurant.setUpdatedAt(java.time.OffsetDateTime.now());
+
+        Restaurant saved = adminRestaurantPort.save(restaurant);
+        auditLogService.securityEvent(actorId.toString(), "ADMIN_RESTAURANT_UPDATE", "RESTAURANT", saved.getId().toString(), null, "Updated");
+        return toRestaurantData(saved);
+    }
+
     public RestaurantData approveRestaurant(UUID restaurantId, UUID actorId) {
         Restaurant restaurant = requireRestaurant(restaurantId);
         RestaurantStatus oldStatus = restaurant.getStatus();

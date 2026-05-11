@@ -133,8 +133,9 @@ public class AppConfig {
 	public AdminUserService adminUserService(
 			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
-			AuditLogService auditLogService) {
-		return new AdminUserService(adminUserPort, paginationPolicy, auditLogService);
+			AuditLogService auditLogService,
+			PasswordHashPort passwordHashPort) {
+		return new AdminUserService(adminUserPort, paginationPolicy, auditLogService, passwordHashPort);
 	}
 
 	@Bean

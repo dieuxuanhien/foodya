@@ -60,6 +60,21 @@ public class AdminUserAdapter implements AdminUserPort {
     }
 
     @Override
+    public Optional<UserAccount> findByUsername(String username) {
+        return repository.findByUsername(username).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserAccount> findByEmail(String email) {
+        return repository.findByEmail(email).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserAccount> findByPhoneNumber(String phoneNumber) {
+        return repository.findByPhoneNumber(phoneNumber).map(mapper::toDomain);
+    }
+
+    @Override
     public UserAccount save(UserAccount userAccount) {
         UserAccount saved = mapper.toDomain(repository.save(Objects.requireNonNull(mapper.toPersistence(Objects.requireNonNull(userAccount)))));
         return saved;

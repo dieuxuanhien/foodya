@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -67,6 +68,37 @@ public class AdminGovernanceController {
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(request)
         ));
+    }
+
+    @GetMapping("/restaurants/{id}")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> getRestaurantById(@PathVariable String id, HttpServletRequest request) {
+        RestaurantData restaurant = adminGovernanceService.getRestaurantById(parseUuid(id, "id"));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
+    }
+
+    @PostMapping("/restaurants")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurant(Authentication authentication,
+                                                                                         @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminRestaurantCreateRequest req,
+                                                                                         HttpServletRequest request) {
+        var command = new com.foodya.backend.application.dto.AdminRestaurantCreateCommand(
+                req.ownerUserId(), req.name(), req.description(), req.addressLine(), req.cuisineType(),
+                req.isOpen(), req.status(), req.latitude(), req.longitude(), req.maxDeliveryKm()
+        );
+        RestaurantData restaurant = adminGovernanceService.createRestaurant(command, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
+    }
+
+    @PutMapping("/restaurants/{id}")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurant(Authentication authentication,
+                                                                                         @PathVariable String id,
+                                                                                         @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminRestaurantUpdateRequest req,
+                                                                                         HttpServletRequest request) {
+        var command = new com.foodya.backend.application.dto.AdminRestaurantUpdateCommand(
+                req.ownerUserId(), req.name(), req.description(), req.addressLine(), req.cuisineType(),
+                req.isOpen(), req.status(), req.latitude(), req.longitude(), req.maxDeliveryKm()
+        );
+        RestaurantData restaurant = adminGovernanceService.updateRestaurant(parseUuid(id, "id"), command, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
     @PostMapping("/restaurants/{id}/approve")

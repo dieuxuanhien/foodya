@@ -1,4 +1,4 @@
-package com.foodya.backend.application.usecases;
+package com.foodya.backend.infrastructure.notification;
 
 import com.foodya.backend.domain.value_objects.NotificationStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.UUID;
+import com.foodya.backend.application.usecases.NotificationService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

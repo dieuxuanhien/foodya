@@ -3,6 +3,8 @@ package com.foodya.backend.application.ports.in;
 import com.foodya.backend.application.dto.OrderData;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.AdminRestaurantCreateCommand;
+import com.foodya.backend.application.dto.AdminRestaurantUpdateCommand;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 
@@ -11,6 +13,12 @@ import java.util.UUID;
 public interface AdminGovernanceUseCase {
 
     PaginatedResult<RestaurantData> listRestaurants(String keyword, RestaurantStatus status, Integer page, Integer size);
+
+    RestaurantData getRestaurantById(UUID restaurantId);
+
+    RestaurantData createRestaurant(AdminRestaurantCreateCommand command, UUID actorId);
+
+    RestaurantData updateRestaurant(UUID restaurantId, AdminRestaurantUpdateCommand command, UUID actorId);
 
     RestaurantData approveRestaurant(UUID restaurantId, UUID actorId);
 

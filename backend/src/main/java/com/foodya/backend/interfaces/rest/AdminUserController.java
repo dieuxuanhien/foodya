@@ -23,9 +23,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -59,6 +62,56 @@ public class AdminUserController {
         PageMetadata meta = new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages());
 
         return ResponseEntity.ok(ApiSuccessResponse.of(data, meta, RequestTrace.from(httpServletRequest)));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get user details")
+    public ResponseEntity<ApiSuccessResponse<com.foodya.backend.interfaces.rest.dto.AdminUserDetailResponse>> getById(@PathVariable String id, HttpServletRequest httpServletRequest) {
+        UUID userId = parseUuid(id, "id");
+        com.foodya.backend.application.dto.AdminUserDetailView view = adminUserService.getById(userId);
+        var response = new com.foodya.backend.interfaces.rest.dto.AdminUserDetailResponse(
+                view.id(), view.username(), view.email(), view.phoneNumber(), view.fullName(),
+                view.avatarUrl(), view.role(), view.status(), view.createdAt(), view.updatedAt()
+        );
+        return ResponseEntity.ok(ApiSuccessResponse.of(response, RequestTrace.from(httpServletRequest)));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create a new user")
+    public ResponseEntity<ApiSuccessResponse<AdminUserResponse>> create(Authentication authentication,
+                                                                        @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminUserCreateRequest request,
+                                                                        HttpServletRequest httpServletRequest) {
+        var command = new com.foodya.backend.application.dto.AdminUserCreateCommand(
+                request.username(), request.email(), request.phoneNumber(), request.fullName(),
+                request.password(), request.role(), request.status()
+        );
+        com.foodya.backend.application.dto.AdminUserSummaryView data = adminUserService.createUser(command, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(data), RequestTrace.from(httpServletRequest)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update user")
+    public ResponseEntity<ApiSuccessResponse<AdminUserResponse>> update(Authentication authentication,
+                                                                        @PathVariable String id,
+                                                                        @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminUserUpdateRequest request,
+                                                                        HttpServletRequest httpServletRequest) {
+        UUID userId = parseUuid(id, "id");
+        var command = new com.foodya.backend.application.dto.AdminUserUpdateCommand(
+                request.username(), request.email(), request.phoneNumber(), request.fullName(),
+                request.role(), request.status()
+        );
+        com.foodya.backend.application.dto.AdminUserSummaryView data = adminUserService.updateUser(userId, command, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(data), RequestTrace.from(httpServletRequest)));
+    }
+
+    @PostMapping("/{id}/reset-password")
+    @Operation(summary = "Force reset user password")
+    public ResponseEntity<Void> resetPassword(Authentication authentication,
+                                              @PathVariable String id,
+                                              @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminUserResetPasswordRequest request) {
+        UUID userId = parseUuid(id, "id");
+        adminUserService.resetPassword(userId, request.newPassword(), CurrentUser.userId(authentication));
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/lock")
