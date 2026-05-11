@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Store, ShoppingBag,
   BarChart2, Settings, Bell, LogOut,
+  Tag,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { logout } from '../api/auth';
@@ -14,6 +15,9 @@ const NAV = [
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/restaurants', icon: Store, label: 'Restaurants' },
     { to: '/orders', icon: ShoppingBag, label: 'Orders' },
+  ]},
+  { label: 'Catalog Management', items: [
+    { to: '/categories', icon: Tag, label: 'Categories' },
   ]},
   { label: 'Analytics', items: [
     { to: '/reports', icon: BarChart2, label: 'Revenue Reports' },

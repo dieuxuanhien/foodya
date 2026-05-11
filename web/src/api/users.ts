@@ -22,6 +22,9 @@ export const lockUser = (id: string) =>
 export const unlockUser = (id: string) =>
   api.post<{ data: User }>(`/admin/users/${id}/unlock`);
 
+export const approveUser = (id: string) =>
+  api.post<{ data: User }>(`/admin/users/${id}/approve`);
+
 export const deleteUser = (id: string) =>
   api.delete(`/admin/users/${id}`);
 

@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.AdminUserSummaryView;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.exception.ConflictException;
 import com.foodya.backend.application.exception.NotFoundException;
+import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.AdminUserUseCase;
 import com.foodya.backend.application.ports.out.AdminUserPort;
 import com.foodya.backend.application.support.PaginationPolicy;
@@ -11,7 +12,9 @@ import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.domain.entities.UserAccount;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class AdminUserService implements AdminUserUseCase {
@@ -90,17 +93,41 @@ public class AdminUserService implements AdminUserUseCase {
         return toView(updated);
     }
 
+    public AdminUserSummaryView approve(UUID userId, UUID actorId) {
+        UserAccount user = requireUser(userId);
+        UserStatus oldStatus = user.getStatus();
+
+        if (oldStatus != UserStatus.PENDING_APPROVAL) {
+            throw new ValidationException("cannot approve", Map.of("status", "only PENDING_APPROVAL users can be approved"));
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        UserAccount updated = adminUserPort.save(user);
+
+        auditLogService.securityEvent(
+                actorId.toString(),
+                "ADMIN_USER_APPROVE",
+                "USER",
+                userId.toString(),
+                oldStatus.name(),
+                updated.getStatus().name()
+        );
+
+        return toView(updated);
+    }
+
     public void delete(UUID userId, UUID actorId) {
         UserAccount user = requireUser(userId);
 
         boolean hasCustomerOrders = adminUserPort.hasCustomerOrdersInStatuses(userId, BLOCKING_DELETE_STATUSES);
         boolean hasMerchantOrders = adminUserPort.hasMerchantOrdersInStatuses(userId, BLOCKING_DELETE_STATUSES);
         if (hasCustomerOrders || hasMerchantOrders) {
-            throw new ConflictException("hard delete blocked by linked active orders");
+            throw new ConflictException("soft delete blocked by linked active orders");
         }
 
-        adminUserPort.delete(user);
-        auditLogService.securityEvent(actorId.toString(), "ADMIN_USER_DELETE", "USER", userId.toString(), null, "hard-deleted");
+        user.setDeletedAt(OffsetDateTime.now());
+        adminUserPort.save(user);
+        auditLogService.securityEvent(actorId.toString(), "ADMIN_USER_DELETE", "USER", userId.toString(), null, "soft-deleted");
     }
 
     public com.foodya.backend.application.dto.AdminUserDetailView getById(UUID userId) {

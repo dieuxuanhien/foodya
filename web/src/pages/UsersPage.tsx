@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Lock, Unlock, Trash2, Edit2, Key, Plus } from 'lucide-react';
-import { getUsers, lockUser, unlockUser, deleteUser, createUser, updateUser, resetUserPassword, type User } from '../api/users';
+import { Search, Lock, Unlock, Trash2, Edit2, Key, Plus, CheckCircle } from 'lucide-react';
+import { getUsers, lockUser, unlockUser, approveUser, deleteUser, createUser, updateUser, resetUserPassword, type User } from '../api/users';
 import { PageHeader, LoadingCenter, EmptyState, StatusBadge, Pagination, ConfirmModal } from '../components/ui';
 import { UserFormModal } from '../components/UserFormModal';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
 
-type Action = { type: 'lock' | 'unlock' | 'delete'; user: User };
+type Action = { type: 'lock' | 'unlock' | 'approve' | 'delete'; user: User };
 
 export default function UsersPage() {
   const qc = useQueryClient();
@@ -25,6 +25,7 @@ export default function UsersPage() {
 
   const mutLock = useMutation({ mutationFn: (id: string) => lockUser(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setAction(null); } });
   const mutUnlock = useMutation({ mutationFn: (id: string) => unlockUser(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setAction(null); } });
+  const mutApprove = useMutation({ mutationFn: (id: string) => approveUser(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setAction(null); } });
   const mutDelete = useMutation({ mutationFn: (id: string) => deleteUser(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setAction(null); } });
   const mutCreate = useMutation({ mutationFn: createUser, onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowFormModal(false); } });
   const mutUpdate = useMutation({ mutationFn: (vars: { id: string, data: Partial<User> }) => updateUser(vars.id, vars.data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowFormModal(false); } });
@@ -32,12 +33,13 @@ export default function UsersPage() {
 
   const users = data?.data?.data ?? [];
   const meta = data?.data?.meta;
-  const isMutating = mutLock.isPending || mutUnlock.isPending || mutDelete.isPending;
+  const isMutating = mutLock.isPending || mutUnlock.isPending || mutApprove.isPending || mutDelete.isPending;
 
   const handleConfirm = () => {
     if (!action) return;
     if (action.type === 'lock') mutLock.mutate(action.user.id);
     else if (action.type === 'unlock') mutUnlock.mutate(action.user.id);
+    else if (action.type === 'approve') mutApprove.mutate(action.user.id);
     else mutDelete.mutate(action.user.id);
   };
 
@@ -112,6 +114,11 @@ export default function UsersPage() {
                             <Unlock size={13} />
                           </button>
                         )}
+                        {u.status === 'PENDING_APPROVAL' && (
+                          <button id={`approve-${u.id}`} className="btn btn-success btn-sm btn-icon" title="Approve" onClick={() => setAction({ type: 'approve', user: u })}>
+                            <CheckCircle size={13} />
+                          </button>
+                        )}
                         <button id={`delete-user-${u.id}`} className="btn btn-danger btn-sm btn-icon" title="Delete" onClick={() => setAction({ type: 'delete', user: u })}>
                           <Trash2 size={13} />
                         </button>
@@ -129,12 +136,14 @@ export default function UsersPage() {
 
       {action && (
         <ConfirmModal
-          title={action.type === 'delete' ? 'Delete User' : action.type === 'lock' ? 'Lock User' : 'Unlock User'}
+          title={action.type === 'delete' ? 'Delete User' : action.type === 'lock' ? 'Lock User' : action.type === 'approve' ? 'Approve User' : 'Unlock User'}
           message={
             action.type === 'delete'
-              ? `Permanently delete "${action.user.username}"? This cannot be undone.`
+              ? `Soft delete "${action.user.username}"? They will be removed from the system.`
               : action.type === 'lock'
               ? `Lock account "${action.user.username}"? They will not be able to login.`
+              : action.type === 'approve'
+              ? `Approve "${action.user.username}" (${action.user.role})? They will be activated.`
               : `Unlock account "${action.user.username}"?`
           }
           onConfirm={handleConfirm}

@@ -30,6 +30,8 @@ public class UserAccount {
 
     private OffsetDateTime updatedAt;
 
+    private OffsetDateTime deletedAt;
+
     public void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
@@ -128,5 +130,13 @@ public class UserAccount {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public OffsetDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

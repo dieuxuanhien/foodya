@@ -80,7 +80,7 @@ export function UserFormModal({ user, onClose, onSubmit, loading }: Props) {
               <select className="input" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="LOCKED">LOCKED</option>
-                <option value="PENDING_VERIFICATION">PENDING</option>
+                <option value="PENDING_APPROVAL">PENDING</option>
               </select>
             </div>
           </div>

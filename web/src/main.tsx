@@ -13,6 +13,7 @@ import OrdersPage from './pages/OrdersPage';
 import SystemParamsPage from './pages/SystemParamsPage';
 import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import CategoriesPage from './pages/CategoriesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
       { path: 'system-params', element: <SystemParamsPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'categories', element: <CategoriesPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

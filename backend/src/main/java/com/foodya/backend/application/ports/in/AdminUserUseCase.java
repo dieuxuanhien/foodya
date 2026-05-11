@@ -16,6 +16,8 @@ public interface AdminUserUseCase {
 
     AdminUserSummaryView unlock(UUID userId, UUID actorId);
 
+    AdminUserSummaryView approve(UUID userId, UUID actorId);
+
     void delete(UUID userId, UUID actorId);
 
     AdminUserDetailView getById(UUID userId);

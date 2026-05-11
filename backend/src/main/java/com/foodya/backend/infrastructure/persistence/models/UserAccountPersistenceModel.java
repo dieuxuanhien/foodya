@@ -53,6 +53,10 @@ public class UserAccountPersistenceModel {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    // TODO: Enable when Flyway migration V26 is applied
+    // @Column(name = "deleted_at")
+    // private OffsetDateTime deletedAt;
+
     @PrePersist
     void onCreate() {
         if (id == null) {
@@ -154,4 +158,13 @@ public class UserAccountPersistenceModel {
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    // TODO: Enable getter/setter when Flyway migration V26 is applied
+    // public OffsetDateTime getDeletedAt() {
+    //     return deletedAt;
+    // }
+    //
+    // public void setDeletedAt(OffsetDateTime deletedAt) {
+    //     this.deletedAt = deletedAt;
+    // }
 }

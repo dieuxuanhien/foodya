@@ -134,8 +134,18 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(data), RequestTrace.from(httpServletRequest)));
     }
 
+    @PostMapping("/{id}/approve")
+    @Operation(summary = "Approve pending user account (MERCHANT role)")
+    public ResponseEntity<ApiSuccessResponse<AdminUserResponse>> approve(Authentication authentication,
+                                                                         @PathVariable String id,
+                                                                         HttpServletRequest httpServletRequest) {
+        UUID userId = parseUuid(id, "id");
+        AdminUserSummaryView data = adminUserService.approve(userId, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(data), RequestTrace.from(httpServletRequest)));
+    }
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Hard delete user account")
+    @Operation(summary = "Soft delete user account")
     public ResponseEntity<Void> delete(Authentication authentication, @PathVariable String id) {
         UUID userId = parseUuid(id, "id");
         adminUserService.delete(userId, CurrentUser.userId(authentication));
