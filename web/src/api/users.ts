@@ -10,6 +10,12 @@ export interface User {
   status: string;
 }
 
+export interface AdminUserDetail extends User {
+  avatarUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PageMeta { page: number; size: number; totalElements: number; totalPages: number; }
 export interface PagedResponse<T> { data: T[]; meta: PageMeta; }
 
@@ -29,7 +35,7 @@ export const deleteUser = (id: string) =>
   api.delete(`/admin/users/${id}`);
 
 export const getUser = (id: string) =>
-  api.get<{ data: User }>(`/admin/users/${id}`);
+  api.get<{ data: AdminUserDetail }>(`/admin/users/${id}`);
 
 export const createUser = (data: Partial<User> & { password?: string }) =>
   api.post<{ data: User }>('/admin/users', data);

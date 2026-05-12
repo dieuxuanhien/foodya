@@ -35,6 +35,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.Objects;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -228,6 +229,31 @@ class AdminGovernanceIntegrationTests {
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    void adminCanListMenuItemsWithFilters() throws Exception {
+        UserAccount admin = saveUser("admin_gov_04", "admin_gov_04@foodya.test", "+84990100004", UserRole.ADMIN, "Admin@123");
+        UserAccount merchant = saveUser("merchant_gov_04", "merchant_gov_04@foodya.test", "+84990100014", UserRole.MERCHANT, "Mer@12345");
+
+        Restaurant restaurant = saveRestaurant(merchant, RestaurantStatus.ACTIVE, "Governance Four");
+        MenuCategory category = saveCategory(restaurant, "Main");
+        MenuItem noodles = saveMenuItem(restaurant, category, "Pho Bo", Set.of("NOODLES"));
+        saveMenuItem(restaurant, category, "Com Tam", Set.of("RICE"));
+
+        String adminToken = login(admin.getUsername(), "Admin@123");
+
+        mockMvc.perform(get("/api/v1/admin/menu-items")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("restaurantId", restaurant.getId().toString())
+                        .param("categoryCode", "NOODLES")
+                        .param("q", "pho"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.totalElements").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(noodles.getId().toString()))
+                .andExpect(jsonPath("$.data[0].restaurantId").value(restaurant.getId().toString()))
+                .andExpect(jsonPath("$.data[0].name").value("Pho Bo"))
+                .andExpect(jsonPath("$.data[0].taxonomyCodes[0]").value("NOODLES"));
+    }
+
     private UserAccount saveUser(String username,
                                  String email,
                                  String phone,
@@ -301,9 +327,14 @@ class AdminGovernanceIntegrationTests {
     }
 
     private MenuItem saveMenuItem(Restaurant restaurant, MenuCategory category, String name) {
+        return saveMenuItem(restaurant, category, name, Set.of("MAIN_DISHES"));
+    }
+
+    private MenuItem saveMenuItem(Restaurant restaurant, MenuCategory category, String name, Set<String> taxonomyCodes) {
         MenuItem menuItem = new MenuItem();
         menuItem.setRestaurantId(restaurant.getId());
         menuItem.setCategoryId(category.getId());
+        menuItem.setTaxonomyCodes(taxonomyCodes);
         menuItem.setName(name);
         menuItem.setDescription("test");
         menuItem.setPrice(new BigDecimal("50000.00"));

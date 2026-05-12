@@ -14,6 +14,9 @@ import SystemParamsPage from './pages/SystemParamsPage';
 import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CategoriesPage from './pages/CategoriesPage';
+import MenuItemsPage from './pages/MenuItemsPage';
+import DeliveryOrdersPage from './pages/DeliveryOrdersPage';
+import AuditLogsPage from './pages/AuditLogsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +42,9 @@ const router = createBrowserRouter([
       { path: 'reports', element: <ReportsPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'categories', element: <CategoriesPage /> },
+      { path: 'menu-items', element: <MenuItemsPage /> },
+      { path: 'delivery-orders', element: <DeliveryOrdersPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

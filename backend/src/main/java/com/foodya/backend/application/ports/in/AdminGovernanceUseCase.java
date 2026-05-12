@@ -3,6 +3,7 @@ package com.foodya.backend.application.ports.in;
 import com.foodya.backend.application.dto.OrderData;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.dto.AdminRestaurantCreateCommand;
 import com.foodya.backend.application.dto.AdminRestaurantUpdateCommand;
 import com.foodya.backend.domain.value_objects.OrderStatus;
@@ -27,6 +28,8 @@ public interface AdminGovernanceUseCase {
     void deleteRestaurant(UUID restaurantId, UUID actorId);
 
     PaginatedResult<OrderData> listOrders(OrderStatus status, Integer page, Integer size);
+
+    PaginatedResult<MenuItemData> listMenuItems(UUID restaurantId, String taxonomyCode, String keyword, Integer page, Integer size);
 
     OrderData updateOrderStatus(UUID orderId, OrderStatus targetStatus, UUID actorId);
 

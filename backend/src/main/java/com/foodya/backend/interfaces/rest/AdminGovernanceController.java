@@ -3,6 +3,7 @@ package com.foodya.backend.interfaces.rest;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.OrderData;
 import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.AdminGovernanceUseCase;
 import com.foodya.backend.domain.value_objects.OrderStatus;
@@ -13,6 +14,7 @@ import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
+import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -142,6 +144,27 @@ public class AdminGovernanceController {
         ));
     }
 
+        @GetMapping("/menu-items")
+        public ResponseEntity<ApiSuccessResponse<List<MenuItemResponse>>> listMenuItems(@RequestParam(required = false) String restaurantId,
+                                                 @RequestParam(required = false) String categoryCode,
+                                                 @RequestParam(required = false) String q,
+                                                 @RequestParam(required = false) @Min(0) Integer page,
+                                                 @RequestParam(required = false) @Min(1) @Max(200) Integer size,
+                                                 HttpServletRequest request) {
+        UUID restaurantUuid = parseNullableUuid(restaurantId, "restaurantId");
+        PaginatedResult<MenuItemData> result = adminGovernanceService.listMenuItems(restaurantUuid, categoryCode, q, page, size);
+
+        List<MenuItemResponse> data = result.items().stream()
+            .map(CommonApiMapper::toMenuItemResponse)
+            .toList();
+
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+            data,
+            new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
+            RequestTrace.from(request)
+        ));
+        }
+
     @PatchMapping("/orders/{id}/status")
     public ResponseEntity<ApiSuccessResponse<OrderDetailResponse>> updateOrderStatus(Authentication authentication,
                                                                                       @PathVariable String id,
@@ -173,6 +196,13 @@ public class AdminGovernanceController {
         } catch (IllegalArgumentException ex) {
             throw new ValidationException("invalid uuid", Map.of(field, "must be UUID"));
         }
+    }
+
+    private static UUID parseNullableUuid(String raw, String field) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return parseUuid(raw.trim(), field);
     }
 
     private static RestaurantStatus parseRestaurantStatus(String raw) {

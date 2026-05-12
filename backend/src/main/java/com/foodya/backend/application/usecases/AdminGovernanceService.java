@@ -3,6 +3,7 @@ package com.foodya.backend.application.usecases;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.OrderData;
 import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.exception.ConflictException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -160,6 +161,27 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         );
     }
 
+    public PaginatedResult<MenuItemData> listMenuItems(UUID restaurantId, String taxonomyCode, String keyword, Integer page, Integer size) {
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        String normalizedTaxonomy = taxonomyCode == null || taxonomyCode.isBlank() ? null : taxonomyCode.trim();
+        PaginatedResult<MenuItem> result = adminMenuItemPort.search(
+                restaurantId,
+                normalizedTaxonomy,
+                normalizedKeyword,
+                spec.page(),
+                spec.size()
+        );
+
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toMenuItemData).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
+    }
+
     public OrderData updateOrderStatus(UUID orderId, OrderStatus targetStatus, UUID actorId) {
         Order order = requireOrder(orderId);
         OrderStatus current = order.getStatus();
@@ -265,6 +287,22 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         model.setCommissionAmount(order.getCommissionAmount());
         model.setShippingFeeMarginAmount(order.getShippingFeeMarginAmount());
         model.setPlatformProfitAmount(order.getPlatformProfitAmount());
+        return model;
+    }
+
+    private MenuItemData toMenuItemData(MenuItem menuItem) {
+        MenuItemData model = new MenuItemData();
+        model.setId(menuItem.getId());
+        model.setRestaurantId(menuItem.getRestaurantId());
+        model.setCategoryId(menuItem.getCategoryId());
+        model.setTaxonomyCodes(menuItem.getTaxonomyCodes().stream().toList());
+        model.setName(menuItem.getName());
+        model.setDescription(menuItem.getDescription());
+        model.setImageUrl(menuItem.getImageUrl());
+        model.setPrice(menuItem.getPrice());
+        model.setActive(menuItem.isActive());
+        model.setAvailable(menuItem.isAvailable());
+        model.setDeletedAt(menuItem.getDeletedAt());
         return model;
     }
 }

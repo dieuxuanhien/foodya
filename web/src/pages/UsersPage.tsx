@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Lock, Unlock, Trash2, Edit2, Key, Plus, CheckCircle } from 'lucide-react';
-import { getUsers, lockUser, unlockUser, approveUser, deleteUser, createUser, updateUser, resetUserPassword, type User } from '../api/users';
+import { Search, Lock, Unlock, Trash2, Edit2, Key, Plus, CheckCircle, Eye } from 'lucide-react';
+import { getUsers, getUser, lockUser, unlockUser, approveUser, deleteUser, createUser, updateUser, resetUserPassword, type User, type AdminUserDetail } from '../api/users';
 import { PageHeader, LoadingCenter, EmptyState, StatusBadge, Pagination, ConfirmModal } from '../components/ui';
 import { UserFormModal } from '../components/UserFormModal';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
+import { UserDetailModal } from '../components/UserDetailModal';
 
 type Action = { type: 'lock' | 'unlock' | 'approve' | 'delete'; user: User };
 
@@ -17,6 +18,7 @@ export default function UsersPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users', search, page],
@@ -31,9 +33,16 @@ export default function UsersPage() {
   const mutUpdate = useMutation({ mutationFn: (vars: { id: string, data: Partial<User> }) => updateUser(vars.id, vars.data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowFormModal(false); } });
   const mutReset = useMutation({ mutationFn: (vars: { id: string, pass: string }) => resetUserPassword(vars.id, vars.pass), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowResetModal(false); } });
 
+  const { data: detailData, isLoading: isDetailLoading } = useQuery({
+    queryKey: ['admin-user-detail', detailUserId],
+    queryFn: () => getUser(detailUserId as string),
+    enabled: Boolean(detailUserId),
+  });
+
   const users = data?.data?.data ?? [];
   const meta = data?.data?.meta;
   const isMutating = mutLock.isPending || mutUnlock.isPending || mutApprove.isPending || mutDelete.isPending;
+  const detailUser = (detailData?.data?.data ?? null) as AdminUserDetail | null;
 
   const handleConfirm = () => {
     if (!action) return;
@@ -98,6 +107,9 @@ export default function UsersPage() {
                     <td><StatusBadge status={u.status} /></td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="btn btn-ghost btn-sm btn-icon" title="View Detail" onClick={() => setDetailUserId(u.id)}>
+                          <Eye size={13} />
+                        </button>
                         <button className="btn btn-ghost btn-sm btn-icon" title="Edit" onClick={() => { setSelectedUser(u); setShowFormModal(true); }}>
                           <Edit2 size={13} />
                         </button>
@@ -168,6 +180,14 @@ export default function UsersPage() {
           onClose={() => setShowResetModal(false)}
           onSubmit={(pass) => mutReset.mutate({ id: selectedUser.id, pass })}
           loading={mutReset.isPending}
+        />
+      )}
+
+      {detailUserId && (
+        <UserDetailModal
+          user={detailUser}
+          loading={isDetailLoading}
+          onClose={() => setDetailUserId(null)}
         />
       )}
     </div>

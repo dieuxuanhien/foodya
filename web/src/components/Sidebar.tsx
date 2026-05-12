@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Store, ShoppingBag,
   BarChart2, Settings, Bell, LogOut,
-  Tag,
+  Tag, UtensilsCrossed, Truck, Shield,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { logout } from '../api/auth';
@@ -15,13 +15,16 @@ const NAV = [
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/restaurants', icon: Store, label: 'Restaurants' },
     { to: '/orders', icon: ShoppingBag, label: 'Orders' },
+    { to: '/delivery-orders', icon: Truck, label: 'Delivery Orders' },
   ]},
   { label: 'Catalog Management', items: [
     { to: '/categories', icon: Tag, label: 'Categories' },
+    { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
   ]},
   { label: 'Analytics', items: [
     { to: '/reports', icon: BarChart2, label: 'Revenue Reports' },
     { to: '/notifications', icon: Bell, label: 'Notifications' },
+    { to: '/audit-logs', icon: Shield, label: 'Audit Logs' },
   ]},
   { label: 'Configuration', items: [
     { to: '/system-params', icon: Settings, label: 'System Parameters' },

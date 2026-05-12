@@ -24,8 +24,8 @@ export default function MenuItemsPage() {
   const { data: categories } = useQuery({ queryKey: ['admin-categories'], queryFn: () => getCategories() });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-menu-items', restaurantFilter, categoryFilter, page],
-    queryFn: () => getMenuItems(restaurantFilter || undefined, categoryFilter || undefined, page, 50),
+    queryKey: ['admin-menu-items', restaurantFilter, categoryFilter, q, page],
+    queryFn: () => getMenuItems(restaurantFilter || undefined, categoryFilter || undefined, q || undefined, page, 50),
   });
 
   const mutDelete = useMutation({
@@ -40,12 +40,14 @@ export default function MenuItemsPage() {
   const meta = data?.data?.meta;
   const restList = restaurants?.data?.data ?? [];
   const catList = categories?.data?.data ?? [];
+  const selectedRestaurantName = restList.find((r) => r.id === restaurantFilter)?.name;
+  const restaurantNameById = new Map(restList.map((r) => [r.id, r.name]));
 
   return (
     <div className="page-content">
       <PageHeader
-        title="Menu Items"
-        subtitle="View and manage all menu items across restaurants"
+        title="Menu Items (Hard Delete)"
+        subtitle="Inspect menu items across restaurants and permanently remove invalid items"
       />
 
       <div className="card">
@@ -86,6 +88,11 @@ export default function MenuItemsPage() {
           <EmptyState title="No menu items found" desc="Try changing filters" />
         ) : (
           <div className="table-wrap">
+            {selectedRestaurantName && (
+              <p className="text-muted text-sm" style={{ marginBottom: 10 }}>
+                Showing menu for <strong>{selectedRestaurantName}</strong>
+              </p>
+            )}
             <table>
               <thead>
                 <tr>
@@ -101,7 +108,7 @@ export default function MenuItemsPage() {
                 {items.map((item) => (
                   <tr key={item.id}>
                     <td style={{ fontWeight: 500 }}>{item.name}</td>
-                    <td className="text-muted text-sm">{item.restaurantId}</td>
+                    <td className="text-muted text-sm">{restaurantNameById.get(item.restaurantId) ?? item.restaurantId}</td>
                     <td>
                       <span className="badge badge-info">{item.categoryCode}</span>
                     </td>

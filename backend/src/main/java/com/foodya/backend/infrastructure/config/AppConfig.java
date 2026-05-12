@@ -191,8 +191,8 @@ public class AppConfig {
 	}
 
 	@Bean
-	public AuditLogService auditLogService(AuditLogPort auditLogPort) {
-		return new AuditLogService(auditLogPort);
+	public AuditLogService auditLogService(AuditLogPort auditLogPort, PaginationPolicy paginationPolicy) {
+		return new AuditLogService(auditLogPort, paginationPolicy);
 	}
 
 	@Bean

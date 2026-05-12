@@ -1,25 +1,23 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Clock } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import {
   getDeliveryOrders,
   updateDeliveryStatus,
   type DeliveryOrder,
 } from '../api/orders-delivery';
-import { PageHeader, LoadingCenter, EmptyState, StatusBadge, Pagination, formatDate } from '../components/ui';
+import { PageHeader, LoadingCenter, EmptyState, StatusBadge, formatCurrency } from '../components/ui';
 
-const STATUS_OPTIONS = ['', 'PENDING', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'FAILED'];
+const STATUS_OPTIONS = ['ASSIGNED', 'PREPARING', 'DELIVERING', 'SUCCESS', 'FAILED'];
 
 export default function DeliveryOrdersPage() {
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
   const [editStatus, setEditStatus] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-delivery-orders', statusFilter, page],
-    queryFn: () => getDeliveryOrders(statusFilter || undefined, page, 20),
+    queryKey: ['admin-delivery-orders'],
+    queryFn: getDeliveryOrders,
   });
 
   const mutStatus = useMutation({
@@ -32,7 +30,6 @@ export default function DeliveryOrdersPage() {
   });
 
   const orders = data?.data?.data ?? [];
-  const meta = data?.data?.meta;
 
   const handleUpdateStatus = () => {
     if (selectedOrder && editStatus) {
@@ -44,73 +41,48 @@ export default function DeliveryOrdersPage() {
     <div className="page-content">
       <PageHeader
         title="Delivery Order Tracking"
-        subtitle="Monitor and manage delivery status for all orders"
+        subtitle="Monitor delivery assignments and update lifecycle status"
       />
 
       <div className="card">
-        <div className="toolbar">
-          <select
-            className="select"
-            style={{ maxWidth: 200 }}
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          >
-            <option value="">All Statuses</option>
-            {STATUS_OPTIONS.slice(1).map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-
         {isLoading ? (
           <LoadingCenter />
         ) : orders.length === 0 ? (
-          <EmptyState title="No delivery orders found" desc="Try changing the status filter" />
+          <EmptyState title="No delivery assignments found" desc="Assignments appear when orders move into delivery flow" />
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Order Code</th>
-                  <th>Customer</th>
                   <th>Status</th>
-                  <th>Delivery Address</th>
-                  <th>Est. Delivery</th>
-                  <th>Location</th>
+                  <th>Payment</th>
+                  <th>Total</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((o) => (
-                  <tr
-                    key={o.id}
-                    onClick={() => { setSelectedOrder(o); setEditStatus(o.status); }}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <tr key={o.id}>
                     <td>
                       <span className="font-mono">{o.orderCode}</span>
                     </td>
-                    <td>{o.customerName}</td>
                     <td>
                       <StatusBadge status={o.status} />
                     </td>
-                    <td className="text-muted text-sm truncate">{o.deliveryAddress}</td>
-                    <td className="text-sm">
-                      {o.estimatedDeliveryTime ? (
-                        <>
-                          <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
-                          {formatDate(o.estimatedDeliveryTime)}
-                        </>
-                      ) : (
-                        '—'
-                      )}
+                    <td>
+                      <StatusBadge status={o.paymentStatus} />
                     </td>
-                    <td className="text-sm">
-                      {o.latitude && o.longitude ? (
-                        <>
-                          <MapPin size={12} style={{ display: 'inline', marginRight: 4 }} />
-                          {o.latitude.toFixed(4)}, {o.longitude.toFixed(4)}
-                        </>
-                      ) : (
-                        '—'
-                      )}
+                    <td style={{ fontWeight: 600 }}>
+                      {formatCurrency(o.totalAmount)}
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => { setSelectedOrder(o); setEditStatus(o.status); }}
+                      >
+                        <Truck size={13} /> Update
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -118,7 +90,6 @@ export default function DeliveryOrdersPage() {
             </table>
           </div>
         )}
-        {meta && <Pagination page={page} totalPages={meta.totalPages} totalElements={meta.totalElements} size={meta.size} onPage={setPage} />}
       </div>
 
       {selectedOrder && (
@@ -128,12 +99,7 @@ export default function DeliveryOrdersPage() {
            
             <div className="form-group">
               <label className="form-label">Order</label>
-              <div className="text-muted">{selectedOrder.orderCode} - {selectedOrder.customerName}</div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Delivery Address</label>
-              <div className="text-muted text-sm">{selectedOrder.deliveryAddress}</div>
+              <div className="text-muted">{selectedOrder.orderCode}</div>
             </div>
 
             <div className="form-group">
@@ -146,7 +112,7 @@ export default function DeliveryOrdersPage() {
                 value={editStatus}
                 onChange={(e) => setEditStatus(e.target.value)}
               >
-                {STATUS_OPTIONS.slice(1).map((s) => <option key={s} value={s}>{s}</option>)}
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
