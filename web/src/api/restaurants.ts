@@ -7,7 +7,7 @@ export interface Restaurant {
   description?: string;
   cuisineType: string;
   status: string;
-  isOpen: boolean;
+  open: boolean;
   avgRating: number;
   reviewCount: number;
   addressLine: string;

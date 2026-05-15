@@ -12,5 +12,7 @@ public interface AdminMenuItemPort {
 
     Optional<MenuItem> findById(UUID menuItemId);
 
+    MenuItem save(MenuItem menuItem);
+
     void delete(MenuItem menuItem);
 }

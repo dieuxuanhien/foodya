@@ -2,10 +2,11 @@ import { api } from './client';
 
 export interface CategoryTaxonomy {
   code: string;
-  name: string;
+  displayName: string;
   description?: string;
   icon?: string;
-  displayOrder?: number;
+  sortOrder?: number;
+  active: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,18 +16,20 @@ export const getCategories = () =>
 
 export const createCategory = (data: {
   code: string;
-  name: string;
+  displayName: string;
   description?: string;
   icon?: string;
-  displayOrder?: number;
+  sortOrder: number;
+  isActive: boolean;
 }) =>
   api.post<{ data: CategoryTaxonomy }>('/admin/category-taxonomies', data);
 
 export const updateCategory = (code: string, data: {
-  name: string;
+  displayName: string;
   description?: string;
   icon?: string;
-  displayOrder?: number;
+  sortOrder: number;
+  isActive: boolean;
 }) =>
   api.put<{ data: CategoryTaxonomy }>(`/admin/category-taxonomies/${code}`, data);
 

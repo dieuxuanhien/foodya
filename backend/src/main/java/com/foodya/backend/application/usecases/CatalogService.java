@@ -66,16 +66,16 @@ public class CatalogService {
     }
 
     public PaginatedResult<RestaurantSearchView> searchRestaurants(String q,
-                                                                       String cuisine,
-                                                                       BigDecimal minRating,
-                                                                       Boolean openNow,
-                                                                       List<String> taxonomyCodes,
-                                                                       Integer page,
-                                                                       Integer size,
-                                                                       String sort,
-                                                                       BigDecimal lat,
-                                                                       BigDecimal lng,
-                                                                       BigDecimal radiusKm) {
+                                                                        String cuisine,
+                                                                        BigDecimal minRating,
+                                                                        Boolean openNow,
+                                                                        List<String> taxonomyCodes,
+                                                                        Integer page,
+                                                                        Integer size,
+                                                                        String sort,
+                                                                        BigDecimal lat,
+                                                                        BigDecimal lng,
+                                                                        BigDecimal radiusKm) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String keyword = q == null ? "" : q.trim();
         List<String> normalizedTaxonomyCodes = normalizeTaxonomyCodes(taxonomyCodes);
@@ -249,13 +249,13 @@ public class CatalogService {
             .collect(Collectors.groupingBy(MenuItemData::getRestaurantId, LinkedHashMap::new, Collectors.toList()));
     }
 
-        private static boolean matchesTaxonomy(MenuItemData item, Collection<String> taxonomyCodes) {
+    private static boolean matchesTaxonomy(MenuItemData item, Collection<String> taxonomyCodes) {
         if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
             return true;
         }
         List<String> itemTaxonomyCodes = item.getTaxonomyCodes() == null ? List.of() : item.getTaxonomyCodes();
         return itemTaxonomyCodes.stream().anyMatch(taxonomyCodes::contains);
-        }
+    }
 
 
     private List<RestaurantData> applyNearbyFilter(List<RestaurantData> restaurants,

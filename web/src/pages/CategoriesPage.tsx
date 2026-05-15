@@ -34,7 +34,7 @@ export default function CategoriesPage() {
   });
 
   const mutUpdate = useMutation({
-    mutationFn: (vars: { code: string; data: { name: string; description?: string; displayOrder?: number } }) =>
+    mutationFn: (vars: { code: string; data: { displayName: string; description?: string; sortOrder: number; isActive: boolean } }) =>
       updateCategory(vars.code, vars.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-categories'] });
@@ -55,7 +55,7 @@ export default function CategoriesPage() {
   const isMutating = mutCreate.isPending || mutUpdate.isPending || mutDelete.isPending;
 
   const handleSubmit = () => {
-    if (!formData.code || !formData.name) {
+    if (!formData.code || !formData.displayName) {
       alert('Code and Name are required');
       return;
     }
@@ -63,13 +63,20 @@ export default function CategoriesPage() {
       mutUpdate.mutate({ 
         code: selectedCategory.code, 
         data: {
-          name: formData.name,
+          displayName: formData.displayName,
           description: formData.description,
-          displayOrder: formData.displayOrder,
+          sortOrder: formData.sortOrder ?? 0,
+          isActive: formData.active ?? true,
         }
       });
     } else {
-      mutCreate.mutate(formData as Parameters<typeof createCategory>[0]);
+      mutCreate.mutate({
+        code: formData.code,
+        displayName: formData.displayName,
+        description: formData.description,
+        sortOrder: formData.sortOrder ?? 0,
+        isActive: true,
+      });
     }
   };
 
@@ -114,9 +121,9 @@ export default function CategoriesPage() {
                     <td>
                       <span className="font-mono text-sm">{c.code}</span>
                     </td>
-                    <td style={{ fontWeight: 500 }}>{c.name}</td>
+                    <td style={{ fontWeight: 500 }}>{c.displayName}</td>
                     <td className="text-muted text-sm">{c.description || '—'}</td>
-                    <td className="text-center">{c.displayOrder ?? '—'}</td>
+                    <td className="text-center">{c.sortOrder ?? '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button
@@ -172,8 +179,8 @@ export default function CategoriesPage() {
                 className="input"
                 type="text"
                 placeholder="Main Courses"
-                value={formData.name ?? ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.displayName ?? ''}
+                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
               />
             </div>
 
@@ -200,8 +207,8 @@ export default function CategoriesPage() {
                 className="input"
                 type="number"
                 min="0"
-                value={formData.displayOrder ?? ''}
-                onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })}
+                value={formData.sortOrder ?? ''}
+                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
               />
             </div>
 
@@ -220,7 +227,7 @@ export default function CategoriesPage() {
       {action && (
         <ConfirmModal
           title="Delete Category"
-          message={`Permanently delete category "${action.cat.name}"? This cannot be undone.`}
+          message={`Permanently delete category "${action.cat.displayName}"? This cannot be undone.`}
           onConfirm={() => mutDelete.mutate(action.cat.code)}
           onCancel={() => setAction(null)}
           loading={mutDelete.isPending}

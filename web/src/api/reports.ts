@@ -8,7 +8,8 @@ export interface RevenueReport {
   currencyCode?: string;
   fromDate?: string;
   toDate?: string;
-  series?: Array<{ period: string; revenue: number; orderCount: number; platformProfit: number }>;
+  series?: Array<{ period: string; revenue: number; orderCount: number; platformProfit: number; avgOrderValue: number }>;
+  topSellingItems?: Array<{ menuItemId: string; itemName: string; quantitySold: number; revenue: number }>;
 }
 
 export const getRevenueReport = (from?: string, to?: string) =>

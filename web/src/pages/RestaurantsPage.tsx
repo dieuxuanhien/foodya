@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, CheckCircle, XCircle, Trash2, Edit2, Plus } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Trash2, Edit2, Plus, UtensilsCrossed } from 'lucide-react';
 import {
   getRestaurants, approveRestaurant, rejectRestaurant, deleteRestaurant, createRestaurant, updateRestaurant,
   type Restaurant,
@@ -13,6 +14,7 @@ type Action = { type: 'approve' | 'reject' | 'delete'; rest: Restaurant };
 
 export default function RestaurantsPage() {
   const qc = useQueryClient();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -103,11 +105,14 @@ export default function RestaurantsPage() {
                     <td style={{ fontWeight: 500 }}>{r.name}</td>
                     <td className="text-muted">{r.cuisineType}</td>
                     <td><StatusBadge status={r.status} /></td>
-                    <td>{r.isOpen ? <span className="badge badge-success">Open</span> : <span className="badge badge-muted">Closed</span>}</td>
+                    <td>{r.open ? <span className="badge badge-success">Open</span> : <span className="badge badge-muted">Closed</span>}</td>
                     <td>{r.avgRating ? `★ ${r.avgRating.toFixed(1)}` : '—'}</td>
                     <td className="truncate text-muted text-sm">{r.addressLine}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="btn btn-ghost btn-sm btn-icon" title="Manage Menu" onClick={() => nav(`/menu-items?restaurantId=${r.id}`)}>
+                          <UtensilsCrossed size={13} />
+                        </button>
                         <button className="btn btn-ghost btn-sm btn-icon" title="Edit" onClick={() => { setSelectedRestaurant(r); setShowFormModal(true); }}>
                           <Edit2 size={13} />
                         </button>

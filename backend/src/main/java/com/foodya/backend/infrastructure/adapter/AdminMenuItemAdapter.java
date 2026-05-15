@@ -45,6 +45,12 @@ public class AdminMenuItemAdapter implements AdminMenuItemPort {
 
     @Override
     @SuppressWarnings("null")
+    public MenuItem save(MenuItem menuItem) {
+        return mapper.toDomain(repository.save(mapper.toPersistence(Objects.requireNonNull(menuItem))));
+    }
+
+    @Override
+    @SuppressWarnings("null")
     public void delete(MenuItem menuItem) {
         repository.delete(mapper.toPersistence(Objects.requireNonNull(menuItem)));
     }

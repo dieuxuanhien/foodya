@@ -2,13 +2,15 @@ import { api } from './client';
 import type { PageMeta } from './users';
 
 export interface Order {
-  id: string;
+  orderId: string;
   orderCode: string;
   status: string;
   paymentStatus: string;
   totalAmount: number;
   restaurantId?: string;
+  restaurantName?: string;
   customerUserId?: string;
+  customerName?: string;
   deliveryAddress?: string;
   subtotalAmount?: number;
   deliveryFee?: number;
@@ -19,6 +21,9 @@ export const getOrders = (status?: string, page = 0, size = 20) =>
   api.get<{ data: Order[]; meta: PageMeta }>('/admin/orders', {
     params: { status: status || undefined, page, size },
   });
+
+export const getOrderDetails = (id: string) =>
+  api.get<{ data: Order }>(`/admin/orders/${id}`);
 
 export const updateOrderStatus = (id: string, status: string) =>
   api.patch<{ data: Order }>(`/admin/orders/${id}/status`, { status });

@@ -1,9 +1,12 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.dto.PaginatedResult;
-import com.foodya.backend.application.dto.OrderData;
-import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.CreateMenuItemRequest;
+import com.foodya.backend.application.dto.MenuCategoryData;
 import com.foodya.backend.application.dto.MenuItemData;
+import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.PaginatedResult;
+import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.UpdateMenuItemRequest;
 import com.foodya.backend.application.exception.ConflictException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -11,14 +14,24 @@ import com.foodya.backend.application.ports.in.AdminGovernanceUseCase;
 import com.foodya.backend.application.ports.out.AdminMenuItemPort;
 import com.foodya.backend.application.ports.out.AdminOrderPort;
 import com.foodya.backend.application.ports.out.AdminRestaurantPort;
+import com.foodya.backend.application.ports.out.AdminUserPort;
+import com.foodya.backend.application.ports.out.CategoryTaxonomyPort;
+import com.foodya.backend.application.ports.out.MenuCategoryPort;
+import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.application.support.PaginationPolicy;
-import com.foodya.backend.domain.value_objects.OrderStatus;
-import com.foodya.backend.domain.value_objects.RestaurantStatus;
+import com.foodya.backend.domain.entities.MenuCategory;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.SystemParameter;
+import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.value_objects.RestaurantStatus;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,17 +48,29 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
     private final AdminRestaurantPort adminRestaurantPort;
     private final AdminOrderPort adminOrderPort;
     private final AdminMenuItemPort adminMenuItemPort;
+    private final MenuCategoryPort menuCategoryPort;
+    private final CategoryTaxonomyPort categoryTaxonomyPort;
+    private final SystemParameterPort systemParameterPort;
+    private final AdminUserPort adminUserPort;
     private final PaginationPolicy paginationPolicy;
     private final AuditLogService auditLogService;
 
     public AdminGovernanceService(AdminRestaurantPort adminRestaurantPort,
                                   AdminOrderPort adminOrderPort,
                                   AdminMenuItemPort adminMenuItemPort,
+                                  MenuCategoryPort menuCategoryPort,
+                                  CategoryTaxonomyPort categoryTaxonomyPort,
+                                  SystemParameterPort systemParameterPort,
+                                  AdminUserPort adminUserPort,
                                   PaginationPolicy paginationPolicy,
                                   AuditLogService auditLogService) {
         this.adminRestaurantPort = adminRestaurantPort;
         this.adminOrderPort = adminOrderPort;
         this.adminMenuItemPort = adminMenuItemPort;
+        this.menuCategoryPort = menuCategoryPort;
+        this.categoryTaxonomyPort = categoryTaxonomyPort;
+        this.systemParameterPort = systemParameterPort;
+        this.adminUserPort = adminUserPort;
         this.paginationPolicy = paginationPolicy;
         this.auditLogService = auditLogService;
     }
@@ -161,6 +186,19 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         );
     }
 
+    public PaginatedResult<MenuCategoryData> listMenuCategories(UUID restaurantId, Integer page, Integer size) {
+        requireRestaurant(restaurantId);
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<MenuCategory> result = menuCategoryPort.findByRestaurantIdAndActiveTrue(restaurantId, spec.page(), spec.size());
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toMenuCategoryData).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
+    }
+
     public PaginatedResult<MenuItemData> listMenuItems(UUID restaurantId, String taxonomyCode, String keyword, Integer page, Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
@@ -180,6 +218,76 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                 result.totalElements(),
                 result.totalPages()
         );
+    }
+
+    public MenuItemData createMenuItem(UUID restaurantId, CreateMenuItemRequest request, UUID actorId) {
+        requireRestaurant(restaurantId);
+        requireText(request.categoryId(), "categoryId");
+        requireNonEmptyTaxonomyCodes(request.taxonomyCodes(), "taxonomyCodes");
+        requireText(request.name(), "name");
+        requireText(request.description(), "description");
+        requireNonNull(request.price(), "price");
+        requireNonNull(request.isActive(), "isActive");
+        requireNonNull(request.isAvailable(), "isAvailable");
+        validatePrice(request.price());
+
+        UUID categoryId = parseUuid(request.categoryId(), "categoryId");
+        menuCategoryPort.findByIdAndRestaurantId(categoryId, restaurantId)
+                .orElseThrow(() -> new ValidationException("invalid category", Map.of("categoryId", "does not belong to restaurant")));
+
+        List<String> taxonomyCodes = normalizeTaxonomyCodes(request.taxonomyCodes());
+        validateTaxonomyCodes(taxonomyCodes);
+
+        MenuItem item = new MenuItem();
+        item.setId(UUID.randomUUID());
+        item.setRestaurantId(restaurantId);
+        item.setCategoryId(categoryId);
+        item.setTaxonomyCodes(new LinkedHashSet<>(taxonomyCodes));
+        item.setName(request.name().trim());
+        item.setDescription(request.description());
+        item.setPrice(request.price());
+        item.setActive(request.isActive());
+        item.setAvailable(request.isAvailable());
+        item.setCreatedAt(OffsetDateTime.now());
+        item.setUpdatedAt(item.getCreatedAt());
+
+        MenuItem saved = adminMenuItemPort.save(item);
+        auditLogService.securityEvent(actorId.toString(), "ADMIN_MENU_ITEM_CREATE", "MENU_ITEM", saved.getId().toString(), null, "created");
+        return toMenuItemData(saved);
+    }
+
+    public MenuItemData updateMenuItem(UUID menuItemId, UpdateMenuItemRequest request, UUID actorId) {
+        requireText(request.categoryId(), "categoryId");
+        requireNonEmptyTaxonomyCodes(request.taxonomyCodes(), "taxonomyCodes");
+        requireText(request.name(), "name");
+        requireText(request.description(), "description");
+        requireNonNull(request.price(), "price");
+        requireNonNull(request.isActive(), "isActive");
+        requireNonNull(request.isAvailable(), "isAvailable");
+        validatePrice(request.price());
+
+        MenuItem item = adminMenuItemPort.findById(menuItemId)
+                .orElseThrow(() -> new NotFoundException("menu item not found"));
+
+        UUID categoryId = parseUuid(request.categoryId(), "categoryId");
+        menuCategoryPort.findByIdAndRestaurantId(categoryId, item.getRestaurantId())
+                .orElseThrow(() -> new ValidationException("invalid category", Map.of("categoryId", "does not belong to restaurant")));
+
+        List<String> taxonomyCodes = normalizeTaxonomyCodes(request.taxonomyCodes());
+        validateTaxonomyCodes(taxonomyCodes);
+
+        item.setCategoryId(categoryId);
+        item.setTaxonomyCodes(new LinkedHashSet<>(taxonomyCodes));
+        item.setName(request.name().trim());
+        item.setDescription(request.description());
+        item.setPrice(request.price());
+        item.setActive(request.isActive());
+        item.setAvailable(request.isAvailable());
+        item.setUpdatedAt(OffsetDateTime.now());
+
+        MenuItem saved = adminMenuItemPort.save(item);
+        auditLogService.securityEvent(actorId.toString(), "ADMIN_MENU_ITEM_UPDATE", "MENU_ITEM", saved.getId().toString(), null, "updated");
+        return toMenuItemData(saved);
     }
 
     public OrderData updateOrderStatus(UUID orderId, OrderStatus targetStatus, UUID actorId) {
@@ -216,6 +324,71 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                 .orElseThrow(() -> new NotFoundException("menu item not found"));
         adminMenuItemPort.delete(menuItem);
         auditLogService.securityEvent(actorId.toString(), "ADMIN_MENU_ITEM_HARD_DELETE", "MENU_ITEM", menuItemId.toString(), null, "hard-deleted");
+    }
+
+    private void validatePrice(BigDecimal price) {
+        BigDecimal minPrice = systemParameterPort.findById("catalog.menu_item_price_min")
+                .map(SystemParameter::getValue)
+                .map(BigDecimal::new)
+                .orElse(BigDecimal.ONE);
+        BigDecimal maxPrice = systemParameterPort.findById("catalog.menu_item_price_max")
+                .map(SystemParameter::getValue)
+                .map(BigDecimal::new)
+                .orElse(new BigDecimal("10000000"));
+
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("invalid menu item price", Map.of("price", "must be > 0"));
+        }
+        if (price.compareTo(minPrice) < 0 || price.compareTo(maxPrice) > 0) {
+            throw new ValidationException(
+                    "invalid menu item price",
+                    Map.of("price", "must be between " + minPrice.toPlainString() + " and " + maxPrice.toPlainString())
+            );
+        }
+    }
+
+    private void validateTaxonomyCodes(List<String> taxonomyCodes) {
+        for (String taxonomyCode : taxonomyCodes) {
+            categoryTaxonomyPort.findByCode(taxonomyCode)
+                    .orElseThrow(() -> new ValidationException("invalid taxonomyCode", Map.of("taxonomyCode", taxonomyCode + " does not exist or is inactive")));
+        }
+    }
+
+    private static List<String> normalizeTaxonomyCodes(List<String> taxonomyCodes) {
+        if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
+            return List.of();
+        }
+        return taxonomyCodes.stream()
+                .filter(code -> code != null && !code.isBlank())
+                .map(code -> code.trim().toUpperCase(Locale.ROOT))
+                .distinct()
+                .toList();
+    }
+
+    private static void requireNonEmptyTaxonomyCodes(List<String> taxonomyCodes, String field) {
+        if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be empty"));
+        }
+    }
+
+    private static UUID parseUuid(String value, String field) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ex) {
+            throw new ValidationException("invalid uuid", Map.of(field, "must be a valid UUID"));
+        }
+    }
+
+    private static void requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be blank"));
+        }
+    }
+
+    private static void requireNonNull(Object value, String field) {
+        if (value == null) {
+            throw new ValidationException("invalid " + field, Map.of(field, "must not be null"));
+        }
     }
 
     private Restaurant requireRestaurant(UUID restaurantId) {
@@ -267,6 +440,16 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         return model;
     }
 
+    private MenuCategoryData toMenuCategoryData(MenuCategory category) {
+        MenuCategoryData model = new MenuCategoryData();
+        model.setId(category.getId());
+        model.setRestaurantId(category.getRestaurantId());
+        model.setName(category.getName());
+        model.setSortOrder(category.getSortOrder());
+        model.setActive(category.isActive());
+        return model;
+    }
+
     private OrderData toOrderData(Order order) {
         OrderData model = new OrderData();
         model.setId(order.getId());
@@ -287,6 +470,12 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         model.setCommissionAmount(order.getCommissionAmount());
         model.setShippingFeeMarginAmount(order.getShippingFeeMarginAmount());
         model.setPlatformProfitAmount(order.getPlatformProfitAmount());
+
+        adminRestaurantPort.findById(order.getRestaurantId())
+                .ifPresent(r -> model.setRestaurantName(r.getName()));
+        adminUserPort.findById(order.getCustomerUserId())
+                .ifPresent(u -> model.setCustomerName(u.getFullName()));
+
         return model;
     }
 
@@ -303,6 +492,14 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         model.setActive(menuItem.isActive());
         model.setAvailable(menuItem.isAvailable());
         model.setDeletedAt(menuItem.getDeletedAt());
+
+        adminRestaurantPort.findById(menuItem.getRestaurantId())
+                .ifPresent(r -> model.setRestaurantName(r.getName()));
+        if (menuItem.getCategoryId() != null) {
+            menuCategoryPort.findById(menuItem.getCategoryId())
+                    .ifPresent(c -> model.setCategoryName(c.getName()));
+        }
+
         return model;
     }
 }

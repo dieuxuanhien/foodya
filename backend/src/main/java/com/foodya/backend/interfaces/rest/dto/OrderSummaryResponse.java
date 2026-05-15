@@ -6,6 +6,8 @@ import java.util.UUID;
 public record OrderSummaryResponse(
         UUID orderId,
         String orderCode,
+        String customerName,
+        String restaurantName,
         String status,
         String paymentStatus,
         BigDecimal totalAmount
