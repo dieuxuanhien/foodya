@@ -27,6 +27,8 @@ public class OrderData {
     private BigDecimal commissionAmount;
     private BigDecimal shippingFeeMarginAmount;
     private BigDecimal platformProfitAmount;
+    private String restaurantName;
+    private String customerName;
 
     public UUID getId() {
         return id;
@@ -170,5 +172,21 @@ public class OrderData {
 
     public void setPlatformProfitAmount(BigDecimal platformProfitAmount) {
         this.platformProfitAmount = platformProfitAmount;
+    }
+
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
 }

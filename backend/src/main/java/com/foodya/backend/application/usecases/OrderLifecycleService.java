@@ -3,6 +3,7 @@ package com.foodya.backend.application.usecases;
 import com.foodya.backend.application.dto.OrderDetailView;
 import com.foodya.backend.application.dto.OrderSummaryView;
 import com.foodya.backend.application.dto.OrderTrackingPointView;
+import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
@@ -12,6 +13,7 @@ import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
+import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
 import com.foodya.backend.domain.entities.Order;
@@ -29,15 +31,18 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     private final RestaurantPort restaurantPort;
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
+    private final UserAccountPort userAccountPort;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
                                  DeliveryTrackingPointPort deliveryTrackingPointPort,
-                                 OrderEventPublisherPort orderEventPublisherPort) {
+                                 OrderEventPublisherPort orderEventPublisherPort,
+                                 UserAccountPort userAccountPort) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
+        this.userAccountPort = userAccountPort;
     }
 
     public List<OrderSummaryView> customerOrders(UUID customerUserId) {
@@ -225,9 +230,18 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     }
 
     private OrderSummaryView toSummary(Order order) {
+        String restaurantName = restaurantPort.findById(order.getRestaurantId())
+                .map(Restaurant::getName)
+                .orElse("Unknown Restaurant");
+        String customerName = userAccountPort.findById(order.getCustomerUserId())
+                .map(UserAccountData::getFullName)
+                .orElse("Unknown Customer");
+
         return new OrderSummaryView(
                 order.getId(),
                 order.getOrderCode(),
+                customerName,
+                restaurantName,
                 order.getStatus(),
                 order.getPaymentStatus(),
                 order.getTotalAmount()
@@ -235,11 +249,20 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     }
 
     private OrderDetailView toDetail(Order order) {
+        String restaurantName = restaurantPort.findById(order.getRestaurantId())
+                .map(Restaurant::getName)
+                .orElse("Unknown Restaurant");
+        String customerName = userAccountPort.findById(order.getCustomerUserId())
+                .map(UserAccountData::getFullName)
+                .orElse("Unknown Customer");
+
         return new OrderDetailView(
                 order.getId(),
                 order.getOrderCode(),
                 order.getRestaurantId(),
+                restaurantName,
                 order.getCustomerUserId(),
+                customerName,
                 order.getStatus(),
                 order.getPaymentMethod(),
                 order.getPaymentStatus(),

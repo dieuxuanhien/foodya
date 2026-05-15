@@ -41,6 +41,8 @@ public class AdminCategoryTaxonomyService implements AdminCategoryTaxonomyUseCas
         CategoryTaxonomy taxonomy = new CategoryTaxonomy();
         taxonomy.setCode(code);
         taxonomy.setDisplayName(request.displayName().trim());
+        taxonomy.setDescription(request.description() != null ? request.description().trim() : null);
+        taxonomy.setIcon(request.icon() != null ? request.icon().trim() : null);
         taxonomy.setSortOrder(request.sortOrder());
         taxonomy.setActive(request.isActive());
 
@@ -57,6 +59,8 @@ public class AdminCategoryTaxonomyService implements AdminCategoryTaxonomyUseCas
 
         String oldValue = taxonomy.getDisplayName() + "|" + taxonomy.getSortOrder() + "|" + taxonomy.isActive();
         taxonomy.setDisplayName(request.displayName().trim());
+        taxonomy.setDescription(request.description() != null ? request.description().trim() : null);
+        taxonomy.setIcon(request.icon() != null ? request.icon().trim() : null);
         taxonomy.setSortOrder(request.sortOrder());
         taxonomy.setActive(request.isActive());
 
@@ -90,6 +94,8 @@ public class AdminCategoryTaxonomyService implements AdminCategoryTaxonomyUseCas
         data.setCode(taxonomy.getCode());
         data.setDisplayName(taxonomy.getDisplayName());
         data.setSortOrder(taxonomy.getSortOrder());
+        data.setDescription(taxonomy.getDescription());
+        data.setIcon(taxonomy.getIcon());
         data.setActive(taxonomy.isActive());
         data.setCreatedAt(taxonomy.getCreatedAt());
         data.setUpdatedAt(taxonomy.getUpdatedAt());

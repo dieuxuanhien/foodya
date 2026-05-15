@@ -21,6 +21,10 @@ public interface AdminUserRepository extends JpaRepository<UserAccountPersistenc
             Pageable pageable
     );
 
+    java.util.Optional<UserAccountPersistenceModel> findByUsername(String username);
+    java.util.Optional<UserAccountPersistenceModel> findByEmail(String email);
+    java.util.Optional<UserAccountPersistenceModel> findByPhoneNumber(String phoneNumber);
+
     @Query("""
             SELECT (COUNT(o) > 0)
                                                 FROM OrderPersistenceModel o

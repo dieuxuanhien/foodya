@@ -13,6 +13,9 @@ public interface AdminUserPort {
     PaginatedResult<UserAccount> search(String keyword, int page, int size);
 
     Optional<UserAccount> findById(UUID userId);
+    Optional<UserAccount> findByUsername(String username);
+    Optional<UserAccount> findByEmail(String email);
+    Optional<UserAccount> findByPhoneNumber(String phoneNumber);
 
     UserAccount save(UserAccount userAccount);
 

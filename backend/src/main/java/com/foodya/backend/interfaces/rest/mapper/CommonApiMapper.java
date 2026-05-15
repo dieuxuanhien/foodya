@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.dto.CategoryTaxonomyData;
 import com.foodya.backend.application.dto.MenuCategoryData;
 import com.foodya.backend.application.dto.MenuItemData;
+import java.util.List;
 import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.dto.SystemParameterData;
 import com.foodya.backend.interfaces.rest.dto.ProfileResponse;
@@ -45,8 +46,12 @@ public final class CommonApiMapper {
         return new CategoryTaxonomyResponse(
                 taxonomy.getCode(),
                 taxonomy.getDisplayName(),
+                taxonomy.getDescription(),
+                taxonomy.getIcon(),
                 taxonomy.getSortOrder(),
-                taxonomy.isActive()
+                taxonomy.isActive(),
+                taxonomy.getCreatedAt(),
+                taxonomy.getUpdatedAt()
         );
     }
 
@@ -54,8 +59,10 @@ public final class CommonApiMapper {
         return new MenuItemResponse(
                 item.getId().toString(),
                 item.getRestaurantId().toString(),
-                item.getCategoryId().toString(),
-                item.getTaxonomyCodes(),
+                item.getRestaurantName(),
+                item.getCategoryId() == null ? "" : item.getCategoryId().toString(),
+                item.getCategoryName(),
+                item.getTaxonomyCodes() == null ? List.of() : item.getTaxonomyCodes(),
                 item.getName(),
                 item.getDescription(),
                 item.getImageUrl(),

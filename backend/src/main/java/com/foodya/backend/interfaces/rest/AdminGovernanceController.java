@@ -2,7 +2,9 @@ package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.OrderData;
+import com.foodya.backend.application.dto.MenuCategoryData;
 import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.application.dto.MenuItemData;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.AdminGovernanceUseCase;
 import com.foodya.backend.domain.value_objects.OrderStatus;
@@ -12,7 +14,9 @@ import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
+import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
+import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,7 +58,7 @@ public class AdminGovernanceController {
     public ResponseEntity<ApiSuccessResponse<List<RestaurantDetailResponse>>> listRestaurants(@RequestParam(required = false) String q,
                                                                                                 @RequestParam(required = false) String status,
                                                                                                 @RequestParam(required = false) @Min(0) Integer page,
-                                                                                                @RequestParam(required = false) @Min(1) @Max(200) Integer size,
+                                                                                                @RequestParam(required = false) @Min(1) @Max(1000) Integer size,
                                                                                                 HttpServletRequest request) {
         RestaurantStatus restaurantStatus = parseRestaurantStatus(status);
         PaginatedResult<RestaurantData> result = adminGovernanceService.listRestaurants(q, restaurantStatus, page, size);
@@ -69,6 +74,37 @@ public class AdminGovernanceController {
         ));
     }
 
+    @GetMapping("/restaurants/{id}")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> getRestaurantById(@PathVariable String id, HttpServletRequest request) {
+        RestaurantData restaurant = adminGovernanceService.getRestaurantById(parseUuid(id, "id"));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
+    }
+
+    @PostMapping("/restaurants")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurant(Authentication authentication,
+                                                                                         @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminRestaurantCreateRequest req,
+                                                                                         HttpServletRequest request) {
+        var command = new com.foodya.backend.application.dto.AdminRestaurantCreateCommand(
+                req.ownerUserId(), req.name(), req.description(), req.addressLine(), req.cuisineType(),
+                req.isOpen(), req.status(), req.latitude(), req.longitude(), req.maxDeliveryKm()
+        );
+        RestaurantData restaurant = adminGovernanceService.createRestaurant(command, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
+    }
+
+    @PutMapping("/restaurants/{id}")
+    public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurant(Authentication authentication,
+                                                                                         @PathVariable String id,
+                                                                                         @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminRestaurantUpdateRequest req,
+                                                                                         HttpServletRequest request) {
+        var command = new com.foodya.backend.application.dto.AdminRestaurantUpdateCommand(
+                req.ownerUserId(), req.name(), req.description(), req.addressLine(), req.cuisineType(),
+                req.isOpen(), req.status(), req.latitude(), req.longitude(), req.maxDeliveryKm()
+        );
+        RestaurantData restaurant = adminGovernanceService.updateRestaurant(parseUuid(id, "id"), command, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
+    }
+
     @PostMapping("/restaurants/{id}/approve")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> approveRestaurant(Authentication authentication,
                                                                                            @PathVariable String id,
@@ -79,8 +115,8 @@ public class AdminGovernanceController {
 
     @PostMapping("/restaurants/{id}/reject")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> rejectRestaurant(Authentication authentication,
-                                                                                          @PathVariable String id,
-                                                                                          HttpServletRequest request) {
+                                                                                           @PathVariable String id,
+                                                                                           HttpServletRequest request) {
         RestaurantData restaurant = adminGovernanceService.rejectRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
@@ -94,7 +130,7 @@ public class AdminGovernanceController {
     @GetMapping("/orders")
     public ResponseEntity<ApiSuccessResponse<List<OrderSummaryResponse>>> listOrders(@RequestParam(required = false) String status,
                                                                                       @RequestParam(required = false) @Min(0) Integer page,
-                                                                                      @RequestParam(required = false) @Min(1) @Max(200) Integer size,
+                                                                                      @RequestParam(required = false) @Min(1) @Max(1000) Integer size,
                                                                                       HttpServletRequest request) {
         OrderStatus orderStatus = parseOrderStatus(status);
         PaginatedResult<OrderData> result = adminGovernanceService.listOrders(orderStatus, page, size);
@@ -108,6 +144,62 @@ public class AdminGovernanceController {
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(request)
         ));
+    }
+
+    @GetMapping("/restaurants/{id}/menu-categories")
+    public ResponseEntity<ApiSuccessResponse<List<MenuCategoryResponse>>> listMenuCategories(@PathVariable String id,
+                                                                                            @RequestParam(required = false) @Min(0) Integer page,
+                                                                                            @RequestParam(required = false) @Min(1) @Max(1000) Integer size,
+                                                                                            HttpServletRequest request) {
+        PaginatedResult<MenuCategoryData> result = adminGovernanceService.listMenuCategories(parseUuid(id, "id"), page, size);
+        List<MenuCategoryResponse> data = result.items().stream()
+                .map(CommonApiMapper::toMenuCategoryResponse)
+                .toList();
+
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+                data,
+                new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
+                RequestTrace.from(request)
+        ));
+    }
+
+    @GetMapping("/menu-items")
+    public ResponseEntity<ApiSuccessResponse<List<MenuItemResponse>>> listMenuItems(@RequestParam(required = false) String restaurantId,
+                                                                                    @RequestParam(required = false) String categoryCode,
+                                                                                    @RequestParam(required = false) String q,
+                                                                                    @RequestParam(required = false) @Min(0) Integer page,
+                                                                                    @RequestParam(required = false) @Min(1) @Max(1000) Integer size,
+                                                                                    HttpServletRequest request) {
+        UUID restaurantUuid = parseNullableUuid(restaurantId, "restaurantId");
+        PaginatedResult<MenuItemData> result = adminGovernanceService.listMenuItems(restaurantUuid, categoryCode, q, page, size);
+
+        List<MenuItemResponse> data = result.items().stream()
+                .map(CommonApiMapper::toMenuItemResponse)
+                .toList();
+
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+                data,
+                new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
+                RequestTrace.from(request)
+        ));
+    }
+
+    @PostMapping("/restaurants/{id}/menu-items")
+    public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItem(Authentication authentication,
+                                                                               @PathVariable String id,
+                                                                               @Valid @RequestBody com.foodya.backend.application.dto.CreateMenuItemRequest req,
+                                                                               HttpServletRequest request) {
+        MenuItemData menuItem = adminGovernanceService.createMenuItem(parseUuid(id, "id"), req, CurrentUser.userId(authentication));
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(request)));
+    }
+
+    @PutMapping("/menu-items/{id}")
+    public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> updateMenuItem(Authentication authentication,
+                                                                               @PathVariable String id,
+                                                                               @Valid @RequestBody com.foodya.backend.application.dto.UpdateMenuItemRequest req,
+                                                                               HttpServletRequest request) {
+        MenuItemData menuItem = adminGovernanceService.updateMenuItem(parseUuid(id, "id"), req, CurrentUser.userId(authentication));
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(request)));
     }
 
     @PatchMapping("/orders/{id}/status")
@@ -143,6 +235,13 @@ public class AdminGovernanceController {
         }
     }
 
+    private static UUID parseNullableUuid(String raw, String field) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return parseUuid(raw.trim(), field);
+    }
+
     private static RestaurantStatus parseRestaurantStatus(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
@@ -169,6 +268,8 @@ public class AdminGovernanceController {
         return new OrderSummaryResponse(
                 order.getId(),
                 order.getOrderCode(),
+                order.getCustomerName(),
+                order.getRestaurantName(),
                 order.getStatus().name(),
                 order.getPaymentStatus().name(),
                 order.getTotalAmount()
@@ -180,7 +281,9 @@ public class AdminGovernanceController {
                 order.getId(),
                 order.getOrderCode(),
                 order.getRestaurantId(),
+                order.getRestaurantName(),
                 order.getCustomerUserId(),
+                order.getCustomerName(),
                 order.getStatus().name(),
                 order.getPaymentMethod().name(),
                 order.getPaymentStatus().name(),

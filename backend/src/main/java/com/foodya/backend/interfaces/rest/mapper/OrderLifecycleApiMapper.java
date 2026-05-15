@@ -16,6 +16,8 @@ public final class OrderLifecycleApiMapper {
         return new OrderSummaryResponse(
                 view.orderId(),
                 view.orderCode(),
+                view.customerName(),
+                view.restaurantName(),
                 view.status().name(),
                 view.paymentStatus().name(),
                 view.totalAmount()
@@ -27,7 +29,9 @@ public final class OrderLifecycleApiMapper {
                 view.orderId(),
                 view.orderCode(),
                 view.restaurantId(),
+                view.restaurantName(),
                 view.customerUserId(),
+                view.customerName(),
                 view.status().name(),
                 view.paymentMethod().name(),
                 view.paymentStatus().name(),

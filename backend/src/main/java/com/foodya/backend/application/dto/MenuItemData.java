@@ -17,6 +17,8 @@ public class MenuItemData {
     private BigDecimal price;
     private boolean active;
     private boolean available;
+    private String restaurantName;
+    private String categoryName;
     private OffsetDateTime deletedAt;
 
     public UUID getId() {
@@ -97,6 +99,22 @@ public class MenuItemData {
 
     public void setAvailable(boolean available) {
         this.available = available;
+    }
+
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public OffsetDateTime getDeletedAt() {

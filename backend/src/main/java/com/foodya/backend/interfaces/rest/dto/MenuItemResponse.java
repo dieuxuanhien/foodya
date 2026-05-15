@@ -6,7 +6,9 @@ import java.util.List;
 public record MenuItemResponse(
         String id,
         String restaurantId,
+        String restaurantName,
         String categoryId,
+        String categoryName,
         List<String> taxonomyCodes,
         String name,
         String description,

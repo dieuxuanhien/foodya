@@ -94,8 +94,9 @@ public class AppConfig {
 			OrderManagementPort orderManagementPort,
 			RestaurantPort restaurantPort,
 			DeliveryTrackingPointPort deliveryTrackingPointPort,
-			OrderEventPublisherPort orderEventPublisherPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort);
+			OrderEventPublisherPort orderEventPublisherPort,
+			UserAccountPort userAccountPort) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort);
 	}
 
 	@Bean
@@ -133,8 +134,9 @@ public class AppConfig {
 	public AdminUserService adminUserService(
 			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
-			AuditLogService auditLogService) {
-		return new AdminUserService(adminUserPort, paginationPolicy, auditLogService);
+			AuditLogService auditLogService,
+			PasswordHashPort passwordHashPort) {
+		return new AdminUserService(adminUserPort, paginationPolicy, auditLogService, passwordHashPort);
 	}
 
 	@Bean
@@ -142,9 +144,23 @@ public class AppConfig {
 			AdminRestaurantPort adminRestaurantPort,
 			AdminOrderPort adminOrderPort,
 			AdminMenuItemPort adminMenuItemPort,
+			MenuCategoryPort menuCategoryPort,
+			CategoryTaxonomyPort categoryTaxonomyPort,
+			SystemParameterPort systemParameterPort,
+			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
 			AuditLogService auditLogService) {
-		return new AdminGovernanceService(adminRestaurantPort, adminOrderPort, adminMenuItemPort, paginationPolicy, auditLogService);
+		return new AdminGovernanceService(
+				adminRestaurantPort,
+				adminOrderPort,
+				adminMenuItemPort,
+				menuCategoryPort,
+				categoryTaxonomyPort,
+				systemParameterPort,
+				adminUserPort,
+				paginationPolicy,
+				auditLogService
+		);
 	}
 
 	@Bean
@@ -190,8 +206,8 @@ public class AppConfig {
 	}
 
 	@Bean
-	public AuditLogService auditLogService(AuditLogPort auditLogPort) {
-		return new AuditLogService(auditLogPort);
+	public AuditLogService auditLogService(AuditLogPort auditLogPort, PaginationPolicy paginationPolicy) {
+		return new AuditLogService(auditLogPort, paginationPolicy);
 	}
 
 	@Bean

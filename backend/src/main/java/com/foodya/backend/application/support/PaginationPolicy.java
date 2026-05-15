@@ -20,7 +20,7 @@ public class PaginationPolicy {
     public PaginationSpec page(Integer page, Integer size) {
         int resolvedPage = page == null ? 0 : page;
         int defaultSize = intParam("search.default_page_size", 20);
-        int maxSize = intParam("search.max_page_size", 100);
+        int maxSize = intParam("search.max_page_size", 1000);
         int resolvedSize = size == null ? defaultSize : size;
 
         if (resolvedPage < 0) {
