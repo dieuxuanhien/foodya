@@ -66,16 +66,16 @@ public class CatalogService {
     }
 
     public PaginatedResult<RestaurantSearchView> searchRestaurants(String q,
-                                                                       String cuisine,
-                                                                       BigDecimal minRating,
-                                                                       Boolean openNow,
-                                                                       List<String> taxonomyCodes,
-                                                                       Integer page,
-                                                                       Integer size,
-                                                                       String sort,
-                                                                       BigDecimal lat,
-                                                                       BigDecimal lng,
-                                                                       BigDecimal radiusKm) {
+                                                                        String cuisine,
+                                                                        BigDecimal minRating,
+                                                                        Boolean openNow,
+                                                                        List<String> taxonomyCodes,
+                                                                        Integer page,
+                                                                        Integer size,
+                                                                        String sort,
+                                                                        BigDecimal lat,
+                                                                        BigDecimal lng,
+                                                                        BigDecimal radiusKm) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String keyword = q == null ? "" : q.trim();
         List<String> normalizedTaxonomyCodes = normalizeTaxonomyCodes(taxonomyCodes);
@@ -181,12 +181,12 @@ public class CatalogService {
                 .orElseThrow(() -> new ValidationException("invalid taxonomyCode", Map.of("taxonomyCode", taxonomyCode + " does not exist or is inactive")));
         }
 
-        List<MenuItemData> filtered = normalizedTaxonomyCodes.isEmpty()
+        List<MenuItemData> filtered = (normalizedTaxonomyCodes.isEmpty()
             ? catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId)
-            : catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId, normalizedTaxonomyCodes)
-                .stream()
-                .filter(item -> matchesKeyword(item, keyword))
-                .collect(Collectors.toCollection(ArrayList::new));
+            : catalogQueryPort.findPublicMenuItemsByRestaurant(restaurantId, normalizedTaxonomyCodes))
+            .stream()
+            .filter(item -> matchesKeyword(item, keyword))
+            .collect(Collectors.toCollection(ArrayList::new));
 
         sortMenuItems(filtered, sort);
         int from = spec.offset();
@@ -249,13 +249,13 @@ public class CatalogService {
             .collect(Collectors.groupingBy(MenuItemData::getRestaurantId, LinkedHashMap::new, Collectors.toList()));
     }
 
-        private static boolean matchesTaxonomy(MenuItemData item, Collection<String> taxonomyCodes) {
+    private static boolean matchesTaxonomy(MenuItemData item, Collection<String> taxonomyCodes) {
         if (taxonomyCodes == null || taxonomyCodes.isEmpty()) {
             return true;
         }
         List<String> itemTaxonomyCodes = item.getTaxonomyCodes() == null ? List.of() : item.getTaxonomyCodes();
         return itemTaxonomyCodes.stream().anyMatch(taxonomyCodes::contains);
-        }
+    }
 
 
     private List<RestaurantData> applyNearbyFilter(List<RestaurantData> restaurants,
@@ -336,15 +336,15 @@ public class CatalogService {
     private static void sortMenuItems(List<MenuItemData> items, String sort) {
         String resolvedSort = sort == null ? "popularity_desc" : sort.trim().toLowerCase();
         if ("name_asc".equals(resolvedSort)) {
-            items.sort(Comparator.comparing(MenuItemData::getName));
+            items.sort(Comparator.nullsLast(Comparator.comparing(MenuItemData::getName)));
             return;
         }
         if ("price_asc".equals(resolvedSort)) {
-            items.sort(Comparator.comparing(MenuItemData::getPrice));
+            items.sort(Comparator.nullsLast(Comparator.comparing(MenuItemData::getPrice)));
             return;
         }
         if ("price_desc".equals(resolvedSort)) {
-            items.sort(Comparator.comparing(MenuItemData::getPrice).reversed());
+            items.sort(Comparator.nullsLast(Comparator.comparing(MenuItemData::getPrice)).reversed());
             return;
         }
         if (!"popularity_desc".equals(resolvedSort)) {
@@ -352,7 +352,7 @@ public class CatalogService {
         }
 
         // Phase 2 popularity proxy until order analytics exists in later phases.
-        items.sort(Comparator.comparing(MenuItemData::getName));
+        items.sort(Comparator.nullsLast(Comparator.comparing(MenuItemData::getName)));
     }
 
     private Map<UUID, BigDecimal> computeDistanceMap(List<RestaurantData> restaurants, double lat, double lng) {

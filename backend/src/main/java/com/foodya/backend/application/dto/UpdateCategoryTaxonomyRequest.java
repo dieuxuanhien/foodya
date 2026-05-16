@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 
 public record UpdateCategoryTaxonomyRequest(
         @NotBlank @Size(max = 120) String displayName,
+        @Size(max = 500) String description,
+        @Size(max = 255) String icon,
         @NotNull @Min(0) @Max(10000) Integer sortOrder,
         @NotNull Boolean isActive
 ) {

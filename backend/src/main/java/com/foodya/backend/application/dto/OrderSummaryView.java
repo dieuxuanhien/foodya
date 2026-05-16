@@ -9,6 +9,8 @@ import java.util.UUID;
 public record OrderSummaryView(
         UUID orderId,
         String orderCode,
+        String customerName,
+        String restaurantName,
         OrderStatus status,
         PaymentStatus paymentStatus,
         BigDecimal totalAmount

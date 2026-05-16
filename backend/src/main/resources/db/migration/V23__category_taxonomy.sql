@@ -8,24 +8,31 @@ CREATE TABLE IF NOT EXISTS category_taxonomies (
 );
 
 INSERT INTO category_taxonomies (code, display_name, sort_order, is_active, created_at, updated_at)
-VALUES
-    ('APPETIZERS', 'Appetizers', 10, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('BREAKFAST', 'Breakfast', 20, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('BOWLS', 'Bowls', 30, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('DESSERTS', 'Desserts', 40, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('DRINKS', 'Drinks', 50, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('FAST_FOOD', 'Fast Food', 60, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('FUSION', 'Fusion', 70, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('MAIN_DISHES', 'Main Dishes', 80, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('NOODLES', 'Noodles', 90, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('RICE', 'Rice', 100, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('SALADS', 'Salads', 110, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('SEAFOOD', 'Seafood', 120, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('SNACKS', 'Snacks', 130, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('SOUPS', 'Soups', 140, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('VEGETARIAN', 'Vegetarian', 150, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('VEGAN', 'Vegan', 160, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (code) DO NOTHING;
+SELECT v.code, v.display_name, v.sort_order, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM (
+    VALUES
+        ('APPETIZERS', 'Appetizers', 10),
+        ('BREAKFAST', 'Breakfast', 20),
+        ('BOWLS', 'Bowls', 30),
+        ('DESSERTS', 'Desserts', 40),
+        ('DRINKS', 'Drinks', 50),
+        ('FAST_FOOD', 'Fast Food', 60),
+        ('FUSION', 'Fusion', 70),
+        ('MAIN_DISHES', 'Main Dishes', 80),
+        ('NOODLES', 'Noodles', 90),
+        ('RICE', 'Rice', 100),
+        ('SALADS', 'Salads', 110),
+        ('SEAFOOD', 'Seafood', 120),
+        ('SNACKS', 'Snacks', 130),
+        ('SOUPS', 'Soups', 140),
+        ('VEGETARIAN', 'Vegetarian', 150),
+        ('VEGAN', 'Vegan', 160)
+) AS v(code, display_name, sort_order)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM category_taxonomies ct
+    WHERE ct.code = v.code
+);
 
 ALTER TABLE menu_categories
     ADD COLUMN IF NOT EXISTS taxonomy_code VARCHAR(64);

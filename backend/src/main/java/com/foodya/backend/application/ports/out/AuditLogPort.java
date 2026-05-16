@@ -1,5 +1,6 @@
 package com.foodya.backend.application.ports.out;
 
+import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.domain.entities.AuditLog;
 
 import java.time.OffsetDateTime;
@@ -12,6 +13,8 @@ import java.time.OffsetDateTime;
 public interface AuditLogPort {
 
     void save(AuditLog auditLog);
+
+    PaginatedResult<AuditLog> list(String action, String targetType, int page, int size);
 
     long deleteByCreatedAtBefore(OffsetDateTime cutoff);
 }

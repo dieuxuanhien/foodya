@@ -8,6 +8,8 @@ public class CategoryTaxonomyData {
     private String displayName;
     private int sortOrder;
     private boolean active;
+    private String description;
+    private String icon;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -41,6 +43,22 @@ public class CategoryTaxonomyData {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
     }
 
     public OffsetDateTime getCreatedAt() {
