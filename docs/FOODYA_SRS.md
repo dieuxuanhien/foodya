@@ -1552,10 +1552,12 @@ users ||--o{ system_parameters
 | API-PROF-01 | `/api/v1/me`                                        |  GET   | Authenticated   | `200 OK`         |
 | API-PROF-02 | `/api/v1/me`                                        | PATCH  | Authenticated   | `200 OK`         |
 | API-PROF-03 | `/api/v1/me/password`                               |  PUT   | Authenticated   | `200 OK`         |
+| API-PROF-04 | `/api/v1/me/location-address`                       |  GET   | Authenticated   | `200 OK`         |
 | API-CAT-01  | `/api/v1/restaurants`                               |  GET   | Public/Customer | `200 OK`         |
 | API-CAT-02  | `/api/v1/restaurants/{id}`                          |  GET   | Public/Customer | `200 OK`         |
 | API-CAT-03  | `/api/v1/restaurants/{id}/menu-items`               |  GET   | Public/Customer | `200 OK`         |
 | API-CAT-04  | `/api/v1/restaurants/nearby`                        |  GET   | Public/Customer | `200 OK`         |
+| API-CAT-05  | `/api/v1/restaurants/category-taxonomies`           |  GET   | Public/Customer | `200 OK`         |
 | API-CART-01 | `/api/v1/customer/carts/active`                     |  GET   | Customer        | `200 OK`         |
 | API-CART-02 | `/api/v1/customer/carts/active/items`               |  POST  | Customer        | `200 OK`         |
 | API-CART-03 | `/api/v1/customer/carts/active/items/{menuItemId}`  | PATCH  | Customer        | `200 OK`         |
@@ -1582,6 +1584,7 @@ users ||--o{ system_parameters
 | API-MER-11  | `/api/v1/merchant/menu-items/{id}`                  | PATCH  | Merchant        | `200 OK`         |
 | API-MER-12  | `/api/v1/merchant/menu-items/{id}`                  | DELETE | Merchant        | `204 No Content` |
 | API-MER-13  | `/api/v1/merchant/menu-items/{id}/availability`     | PATCH  | Merchant        | `200 OK`         |
+| API-MER-16  | `/api/v1/merchant/reviews/{id}/response`            | PATCH  | Merchant        | `200 OK`         |
 | API-MER-14  | `/api/v1/merchant/reviews/{id}/replies`             |  POST  | Merchant        | `201 Created`    |
 | API-MER-15  | `/api/v1/merchant/review-replies/{id}`              | PATCH  | Merchant        | `200 OK`         |
 | API-DEL-01  | `/api/v1/delivery/orders/assigned`                  |  GET   | Delivery        | `200 OK`         |
@@ -1595,8 +1598,20 @@ users ||--o{ system_parameters
 | API-NTF-02  | `/api/v1/admin/notifications`                       |  GET   | Admin           | `200 OK`         |
 | API-NTF-03  | `/api/v1/notifications/{id}/read`                   | PATCH  | Authenticated   | `200 OK`         |
 | API-ADM-01  | `/api/v1/admin/users`                               |  GET   | Admin           | `200 OK`         |
+| API-ADM-15  | `/api/v1/admin/users`                               |  POST  | Admin           | `200 OK`         |
+| API-ADM-16  | `/api/v1/admin/users/{id}`                          |  GET   | Admin           | `200 OK`         |
+| API-ADM-17  | `/api/v1/admin/users/{id}`                          |  PUT   | Admin           | `200 OK`         |
+| API-ADM-18  | `/api/v1/admin/users/{id}/reset-password`           |  POST  | Admin           | `204 No Content` |
+| API-ADM-19  | `/api/v1/admin/users/{id}/approve`                  |  POST  | Admin           | `200 OK`         |
 | API-ADM-02  | `/api/v1/admin/users/{id}/lock`                     |  POST  | Admin           | `200 OK`         |
 | API-ADM-03  | `/api/v1/admin/restaurants`                         |  GET   | Admin           | `200 OK`         |
+| API-ADM-20  | `/api/v1/admin/restaurants`                         |  POST  | Admin           | `200 OK`         |
+| API-ADM-21  | `/api/v1/admin/restaurants/{id}`                    |  GET   | Admin           | `200 OK`         |
+| API-ADM-22  | `/api/v1/admin/restaurants/{id}`                    |  PUT   | Admin           | `200 OK`         |
+| API-ADM-23  | `/api/v1/admin/restaurants/{id}/menu-categories`    |  GET   | Admin           | `200 OK`         |
+| API-ADM-24  | `/api/v1/admin/menu-items`                          |  GET   | Admin           | `200 OK`         |
+| API-ADM-25  | `/api/v1/admin/restaurants/{id}/menu-items`         |  POST  | Admin           | `201 Created`    |
+| API-ADM-26  | `/api/v1/admin/menu-items/{id}`                     |  PUT   | Admin           | `200 OK`         |
 | API-ADM-04  | `/api/v1/admin/orders`                              |  GET   | Admin           | `200 OK`         |
 | API-ADM-05  | `/api/v1/admin/system-parameters`                   |  GET   | Admin           | `200 OK`         |
 | API-ADM-06  | `/api/v1/admin/system-parameters/{key}`             |  PUT   | Admin           | `200 OK`         |
@@ -1608,8 +1623,21 @@ users ||--o{ system_parameters
 | API-ADM-12  | `/api/v1/admin/restaurants/{id}`                    | DELETE | Admin           | `204 No Content` |
 | API-ADM-13  | `/api/v1/admin/orders/{id}/status`                  | PATCH  | Admin           | `200 OK`         |
 | API-ADM-14  | `/api/v1/admin/orders/{id}`                         | DELETE | Admin           | `204 No Content` |
+| API-ADM-27  | `/api/v1/admin/category-taxonomies`                 |  GET   | Admin           | `200 OK`         |
+| API-ADM-28  | `/api/v1/admin/category-taxonomies`                 |  POST  | Admin           | `201 Created`    |
+| API-ADM-29  | `/api/v1/admin/category-taxonomies/{code}`          |  PUT   | Admin           | `200 OK`         |
+| API-ADM-30  | `/api/v1/admin/category-taxonomies/{code}`          | DELETE | Admin           | `204 No Content` |
+| API-ADM-31  | `/api/v1/admin/audit-logs`                          |  GET   | Admin           | `200 OK`         |
 | API-RPT-01  | `/api/v1/admin/reports/revenue`                     |  GET   | Admin           | `200 OK`         |
 | API-RPT-02  | `/api/v1/merchant/reports/revenue`                  |  GET   | Merchant        | `200 OK`         |
+
+Operational/System APIs (implementation-level, not mapped to core FR IDs):
+
+| API ID     | Endpoint                                      | Method | Actor     | Success  |
+| :--------- | :-------------------------------------------- | :----: | :-------- | :------- |
+| API-SYS-01 | `/api/v1/system/integrations/status`          |  GET   | Ops/Admin | `200 OK` |
+| API-SYS-02 | `/api/v1/system/integrations/firebase-config` |  GET   | Ops/Admin | `200 OK` |
+| API-SYS-03 | `/api/v1/system/integrations/supabase-config` |  GET   | Ops/Admin | `200 OK` |
 
 `API-CAT-01` query behavior:
 
