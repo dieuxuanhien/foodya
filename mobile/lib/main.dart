@@ -13,8 +13,14 @@ import 'features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/http_auth_repository.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/presentation/cubit/login_cubit.dart';
+import 'features/customer/data/data_sources/customer_cart_remote_data_source.dart';
+import 'features/customer/data/data_sources/customer_order_remote_data_source.dart';
+import 'features/customer/data/repositories/http_customer_cart_repository.dart';
+import 'features/customer/data/repositories/http_customer_order_repository.dart';
 import 'features/customer/data/data_sources/customer_catalog_remote_data_source.dart';
 import 'features/customer/data/repositories/http_customer_catalog_repository.dart';
+import 'features/customer/domain/repositories/customer_cart_repository.dart';
+import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
 import 'core/location/geolocation_service.dart';
 
@@ -36,8 +42,11 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final SessionCubit _sessionCubit;
   late final AuthRepository _authRepository;
   late final CustomerCatalogRepository _customerCatalogRepository;
+  late final CustomerCartRepository _customerCartRepository;
+  late final CustomerOrderRepository _customerOrderRepository;
   late final GeolocationService _geolocationService;
   late final AuthRemoteDataSource _authRemoteDataSource;
+  late final AuthSessionRecovery _authSessionRecovery;
 
   @override
   void initState() {
@@ -54,6 +63,11 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       tokenStore: widget._tokenStore,
     );
 
+    _authSessionRecovery = AuthSessionRecovery(
+      tokenStore: widget._tokenStore,
+      refreshTokenExchange: _authRemoteDataSource.refresh,
+    );
+
     _customerCatalogRepository = HttpCustomerCatalogRepository(
       remoteDataSource: CustomerCatalogRemoteDataSource(
         baseUrl: AppConfig.apiBaseUrl,
@@ -61,18 +75,30 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       ),
     );
 
+    _customerCartRepository = HttpCustomerCartRepository(
+      remoteDataSource: CustomerCartRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
+    _customerOrderRepository = HttpCustomerOrderRepository(
+      remoteDataSource: CustomerOrderRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
     final locationRemoteDataSource = LocationAddressRemoteDataSource(
       baseUrl: AppConfig.apiBaseUrl,
       client: widget._httpClient,
     );
-    final sessionRecovery = AuthSessionRecovery(
-      tokenStore: widget._tokenStore,
-      refreshTokenExchange: _authRemoteDataSource.refresh,
-    );
 
     _geolocationService = GeolocationService(
       remoteDataSource: locationRemoteDataSource,
-      sessionRecovery: sessionRecovery,
+      sessionRecovery: _authSessionRecovery,
     );
   }
 
@@ -93,6 +119,12 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<CustomerCatalogRepository>.value(
           value: _customerCatalogRepository,
+        ),
+        RepositoryProvider<CustomerCartRepository>.value(
+          value: _customerCartRepository,
+        ),
+        RepositoryProvider<CustomerOrderRepository>.value(
+          value: _customerOrderRepository,
         ),
       ],
       child: MultiBlocProvider(

@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/auth_loading_page.dart';
 import '../../features/auth/presentation/pages/role_login_page.dart';
 import '../../features/customer/presentation/pages/customer_home_page.dart';
+import '../../features/customer/presentation/pages/customer_cart_page.dart';
+import '../../features/customer/presentation/pages/customer_checkout_page.dart';
+import '../../features/customer/presentation/pages/customer_orders_page.dart';
+import '../../features/customer/presentation/pages/customer_order_detail_page.dart';
 import '../../features/customer/presentation/pages/restaurant_browse_page.dart';
 import '../../features/customer/presentation/pages/restaurant_detail_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
@@ -47,6 +51,29 @@ class AppRouter {
         builder:
             (context, state) => RestaurantDetailPage(
               restaurantId: state.pathParameters['id'] ?? '',
+            ),
+      ),
+      GoRoute(
+        path: '/customer/cart',
+        name: 'customer-cart',
+        builder: (context, state) => const CustomerCartPage(),
+      ),
+      GoRoute(
+        path: '/customer/checkout',
+        name: 'customer-checkout',
+        builder: (context, state) => const CustomerCheckoutPage(),
+      ),
+      GoRoute(
+        path: '/customer/orders',
+        name: 'customer-orders',
+        builder: (context, state) => const CustomerOrdersPage(),
+      ),
+      GoRoute(
+        path: '/customer/orders/:id',
+        name: 'customer-order-detail',
+        builder:
+            (context, state) => CustomerOrderDetailPage(
+              orderId: state.pathParameters['id'] ?? '',
             ),
       ),
       GoRoute(
