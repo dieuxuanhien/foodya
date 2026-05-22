@@ -1,7 +1,19 @@
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+
+import '../auth/auth_session_recovery.dart';
+import '../network/api_exception.dart';
+import 'location_address_remote_data_source.dart';
 
 class GeolocationService {
+  GeolocationService({
+    required LocationAddressRemoteDataSource remoteDataSource,
+    required AuthSessionRecovery sessionRecovery,
+  }) : _remoteDataSource = remoteDataSource,
+       _sessionRecovery = sessionRecovery;
+
+  final LocationAddressRemoteDataSource _remoteDataSource;
+  final AuthSessionRecovery _sessionRecovery;
+
   Future<bool> isLocationServiceEnabled() async {
     return Geolocator.isLocationServiceEnabled();
   }
@@ -28,44 +40,20 @@ class GeolocationService {
 
   Future<String?> getFriendlyAddress(Position position) async {
     try {
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
+      final resolved = await _sessionRecovery.runAuthorized((accessToken) {
+        return _remoteDataSource.resolveAddress(
+          lat: position.latitude,
+          lng: position.longitude,
+          accessToken: accessToken,
+        );
+      });
 
-      if (placemarks.isEmpty) {
-        return null;
-      }
-
-      final placemark = placemarks.first;
-      final parts = _collectAddressParts([
-        placemark.subAdministrativeArea,
-        placemark.administrativeArea,
-      ]);
-
-      if (parts.isNotEmpty) {
-        return parts.join(', ');
-      }
-
-      final fallbackParts = _collectAddressParts([
-        placemark.locality,
-        placemark.country,
-      ]);
-
-      if (fallbackParts.isNotEmpty) {
-        return fallbackParts.join(', ');
-      }
+      final address = resolved.address.trim();
+      return address.isEmpty ? null : address;
+    } on ApiException {
+      return null;
     } catch (_) {
       return null;
     }
-
-    return null;
-  }
-
-  List<String> _collectAddressParts(List<String?> parts) {
-    return parts
-        .where((part) => part != null && part.trim().isNotEmpty)
-        .map((part) => part!.trim())
-        .toList(growable: false);
   }
 }

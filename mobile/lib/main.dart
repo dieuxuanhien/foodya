@@ -4,9 +4,11 @@ import 'package:http/http.dart' as http;
 
 import 'app.dart';
 import 'core/auth/session_cubit.dart';
+import 'core/auth/auth_session_recovery.dart';
 import 'core/auth/token_store.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
+import 'core/location/location_address_remote_data_source.dart';
 import 'features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/http_auth_repository.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -34,17 +36,21 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final SessionCubit _sessionCubit;
   late final AuthRepository _authRepository;
   late final CustomerCatalogRepository _customerCatalogRepository;
+  late final GeolocationService _geolocationService;
+  late final AuthRemoteDataSource _authRemoteDataSource;
 
   @override
   void initState() {
     super.initState();
     _sessionCubit = SessionCubit();
 
+    _authRemoteDataSource = AuthRemoteDataSource(
+      baseUrl: AppConfig.apiBaseUrl,
+      client: widget._httpClient,
+    );
+
     _authRepository = HttpAuthRepository(
-      remoteDataSource: AuthRemoteDataSource(
-        baseUrl: AppConfig.apiBaseUrl,
-        client: widget._httpClient,
-      ),
+      remoteDataSource: _authRemoteDataSource,
       tokenStore: widget._tokenStore,
     );
 
@@ -53,6 +59,20 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         baseUrl: AppConfig.apiBaseUrl,
         client: widget._httpClient,
       ),
+    );
+
+    final locationRemoteDataSource = LocationAddressRemoteDataSource(
+      baseUrl: AppConfig.apiBaseUrl,
+      client: widget._httpClient,
+    );
+    final sessionRecovery = AuthSessionRecovery(
+      tokenStore: widget._tokenStore,
+      refreshTokenExchange: _authRemoteDataSource.refresh,
+    );
+
+    _geolocationService = GeolocationService(
+      remoteDataSource: locationRemoteDataSource,
+      sessionRecovery: sessionRecovery,
     );
   }
 
@@ -69,7 +89,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       providers: [
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
         RepositoryProvider<GeolocationService>(
-          create: (_) => GeolocationService(),
+          create: (_) => _geolocationService,
         ),
         RepositoryProvider<CustomerCatalogRepository>.value(
           value: _customerCatalogRepository,
