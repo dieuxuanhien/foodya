@@ -18,6 +18,8 @@ import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../../features/merchant/presentation/pages/merchant_catalog_page.dart';
 import '../../features/merchant/presentation/pages/merchant_restaurant_page.dart';
 import '../../features/merchant/presentation/pages/merchant_orders_page.dart';
+import '../../features/merchant/presentation/pages/merchant_reviews_page.dart';
+import '../../features/merchant/presentation/pages/merchant_revenue_page.dart';
 import '../auth/session_cubit.dart';
 import '../auth/user_role.dart';
 import 'go_router_refresh_stream.dart';
@@ -122,6 +124,16 @@ class AppRouter {
         path: '/merchant/orders',
         name: 'merchant-orders',
         builder: (context, state) => const MerchantOrdersPage(),
+      ),
+      GoRoute(
+        path: '/merchant/reviews',
+        name: 'merchant-reviews',
+        builder: (context, state) => const MerchantReviewsPage(),
+      ),
+      GoRoute(
+        path: '/merchant/revenue',
+        name: 'merchant-revenue',
+        builder: (context, state) => const MerchantRevenuePage(),
       ),
     ],
   );

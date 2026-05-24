@@ -34,12 +34,18 @@ import 'features/customer/domain/repositories/customer_profile_repository.dart';
 import 'features/merchant/data/data_sources/merchant_restaurant_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_catalog_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_order_remote_data_source.dart';
+import 'features/merchant/data/data_sources/merchant_review_remote_data_source.dart';
+import 'features/merchant/data/data_sources/merchant_revenue_remote_data_source.dart';
 import 'features/merchant/data/repositories/http_merchant_catalog_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_order_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_restaurant_repository.dart';
+import 'features/merchant/data/repositories/http_merchant_review_repository.dart';
+import 'features/merchant/data/repositories/http_merchant_revenue_repository.dart';
 import 'features/merchant/domain/repositories/merchant_catalog_repository.dart';
 import 'features/merchant/domain/repositories/merchant_order_repository.dart';
 import 'features/merchant/domain/repositories/merchant_restaurant_repository.dart';
+import 'features/merchant/domain/repositories/merchant_review_repository.dart';
+import 'features/merchant/domain/repositories/merchant_revenue_repository.dart';
 import 'core/location/geolocation_service.dart';
 
 void main() {
@@ -68,6 +74,8 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final MerchantRestaurantRepository _merchantRestaurantRepository;
   late final MerchantCatalogRepository _merchantCatalogRepository;
   late final MerchantOrderRepository _merchantOrderRepository;
+  late final MerchantReviewRepository _merchantReviewRepository;
+  late final MerchantRevenueRepository _merchantRevenueRepository;
   late final GeolocationService _geolocationService;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
@@ -163,6 +171,22 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       sessionRecovery: _authSessionRecovery,
     );
 
+    _merchantReviewRepository = HttpMerchantReviewRepository(
+      remoteDataSource: MerchantReviewRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
+    _merchantRevenueRepository = HttpMerchantRevenueRepository(
+      remoteDataSource: MerchantRevenueRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
     final locationRemoteDataSource = LocationAddressRemoteDataSource(
       baseUrl: AppConfig.apiBaseUrl,
       client: widget._httpClient,
@@ -215,6 +239,12 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<MerchantOrderRepository>.value(
           value: _merchantOrderRepository,
+        ),
+        RepositoryProvider<MerchantReviewRepository>.value(
+          value: _merchantReviewRepository,
+        ),
+        RepositoryProvider<MerchantRevenueRepository>.value(
+          value: _merchantRevenueRepository,
         ),
       ],
       child: MultiBlocProvider(

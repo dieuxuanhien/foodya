@@ -76,9 +76,17 @@ class MerchantHomePage extends StatelessWidget {
           ),
           SizedBox(height: 12),
           _FeatureCard(
+            title: 'Review Center',
+            subtitle: 'SRS FR16',
+            icon: Icons.rate_review_outlined,
+            routePath: '/merchant/reviews',
+          ),
+          SizedBox(height: 12),
+          _FeatureCard(
             title: 'Revenue and Insights',
             subtitle: 'SRS FR25',
             icon: Icons.bar_chart_outlined,
+            routePath: '/merchant/revenue',
           ),
         ],
       ),
