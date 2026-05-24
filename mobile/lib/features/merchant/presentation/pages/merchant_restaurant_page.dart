@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_restaurant_request.dart';
@@ -82,6 +83,11 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
           appBar: AppBar(
             title: const Text('Restaurant Console'),
             actions: [
+              IconButton(
+                onPressed: () => context.push('/merchant/catalog'),
+                icon: const Icon(Icons.fastfood_outlined),
+                tooltip: 'Catalog',
+              ),
               IconButton(
                 onPressed:
                     state.isBusy

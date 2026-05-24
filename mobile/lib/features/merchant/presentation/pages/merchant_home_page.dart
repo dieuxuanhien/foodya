@@ -56,9 +56,16 @@ class MerchantHomePage extends StatelessWidget {
         children: const [
           _FeatureCard(
             title: 'Restaurant and Menu Management',
-            subtitle: 'SRS FR13, FR14, FR15',
+            subtitle: 'SRS FR13',
             icon: Icons.restaurant_menu_outlined,
             routePath: '/merchant/restaurant',
+          ),
+          SizedBox(height: 12),
+          _FeatureCard(
+            title: 'Catalog Management',
+            subtitle: 'SRS FR14, FR15',
+            icon: Icons.fastfood_outlined,
+            routePath: '/merchant/catalog',
           ),
           SizedBox(height: 12),
           _FeatureCard(

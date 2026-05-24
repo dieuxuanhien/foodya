@@ -32,7 +32,10 @@ import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_profile_repository.dart';
 import 'features/merchant/data/data_sources/merchant_restaurant_remote_data_source.dart';
+import 'features/merchant/data/data_sources/merchant_catalog_remote_data_source.dart';
+import 'features/merchant/data/repositories/http_merchant_catalog_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_restaurant_repository.dart';
+import 'features/merchant/domain/repositories/merchant_catalog_repository.dart';
 import 'features/merchant/domain/repositories/merchant_restaurant_repository.dart';
 import 'core/location/geolocation_service.dart';
 
@@ -60,6 +63,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final CustomerNotificationRepository _customerNotificationRepository;
   late final CustomerAiRepository _customerAiRepository;
   late final MerchantRestaurantRepository _merchantRestaurantRepository;
+  late final MerchantCatalogRepository _merchantCatalogRepository;
   late final GeolocationService _geolocationService;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
@@ -139,6 +143,14 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       sessionRecovery: _authSessionRecovery,
     );
 
+    _merchantCatalogRepository = HttpMerchantCatalogRepository(
+      remoteDataSource: MerchantCatalogRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
     final locationRemoteDataSource = LocationAddressRemoteDataSource(
       baseUrl: AppConfig.apiBaseUrl,
       client: widget._httpClient,
@@ -185,6 +197,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<MerchantRestaurantRepository>.value(
           value: _merchantRestaurantRepository,
+        ),
+        RepositoryProvider<MerchantCatalogRepository>.value(
+          value: _merchantCatalogRepository,
         ),
       ],
       child: MultiBlocProvider(
