@@ -16,6 +16,8 @@ public interface RestaurantPort {
 
     Optional<Restaurant> findById(UUID id);
 
+    List<Restaurant> findByOwnerUserId(UUID ownerUserId);
+
     Optional<Restaurant> findByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses);
 
     Restaurant save(Restaurant restaurant);

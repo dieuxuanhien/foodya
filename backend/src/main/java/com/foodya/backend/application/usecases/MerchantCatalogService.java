@@ -98,6 +98,14 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
         return toRestaurantData(restaurantPort.save(restaurant));
     }
 
+    public List<RestaurantData> listOwnedRestaurants(UUID merchantUserId) {
+        requireNonNull(merchantUserId, "merchantUserId");
+        return restaurantPort.findByOwnerUserId(merchantUserId)
+                .stream()
+                .map(this::toRestaurantData)
+                .toList();
+    }
+
     public RestaurantData updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request) {
         requireText(request.name(), "name");
         requireText(request.addressLine(), "addressLine");

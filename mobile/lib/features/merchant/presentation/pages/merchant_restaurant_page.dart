@@ -16,7 +16,7 @@ class MerchantRestaurantPage extends StatelessWidget {
       create:
           (context) => MerchantRestaurantCubit(
             repository: context.read<MerchantRestaurantRepository>(),
-          ),
+          )..loadRestaurants(),
       child: const _MerchantRestaurantView(),
     );
   }
@@ -79,20 +79,43 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
       },
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Restaurant Console')),
+          appBar: AppBar(
+            title: const Text('Restaurant Console'),
+            actions: [
+              IconButton(
+                onPressed:
+                    state.isBusy
+                        ? null
+                        : () =>
+                            context
+                                .read<MerchantRestaurantCubit>()
+                                .loadRestaurants(),
+                icon: const Icon(Icons.refresh_outlined),
+                tooltip: 'Refresh',
+              ),
+            ],
+          ),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if (state.restaurant != null) ...[
-                _RestaurantSummary(restaurant: state.restaurant!),
-                const SizedBox(height: 16),
-              ],
+              _RestaurantList(
+                restaurants: state.restaurants,
+                selectedRestaurantId: state.restaurant?.id,
+                isLoading: state.isLoading,
+                onSelected: (restaurant) {
+                  context.read<MerchantRestaurantCubit>().selectRestaurant(
+                    restaurant,
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     TextFormField(
                       controller: _restaurantIdController,
+                      readOnly: true,
                       decoration: const InputDecoration(
                         labelText: 'Restaurant ID for update',
                       ),
@@ -167,7 +190,7 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
                       value: _isOpen,
                       title: const Text('Open for orders'),
                       onChanged:
-                          state.isSaving
+                          state.isBusy
                               ? null
                               : (value) => setState(() => _isOpen = value),
                     ),
@@ -177,7 +200,7 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
                         Expanded(
                           child: FilledButton.icon(
                             onPressed:
-                                state.isSaving
+                                state.isBusy
                                     ? null
                                     : () => _createRestaurant(context),
                             icon: const Icon(Icons.add_business_outlined),
@@ -188,7 +211,7 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
                         Expanded(
                           child: FilledButton.tonalIcon(
                             onPressed:
-                                state.isSaving
+                                state.isBusy
                                     ? null
                                     : () => _updateRestaurant(context),
                             icon: const Icon(Icons.save_outlined),
@@ -200,7 +223,7 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed:
-                          state.isSaving
+                          state.isBusy
                               ? null
                               : () => _toggleOpen(context, !_isOpen),
                       icon: Icon(
@@ -316,14 +339,22 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
 }
 
 class _RestaurantSummary extends StatelessWidget {
-  const _RestaurantSummary({required this.restaurant});
+  const _RestaurantSummary({
+    required this.restaurant,
+    required this.selected,
+    required this.onTap,
+  });
 
   final MerchantRestaurant restaurant;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
+        selected: selected,
+        onTap: onTap,
         leading: Icon(
           restaurant.open
               ? Icons.storefront_outlined
@@ -333,6 +364,51 @@ class _RestaurantSummary extends StatelessWidget {
         subtitle: Text('${restaurant.status} - ${restaurant.cuisineType}'),
         trailing: Text(restaurant.open ? 'Open' : 'Closed'),
       ),
+    );
+  }
+}
+
+class _RestaurantList extends StatelessWidget {
+  const _RestaurantList({
+    required this.restaurants,
+    required this.selectedRestaurantId,
+    required this.isLoading,
+    required this.onSelected,
+  });
+
+  final List<MerchantRestaurant> restaurants;
+  final String? selectedRestaurantId;
+  final bool isLoading;
+  final ValueChanged<MerchantRestaurant> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && restaurants.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (restaurants.isEmpty) {
+      return const Card(
+        child: ListTile(
+          leading: Icon(Icons.storefront_outlined),
+          title: Text('No restaurants yet'),
+          subtitle: Text('Create your first restaurant below.'),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        for (final restaurant in restaurants)
+          _RestaurantSummary(
+            restaurant: restaurant,
+            selected: restaurant.id == selectedRestaurantId,
+            onTap: () => onSelected(restaurant),
+          ),
+      ],
     );
   }
 }

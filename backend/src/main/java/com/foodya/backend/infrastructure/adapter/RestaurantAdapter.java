@@ -44,6 +44,14 @@ public class RestaurantAdapter implements RestaurantPort {
     }
 
     @Override
+    public List<Restaurant> findByOwnerUserId(UUID ownerUserId) {
+        return repository.findByOwnerUserIdOrderByCreatedAtDesc(Objects.requireNonNull(ownerUserId))
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<Restaurant> findByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses) {
         return repository.findByIdAndStatusIn(id, statuses).map(mapper::toDomain);
     }

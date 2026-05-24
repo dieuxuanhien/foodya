@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
+import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_restaurant_request.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
 import 'merchant_restaurant_state.dart';
@@ -11,6 +12,38 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
       super(const MerchantRestaurantState.initial());
 
   final MerchantRestaurantRepository _repository;
+
+  Future<void> loadRestaurants() async {
+    if (state.isBusy) {
+      return;
+    }
+    emit(
+      state.copyWith(
+        status: MerchantRestaurantStatus.loading,
+        clearError: true,
+        clearInfo: true,
+      ),
+    );
+    try {
+      final restaurants = await _repository.listRestaurants();
+      emit(
+        state.copyWith(
+          status: MerchantRestaurantStatus.success,
+          restaurants: restaurants,
+          restaurant:
+              state.restaurant ??
+              (restaurants.isEmpty ? null : restaurants.first),
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      _emitFailure(error, 'Unable to load restaurants.');
+    }
+  }
+
+  void selectRestaurant(MerchantRestaurant restaurant) {
+    emit(state.copyWith(restaurant: restaurant, clearError: true));
+  }
 
   Future<void> create(MerchantRestaurantRequest request) async {
     if (state.isSaving) {
@@ -28,6 +61,7 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
       emit(
         state.copyWith(
           status: MerchantRestaurantStatus.success,
+          restaurants: _upsertRestaurant(state.restaurants, restaurant),
           restaurant: restaurant,
           infoMessage: 'Restaurant created.',
           clearError: true,
@@ -60,6 +94,7 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
       emit(
         state.copyWith(
           status: MerchantRestaurantStatus.success,
+          restaurants: _upsertRestaurant(state.restaurants, restaurant),
           restaurant: restaurant,
           infoMessage: 'Restaurant updated.',
           clearError: true,
@@ -106,5 +141,19 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
         errorMessage: presentation.message,
       ),
     );
+  }
+
+  List<MerchantRestaurant> _upsertRestaurant(
+    List<MerchantRestaurant> restaurants,
+    MerchantRestaurant restaurant,
+  ) {
+    final index = restaurants.indexWhere((item) => item.id == restaurant.id);
+    if (index == -1) {
+      return [restaurant, ...restaurants];
+    }
+    return [
+      for (var i = 0; i < restaurants.length; i++)
+        if (i == index) restaurant else restaurants[i],
+    ];
   }
 }

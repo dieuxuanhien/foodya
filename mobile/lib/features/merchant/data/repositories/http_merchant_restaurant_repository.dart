@@ -15,6 +15,13 @@ class HttpMerchantRestaurantRepository implements MerchantRestaurantRepository {
   final AuthSessionRecovery _sessionRecovery;
 
   @override
+  Future<List<MerchantRestaurant>> listRestaurants() {
+    return _sessionRecovery.runAuthorized((accessToken) {
+      return _remoteDataSource.listRestaurants(accessToken: accessToken);
+    });
+  }
+
+  @override
   Future<MerchantRestaurant> createRestaurant(
     MerchantRestaurantRequest request,
   ) {
