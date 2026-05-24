@@ -1,4 +1,5 @@
 import '../../domain/models/category_taxonomy.dart';
+import '../../domain/models/order_review.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/models/restaurant_detail.dart';
 import '../../domain/models/restaurant_menu_item.dart';
@@ -82,5 +83,10 @@ class HttpCustomerCatalogRepository implements CustomerCatalogRepository {
       page: page,
       size: size,
     );
+  }
+
+  @override
+  Future<List<OrderReview>> listRestaurantReviews(String restaurantId) {
+    return _remoteDataSource.listRestaurantReviews(restaurantId);
   }
 }

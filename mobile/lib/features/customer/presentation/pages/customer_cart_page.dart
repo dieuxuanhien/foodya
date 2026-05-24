@@ -14,9 +14,8 @@ class CustomerCartPage extends StatelessWidget {
     return BlocProvider(
       create:
           (context) =>
-              CartCubit(
-                repository: context.read<CustomerCartRepository>(),
-              )..loadCart(),
+              CartCubit(repository: context.read<CustomerCartRepository>())
+                ..loadCart(),
       child: const _CustomerCartView(),
     );
   }
@@ -37,9 +36,9 @@ class _CustomerCartView extends StatelessWidget {
         if (message == null) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
         context.read<CartCubit>().clearFeedback();
       },
       builder: (context, state) {
@@ -50,8 +49,7 @@ class _CustomerCartView extends StatelessWidget {
             actions: [
               if (cart != null && cart.items.isNotEmpty)
                 IconButton(
-                  onPressed:
-                      state.isBusy ? null : () => _confirmClear(context),
+                  onPressed: state.isBusy ? null : () => _confirmClear(context),
                   icon: const Icon(Icons.delete_outline),
                   tooltip: 'Clear cart',
                 ),
@@ -100,9 +98,9 @@ class _CustomerCartView extends StatelessWidget {
                                       : () {
                                         final next = item.quantity - 1;
                                         if (next <= 0) {
-                                          context
-                                              .read<CartCubit>()
-                                              .removeItem(item.menuItemId);
+                                          context.read<CartCubit>().removeItem(
+                                            item.menuItemId,
+                                          );
                                           return;
                                         }
                                         context.read<CartCubit>().updateItem(
@@ -208,7 +206,10 @@ class _CartItemCard extends StatelessWidget {
             ),
             if (note != null && note!.trim().isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text('Note: ${note!}', style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                'Note: ${note!}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
             const SizedBox(height: 8),
             Row(
@@ -323,13 +324,14 @@ class _EmptyCartState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
-            Text(subtitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             if (showRetry) ...[
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: onRetry,
-                child: const Text('Retry'),
-              ),
+              FilledButton(onPressed: onRetry, child: const Text('Retry')),
             ],
           ],
         ),

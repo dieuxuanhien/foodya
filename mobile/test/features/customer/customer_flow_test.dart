@@ -7,6 +7,7 @@ import 'package:foodya_mobile/features/customer/domain/models/create_order_reque
 import 'package:foodya_mobile/features/customer/domain/models/order_cost_review.dart';
 import 'package:foodya_mobile/features/customer/domain/models/order_created.dart';
 import 'package:foodya_mobile/features/customer/domain/models/order_detail.dart';
+import 'package:foodya_mobile/features/customer/domain/models/order_review.dart';
 import 'package:foodya_mobile/features/customer/domain/models/order_tracking_point.dart';
 import 'package:foodya_mobile/features/customer/domain/models/order_summary.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_cart_repository.dart';
@@ -72,8 +73,7 @@ class _FakeCustomerCartRepository implements CustomerCartRepository {
     required String menuItemId,
     required int quantity,
     String? note,
-  }) async =>
-      cart;
+  }) async => cart;
 }
 
 class _FakeCustomerOrderRepository implements CustomerOrderRepository {
@@ -97,6 +97,15 @@ class _FakeCustomerOrderRepository implements CustomerOrderRepository {
 
   @override
   Future<List<OrderTrackingPoint>> getTrackingPoints(String orderId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<OrderReview> createReview({
+    required String orderId,
+    required int stars,
+    String? comment,
+  }) {
     throw UnimplementedError();
   }
 

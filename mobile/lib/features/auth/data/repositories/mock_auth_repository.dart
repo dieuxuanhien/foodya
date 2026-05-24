@@ -4,6 +4,7 @@ import '../../../../core/auth/auth_tokens.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/models/auth_session.dart';
 import '../../domain/models/login_request.dart';
+import '../../domain/models/password_recovery.dart';
 import '../../domain/models/register_request.dart';
 import '../../../../core/auth/user_role.dart';
 
@@ -59,4 +60,27 @@ class MockAuthRepository implements AuthRepository {
   Future<void> clearSession() async {
     _session = null;
   }
+
+  @override
+  Future<ForgotPasswordResult> forgotPassword(String email) async {
+    return const ForgotPasswordResult(
+      challengeToken: 'mock-challenge',
+      deliveryHint: 'mock@example.com',
+    );
+  }
+
+  @override
+  Future<VerifyOtpResult> verifyOtp({
+    required String challengeToken,
+    required String otp,
+  }) async {
+    return const VerifyOtpResult(resetToken: 'mock-reset');
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String resetToken,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {}
 }

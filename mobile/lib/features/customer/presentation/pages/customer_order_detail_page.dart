@@ -37,9 +37,9 @@ class _CustomerOrderDetailView extends StatelessWidget {
         if (message == null) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
         context.read<OrderDetailCubit>().clearFeedback();
       },
       builder: (context, state) {
@@ -52,7 +52,8 @@ class _CustomerOrderDetailView extends StatelessWidget {
                 onPressed:
                     state.isBusy
                         ? null
-                        : () => context.read<OrderDetailCubit>().refreshTracking(),
+                        : () =>
+                            context.read<OrderDetailCubit>().refreshTracking(),
                 icon: const Icon(Icons.refresh),
               ),
             ],
@@ -72,7 +73,8 @@ class _CustomerOrderDetailView extends StatelessWidget {
                   )
                   : RefreshIndicator(
                     onRefresh:
-                        () => context.read<OrderDetailCubit>().refreshTracking(),
+                        () =>
+                            context.read<OrderDetailCubit>().refreshTracking(),
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
@@ -120,7 +122,8 @@ class _CustomerOrderDetailView extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 8),
-                        if (state.isTrackingLoading && state.trackingPoints.isEmpty)
+                        if (state.isTrackingLoading &&
+                            state.trackingPoints.isEmpty)
                           const Padding(
                             padding: EdgeInsets.all(24),
                             child: Center(child: CircularProgressIndicator()),
@@ -140,10 +143,19 @@ class _CustomerOrderDetailView extends StatelessWidget {
                                 title: Text(
                                   '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
                                 ),
-                                subtitle: Text(point.recordedAt.toLocal().toString()),
+                                subtitle: Text(
+                                  point.recordedAt.toLocal().toString(),
+                                ),
                               ),
                             ),
                           ),
+                        if (order.status.toUpperCase() == 'SUCCESS') ...[
+                          const SizedBox(height: 16),
+                          _ReviewForm(
+                            isSubmitting:
+                                state.status == OrderDetailStatus.reviewing,
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         if (order.status.toUpperCase() != 'CANCELLED')
                           FilledButton.tonal(
@@ -182,6 +194,84 @@ class _CustomerOrderDetailView extends StatelessWidget {
               ),
             ],
           ),
+    );
+  }
+}
+
+class _ReviewForm extends StatefulWidget {
+  const _ReviewForm({required this.isSubmitting});
+
+  final bool isSubmitting;
+
+  @override
+  State<_ReviewForm> createState() => _ReviewFormState();
+}
+
+class _ReviewFormState extends State<_ReviewForm> {
+  int _stars = 5;
+  final _commentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Review order', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: _stars,
+              decoration: const InputDecoration(labelText: 'Stars'),
+              items: [1, 2, 3, 4, 5]
+                  .map(
+                    (value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text('$value'),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged:
+                  widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _stars = value ?? 5),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _commentController,
+              decoration: const InputDecoration(labelText: 'Comment'),
+              maxLines: 3,
+              maxLength: 1000,
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed:
+                  widget.isSubmitting
+                      ? null
+                      : () => context.read<OrderDetailCubit>().submitReview(
+                        stars: _stars,
+                        comment: _commentController.text,
+                      ),
+              icon:
+                  widget.isSubmitting
+                      ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.rate_review_outlined),
+              label: const Text('Submit review'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

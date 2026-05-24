@@ -3,7 +3,14 @@ import 'package:equatable/equatable.dart';
 import '../../domain/models/order_detail.dart';
 import '../../domain/models/order_tracking_point.dart';
 
-enum OrderDetailStatus { initial, loading, success, failure, cancelling }
+enum OrderDetailStatus {
+  initial,
+  loading,
+  success,
+  failure,
+  cancelling,
+  reviewing,
+}
 
 class OrderDetailState extends Equatable {
   const OrderDetailState({
@@ -31,7 +38,9 @@ class OrderDetailState extends Equatable {
   final String? infoMessage;
 
   bool get isBusy =>
-      status == OrderDetailStatus.loading || status == OrderDetailStatus.cancelling;
+      status == OrderDetailStatus.loading ||
+      status == OrderDetailStatus.cancelling ||
+      status == OrderDetailStatus.reviewing;
 
   OrderDetailState copyWith({
     OrderDetailStatus? status,

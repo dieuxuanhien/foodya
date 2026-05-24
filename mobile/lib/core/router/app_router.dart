@@ -2,12 +2,16 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/auth_loading_page.dart';
+import '../../features/auth/presentation/pages/password_recovery_page.dart';
 import '../../features/auth/presentation/pages/role_login_page.dart';
 import '../../features/customer/presentation/pages/customer_home_page.dart';
 import '../../features/customer/presentation/pages/customer_cart_page.dart';
 import '../../features/customer/presentation/pages/customer_checkout_page.dart';
+import '../../features/customer/presentation/pages/customer_ai_chat_page.dart';
+import '../../features/customer/presentation/pages/customer_notifications_page.dart';
 import '../../features/customer/presentation/pages/customer_orders_page.dart';
 import '../../features/customer/presentation/pages/customer_order_detail_page.dart';
+import '../../features/customer/presentation/pages/customer_profile_page.dart';
 import '../../features/customer/presentation/pages/restaurant_browse_page.dart';
 import '../../features/customer/presentation/pages/restaurant_detail_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
@@ -34,6 +38,11 @@ class AppRouter {
         path: '/login',
         name: 'login',
         builder: (context, state) => const RoleLoginPage(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (context, state) => const PasswordRecoveryPage(),
       ),
       GoRoute(
         path: '/customer/home',
@@ -77,6 +86,21 @@ class AppRouter {
             ),
       ),
       GoRoute(
+        path: '/customer/profile',
+        name: 'customer-profile',
+        builder: (context, state) => const CustomerProfilePage(),
+      ),
+      GoRoute(
+        path: '/customer/notifications',
+        name: 'customer-notifications',
+        builder: (context, state) => const CustomerNotificationsPage(),
+      ),
+      GoRoute(
+        path: '/customer/ai',
+        name: 'customer-ai',
+        builder: (context, state) => const CustomerAiChatPage(),
+      ),
+      GoRoute(
         path: '/merchant/home',
         name: 'merchant-home',
         builder: (context, state) => const MerchantHomePage(),
@@ -95,7 +119,8 @@ class AppRouter {
     }
 
     if (!session.isAuthenticated) {
-      return isLogin ? null : '/login';
+      final isPasswordRecovery = location == '/forgot-password';
+      return isLogin || isPasswordRecovery ? null : '/login';
     }
 
     final role = session.role;

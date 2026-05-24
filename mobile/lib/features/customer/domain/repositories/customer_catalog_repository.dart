@@ -1,4 +1,5 @@
 import '../models/category_taxonomy.dart';
+import '../models/order_review.dart';
 import '../models/paged_result.dart';
 import '../models/restaurant_detail.dart';
 import '../models/restaurant_menu_item.dart';
@@ -37,4 +38,6 @@ abstract class CustomerCatalogRepository {
     int page = 0,
     int size = 10,
   });
+
+  Future<List<OrderReview>> listRestaurantReviews(String restaurantId);
 }

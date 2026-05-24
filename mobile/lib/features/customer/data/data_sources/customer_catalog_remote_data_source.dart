@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/category_taxonomy.dart';
+import '../../domain/models/order_review.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/models/restaurant_detail.dart';
 import '../../domain/models/restaurant_menu_item.dart';
@@ -113,6 +114,13 @@ class CustomerCatalogRemoteDataSource {
     final response = await _get('/api/v1/restaurants/category-taxonomies');
     final data = _extractDataList(response);
     return data.map(CategoryTaxonomy.fromJson).toList(growable: false);
+  }
+
+  Future<List<OrderReview>> listRestaurantReviews(String restaurantId) async {
+    final response = await _get('/api/v1/restaurants/$restaurantId/reviews');
+    return _extractDataList(
+      response,
+    ).map(OrderReview.fromJson).toList(growable: false);
   }
 
   Future<Map<String, dynamic>> _get(

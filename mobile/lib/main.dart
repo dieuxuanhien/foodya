@@ -14,14 +14,23 @@ import 'features/auth/data/repositories/http_auth_repository.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/presentation/cubit/login_cubit.dart';
 import 'features/customer/data/data_sources/customer_cart_remote_data_source.dart';
+import 'features/customer/data/data_sources/customer_ai_remote_data_source.dart';
+import 'features/customer/data/data_sources/customer_notification_remote_data_source.dart';
 import 'features/customer/data/data_sources/customer_order_remote_data_source.dart';
+import 'features/customer/data/data_sources/customer_profile_remote_data_source.dart';
+import 'features/customer/data/repositories/http_customer_ai_repository.dart';
 import 'features/customer/data/repositories/http_customer_cart_repository.dart';
+import 'features/customer/data/repositories/http_customer_notification_repository.dart';
 import 'features/customer/data/repositories/http_customer_order_repository.dart';
+import 'features/customer/data/repositories/http_customer_profile_repository.dart';
 import 'features/customer/data/data_sources/customer_catalog_remote_data_source.dart';
 import 'features/customer/data/repositories/http_customer_catalog_repository.dart';
+import 'features/customer/domain/repositories/customer_ai_repository.dart';
 import 'features/customer/domain/repositories/customer_cart_repository.dart';
+import 'features/customer/domain/repositories/customer_notification_repository.dart';
 import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
+import 'features/customer/domain/repositories/customer_profile_repository.dart';
 import 'core/location/geolocation_service.dart';
 
 void main() {
@@ -44,6 +53,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final CustomerCatalogRepository _customerCatalogRepository;
   late final CustomerCartRepository _customerCartRepository;
   late final CustomerOrderRepository _customerOrderRepository;
+  late final CustomerProfileRepository _customerProfileRepository;
+  late final CustomerNotificationRepository _customerNotificationRepository;
+  late final CustomerAiRepository _customerAiRepository;
   late final GeolocationService _geolocationService;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
@@ -91,6 +103,30 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       sessionRecovery: _authSessionRecovery,
     );
 
+    _customerProfileRepository = HttpCustomerProfileRepository(
+      remoteDataSource: CustomerProfileRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
+    _customerNotificationRepository = HttpCustomerNotificationRepository(
+      remoteDataSource: CustomerNotificationRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
+    _customerAiRepository = HttpCustomerAiRepository(
+      remoteDataSource: CustomerAiRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
     final locationRemoteDataSource = LocationAddressRemoteDataSource(
       baseUrl: AppConfig.apiBaseUrl,
       client: widget._httpClient,
@@ -125,6 +161,15 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<CustomerOrderRepository>.value(
           value: _customerOrderRepository,
+        ),
+        RepositoryProvider<CustomerProfileRepository>.value(
+          value: _customerProfileRepository,
+        ),
+        RepositoryProvider<CustomerNotificationRepository>.value(
+          value: _customerNotificationRepository,
+        ),
+        RepositoryProvider<CustomerAiRepository>.value(
+          value: _customerAiRepository,
         ),
       ],
       child: MultiBlocProvider(

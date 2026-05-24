@@ -4,16 +4,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/network/api_exception.dart';
-import '../../domain/models/create_order_request.dart';
-import '../../domain/models/order_cost_review.dart';
-import '../../domain/models/order_created.dart';
-import '../../domain/models/order_detail.dart';
-import '../../domain/models/order_review.dart';
-import '../../domain/models/order_summary.dart';
-import '../../domain/models/order_tracking_point.dart';
+import '../../domain/models/ai_chat.dart';
 
-class CustomerOrderRemoteDataSource {
-  CustomerOrderRemoteDataSource({
+class CustomerAiRemoteDataSource {
+  CustomerAiRemoteDataSource({
     required String baseUrl,
     required http.Client client,
   }) : _baseUrl = baseUrl,
@@ -22,102 +16,34 @@ class CustomerOrderRemoteDataSource {
   final String _baseUrl;
   final http.Client _client;
 
-  static const Duration _requestTimeout = Duration(seconds: 12);
+  static const Duration _requestTimeout = Duration(seconds: 20);
 
-  Future<OrderCostReview> reviewOrderCost({
-    required String accessToken,
-    required CreateOrderRequest request,
-  }) async {
-    final json = await _post(
-      '/api/v1/customer/orders/review',
-      headers: _authHeaders(accessToken),
-      body: request.toJson(),
-    );
-    return OrderCostReview.fromJson(_extractDataMap(json));
-  }
-
-  Future<OrderCreated> createOrder({
-    required String accessToken,
-    required CreateOrderRequest request,
-    required String idempotencyKey,
-  }) async {
-    final json = await _post(
-      '/api/v1/customer/orders',
-      headers: {
-        ..._authHeaders(accessToken),
-        'Idempotency-Key': idempotencyKey,
-      },
-      body: request.toJson(),
-    );
-    return OrderCreated.fromJson(_extractDataMap(json));
-  }
-
-  Future<List<OrderSummary>> listOrders({required String accessToken}) async {
+  Future<List<AiChatHistoryItem>> history({required String accessToken}) async {
     final json = await _get(
-      '/api/v1/customer/orders',
+      '/api/v1/customer/ai/chats',
       headers: _authHeaders(accessToken),
     );
     return _extractDataList(
       json,
-    ).map(OrderSummary.fromJson).toList(growable: false);
+    ).map(AiChatHistoryItem.fromJson).toList(growable: false);
   }
 
-  Future<OrderDetail> getOrderDetail({
+  Future<AiChatResponse> createChat({
     required String accessToken,
-    required String orderId,
-  }) async {
-    final json = await _get(
-      '/api/v1/customer/orders/$orderId',
-      headers: _authHeaders(accessToken),
-    );
-    return OrderDetail.fromJson(_extractDataMap(json));
-  }
-
-  Future<OrderDetail> cancelOrder({
-    required String accessToken,
-    required String orderId,
-    String? reason,
+    required String prompt,
+    double? lat,
+    double? lng,
   }) async {
     final json = await _post(
-      '/api/v1/customer/orders/$orderId/cancel',
-      headers: _authHeaders(accessToken),
-      body:
-          reason == null || reason.trim().isEmpty
-              ? null
-              : {'reason': reason.trim()},
-    );
-    return OrderDetail.fromJson(_extractDataMap(json));
-  }
-
-  Future<List<OrderTrackingPoint>> trackingPoints({
-    required String accessToken,
-    required String orderId,
-  }) async {
-    final json = await _get(
-      '/api/v1/customer/orders/$orderId/tracking',
-      headers: _authHeaders(accessToken),
-    );
-    return _extractDataList(
-      json,
-    ).map(OrderTrackingPoint.fromJson).toList(growable: false);
-  }
-
-  Future<OrderReview> createReview({
-    required String accessToken,
-    required String orderId,
-    required int stars,
-    String? comment,
-  }) async {
-    final json = await _post(
-      '/api/v1/customer/orders/$orderId/reviews',
+      '/api/v1/customer/ai/chats',
       headers: _authHeaders(accessToken),
       body: {
-        'stars': stars,
-        if (comment != null && comment.trim().isNotEmpty)
-          'comment': comment.trim(),
+        'prompt': prompt,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
       },
     );
-    return OrderReview.fromJson(_extractDataMap(json));
+    return AiChatResponse.fromJson(_extractDataMap(json));
   }
 
   Map<String, String> _authHeaders(String accessToken) {
@@ -127,13 +53,13 @@ class CustomerOrderRemoteDataSource {
   Future<Map<String, dynamic>> _get(
     String path, {
     Map<String, String>? headers,
-  }) async {
+  }) {
     return _send(
       () => _client.get(
         Uri.parse('$_baseUrl$path'),
         headers: {'Content-Type': 'application/json', ...?headers},
       ),
-      'Order request failed with status',
+      'AI request failed with status',
     );
   }
 
@@ -141,14 +67,14 @@ class CustomerOrderRemoteDataSource {
     String path, {
     Map<String, String>? headers,
     Map<String, dynamic>? body,
-  }) async {
+  }) {
     return _send(
       () => _client.post(
         Uri.parse('$_baseUrl$path'),
         headers: {'Content-Type': 'application/json', ...?headers},
         body: body == null ? null : jsonEncode(body),
       ),
-      'Order request failed with status',
+      'AI request failed with status',
     );
   }
 
@@ -198,11 +124,10 @@ class CustomerOrderRemoteDataSource {
     if (data is Map) {
       return data.map((key, value) => MapEntry(key.toString(), value));
     }
-
     throw const ApiException(
       statusCode: 500,
       code: 'MALFORMED_RESPONSE',
-      message: 'Malformed response payload from order endpoint.',
+      message: 'Malformed response payload from AI endpoint.',
     );
   }
 
@@ -212,10 +137,9 @@ class CustomerOrderRemoteDataSource {
       throw const ApiException(
         statusCode: 500,
         code: 'MALFORMED_RESPONSE',
-        message: 'Malformed list response payload from order endpoint.',
+        message: 'Malformed list response payload from AI endpoint.',
       );
     }
-
     return data
         .whereType<Map>()
         .map(
@@ -228,7 +152,6 @@ class CustomerOrderRemoteDataSource {
     if (raw.trim().isEmpty) {
       return null;
     }
-
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map<String, dynamic>) {
@@ -240,7 +163,6 @@ class CustomerOrderRemoteDataSource {
     } catch (_) {
       return null;
     }
-
     return null;
   }
 }

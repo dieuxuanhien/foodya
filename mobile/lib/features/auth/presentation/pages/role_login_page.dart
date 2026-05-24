@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/auth/auth_form_validators.dart';
 import '../../../../core/auth/user_role.dart';
@@ -203,6 +204,12 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                         },
                 icon: const Icon(Icons.login),
                 label: const Text('Sign In'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed:
+                    isBusy ? null : () => context.push('/forgot-password'),
+                child: const Text('Forgot password?'),
               ),
             ],
           ),

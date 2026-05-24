@@ -13,10 +13,9 @@ class CustomerOrdersPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create:
-          (context) =>
-              OrderListCubit(
-                repository: context.read<CustomerOrderRepository>(),
-              )..loadOrders(),
+          (context) => OrderListCubit(
+            repository: context.read<CustomerOrderRepository>(),
+          )..loadOrders(),
       child: const _CustomerOrdersView(),
     );
   }

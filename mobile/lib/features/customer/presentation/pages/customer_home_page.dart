@@ -148,6 +148,27 @@ class _CustomerHomeView extends StatelessWidget {
                 icon: Icons.delivery_dining_outlined,
                 routePath: '/customer/orders',
               ),
+              const SizedBox(height: 12),
+              const _FeatureCard(
+                title: 'AI Recommendations',
+                subtitle: 'SRS FR22',
+                icon: Icons.auto_awesome_outlined,
+                routePath: '/customer/ai',
+              ),
+              const SizedBox(height: 12),
+              const _FeatureCard(
+                title: 'Notifications',
+                subtitle: 'SRS FR23',
+                icon: Icons.notifications_outlined,
+                routePath: '/customer/notifications',
+              ),
+              const SizedBox(height: 12),
+              const _FeatureCard(
+                title: 'Profile and Password',
+                subtitle: 'SRS FR04, FR05, FR06',
+                icon: Icons.person_outline,
+                routePath: '/customer/profile',
+              ),
             ],
           ),
         );

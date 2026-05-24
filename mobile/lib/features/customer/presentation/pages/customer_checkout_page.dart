@@ -62,9 +62,9 @@ class _CheckoutViewState extends State<_CheckoutView> {
         if (message == null) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
         context.read<CheckoutCubit>().clearFeedback();
       },
       builder: (context, state) {
@@ -117,10 +117,9 @@ class _CheckoutViewState extends State<_CheckoutView> {
                       TextField(
                         controller: _addressController,
                         onChanged:
-                            (value) =>
-                                context.read<CheckoutCubit>().updateDeliveryAddress(
-                                  value,
-                                ),
+                            (value) => context
+                                .read<CheckoutCubit>()
+                                .updateDeliveryAddress(value),
                         decoration: const InputDecoration(
                           labelText: 'Delivery address',
                           hintText: 'Street, district, city',
@@ -155,10 +154,9 @@ class _CheckoutViewState extends State<_CheckoutView> {
                       TextField(
                         controller: _noteController,
                         onChanged:
-                            (value) =>
-                                context
-                                    .read<CheckoutCubit>()
-                                    .updateCustomerNote(value),
+                            (value) => context
+                                .read<CheckoutCubit>()
+                                .updateCustomerNote(value),
                         decoration: const InputDecoration(
                           labelText: 'Order note (optional)',
                           hintText: 'e.g., Leave at the front desk',
@@ -343,13 +341,14 @@ class _EmptyCheckoutState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
-            Text(subtitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             if (showRetry) ...[
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: onRetry,
-                child: const Text('Retry'),
-              ),
+              FilledButton(onPressed: onRetry, child: const Text('Retry')),
             ] else ...[
               const SizedBox(height: 12),
               FilledButton(

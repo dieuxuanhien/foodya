@@ -57,8 +57,7 @@ class CheckoutState extends Equatable {
       status == CheckoutStatus.reviewing ||
       status == CheckoutStatus.submitting;
 
-  bool get hasLocation =>
-      deliveryLatitude != null && deliveryLongitude != null;
+  bool get hasLocation => deliveryLatitude != null && deliveryLongitude != null;
 
   CheckoutState copyWith({
     CheckoutStatus? status,
@@ -82,11 +81,14 @@ class CheckoutState extends Equatable {
       status: status ?? this.status,
       cart: clearCart ? null : (cart ?? this.cart),
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
-      deliveryLatitude: clearLocation ? null : (deliveryLatitude ?? this.deliveryLatitude),
-      deliveryLongitude: clearLocation ? null : (deliveryLongitude ?? this.deliveryLongitude),
+      deliveryLatitude:
+          clearLocation ? null : (deliveryLatitude ?? this.deliveryLatitude),
+      deliveryLongitude:
+          clearLocation ? null : (deliveryLongitude ?? this.deliveryLongitude),
       customerNote: customerNote ?? this.customerNote,
       costReview: clearCostReview ? null : (costReview ?? this.costReview),
-      orderCreated: clearOrderCreated ? null : (orderCreated ?? this.orderCreated),
+      orderCreated:
+          clearOrderCreated ? null : (orderCreated ?? this.orderCreated),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       infoMessage: clearInfo ? null : (infoMessage ?? this.infoMessage),
     );

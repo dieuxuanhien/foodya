@@ -48,11 +48,12 @@ class CartCubit extends Cubit<CartState> {
     String? note,
   }) async {
     await _mutateCart(
-      action: () => _repository.addItem(
-        menuItemId: menuItemId,
-        quantity: quantity,
-        note: note,
-      ),
+      action:
+          () => _repository.addItem(
+            menuItemId: menuItemId,
+            quantity: quantity,
+            note: note,
+          ),
       successMessage: 'Added to cart.',
     );
   }
@@ -63,11 +64,12 @@ class CartCubit extends Cubit<CartState> {
     String? note,
   }) async {
     await _mutateCart(
-      action: () => _repository.updateItem(
-        menuItemId: menuItemId,
-        quantity: quantity,
-        note: note,
-      ),
+      action:
+          () => _repository.updateItem(
+            menuItemId: menuItemId,
+            quantity: quantity,
+            note: note,
+          ),
       successMessage: 'Cart updated.',
     );
   }

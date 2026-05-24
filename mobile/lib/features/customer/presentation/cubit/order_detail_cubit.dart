@@ -120,6 +120,47 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
     }
   }
 
+  Future<void> submitReview({required int stars, String? comment}) async {
+    final orderId = _orderId;
+    if (orderId == null || state.isBusy) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        status: OrderDetailStatus.reviewing,
+        clearError: true,
+        clearInfo: true,
+      ),
+    );
+
+    try {
+      await _repository.createReview(
+        orderId: orderId,
+        stars: stars,
+        comment: comment,
+      );
+      emit(
+        state.copyWith(
+          status: OrderDetailStatus.success,
+          infoMessage: 'Review submitted.',
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to submit review.',
+      );
+      emit(
+        state.copyWith(
+          status: OrderDetailStatus.failure,
+          errorMessage: presentation.message,
+        ),
+      );
+    }
+  }
+
   void clearFeedback() {
     emit(state.copyWith(clearError: true, clearInfo: true));
   }

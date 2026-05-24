@@ -41,7 +41,8 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       final cart = await _cartRepository.getActiveCart();
       emit(
         state.copyWith(
-          status: cart.items.isEmpty ? CheckoutStatus.empty : CheckoutStatus.ready,
+          status:
+              cart.items.isEmpty ? CheckoutStatus.empty : CheckoutStatus.ready,
           cart: cart,
           clearError: true,
           clearCostReview: true,
@@ -125,12 +126,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         error,
         fallback: 'Unable to resolve your location.',
       );
-      emit(
-        state.copyWith(
-          errorMessage: presentation.message,
-          clearInfo: true,
-        ),
-      );
+      emit(state.copyWith(errorMessage: presentation.message, clearInfo: true));
     }
   }
 

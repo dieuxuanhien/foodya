@@ -25,9 +25,8 @@ class ActiveCart {
             ? (json['items'] as List)
                 .whereType<Map>()
                 .map(
-                  (item) => item.map(
-                    (key, value) => MapEntry(key.toString(), value),
-                  ),
+                  (item) =>
+                      item.map((key, value) => MapEntry(key.toString(), value)),
                 )
                 .map(CartItem.fromJson)
                 .toList(growable: false)

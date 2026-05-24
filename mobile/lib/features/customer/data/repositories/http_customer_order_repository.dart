@@ -3,6 +3,7 @@ import '../../domain/models/create_order_request.dart';
 import '../../domain/models/order_cost_review.dart';
 import '../../domain/models/order_created.dart';
 import '../../domain/models/order_detail.dart';
+import '../../domain/models/order_review.dart';
 import '../../domain/models/order_summary.dart';
 import '../../domain/models/order_tracking_point.dart';
 import '../../domain/repositories/customer_order_repository.dart';
@@ -76,6 +77,22 @@ class HttpCustomerOrderRepository implements CustomerOrderRepository {
       return _remoteDataSource.trackingPoints(
         accessToken: accessToken,
         orderId: orderId,
+      );
+    });
+  }
+
+  @override
+  Future<OrderReview> createReview({
+    required String orderId,
+    required int stars,
+    String? comment,
+  }) {
+    return _sessionRecovery.runAuthorized((accessToken) {
+      return _remoteDataSource.createReview(
+        accessToken: accessToken,
+        orderId: orderId,
+        stars: stars,
+        comment: comment,
       );
     });
   }
