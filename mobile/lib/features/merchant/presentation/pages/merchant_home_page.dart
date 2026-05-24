@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/cubit/login_cubit.dart';
 
@@ -57,6 +58,7 @@ class MerchantHomePage extends StatelessWidget {
             title: 'Restaurant and Menu Management',
             subtitle: 'SRS FR13, FR14, FR15',
             icon: Icons.restaurant_menu_outlined,
+            routePath: '/merchant/restaurant',
           ),
           SizedBox(height: 12),
           _FeatureCard(
@@ -81,11 +83,13 @@ class _FeatureCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.routePath,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final String? routePath;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +99,11 @@ class _FeatureCard extends StatelessWidget {
         leading: Icon(icon),
         title: Text(title),
         subtitle: Text(subtitle),
+        trailing:
+            routePath == null
+                ? null
+                : const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+        onTap: routePath == null ? null : () => context.push(routePath!),
       ),
     );
   }

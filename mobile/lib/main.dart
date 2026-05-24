@@ -31,6 +31,9 @@ import 'features/customer/domain/repositories/customer_notification_repository.d
 import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_profile_repository.dart';
+import 'features/merchant/data/data_sources/merchant_restaurant_remote_data_source.dart';
+import 'features/merchant/data/repositories/http_merchant_restaurant_repository.dart';
+import 'features/merchant/domain/repositories/merchant_restaurant_repository.dart';
 import 'core/location/geolocation_service.dart';
 
 void main() {
@@ -56,6 +59,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final CustomerProfileRepository _customerProfileRepository;
   late final CustomerNotificationRepository _customerNotificationRepository;
   late final CustomerAiRepository _customerAiRepository;
+  late final MerchantRestaurantRepository _merchantRestaurantRepository;
   late final GeolocationService _geolocationService;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
@@ -127,6 +131,14 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       sessionRecovery: _authSessionRecovery,
     );
 
+    _merchantRestaurantRepository = HttpMerchantRestaurantRepository(
+      remoteDataSource: MerchantRestaurantRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+    );
+
     final locationRemoteDataSource = LocationAddressRemoteDataSource(
       baseUrl: AppConfig.apiBaseUrl,
       client: widget._httpClient,
@@ -170,6 +182,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<CustomerAiRepository>.value(
           value: _customerAiRepository,
+        ),
+        RepositoryProvider<MerchantRestaurantRepository>.value(
+          value: _merchantRestaurantRepository,
         ),
       ],
       child: MultiBlocProvider(

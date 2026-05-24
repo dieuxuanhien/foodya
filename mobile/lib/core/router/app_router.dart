@@ -15,6 +15,7 @@ import '../../features/customer/presentation/pages/customer_profile_page.dart';
 import '../../features/customer/presentation/pages/restaurant_browse_page.dart';
 import '../../features/customer/presentation/pages/restaurant_detail_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
+import '../../features/merchant/presentation/pages/merchant_restaurant_page.dart';
 import '../auth/session_cubit.dart';
 import '../auth/user_role.dart';
 import 'go_router_refresh_stream.dart';
@@ -104,6 +105,11 @@ class AppRouter {
         path: '/merchant/home',
         name: 'merchant-home',
         builder: (context, state) => const MerchantHomePage(),
+      ),
+      GoRoute(
+        path: '/merchant/restaurant',
+        name: 'merchant-restaurant',
+        builder: (context, state) => const MerchantRestaurantPage(),
       ),
     ],
   );
