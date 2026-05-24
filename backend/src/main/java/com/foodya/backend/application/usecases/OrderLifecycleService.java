@@ -88,6 +88,12 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .toList();
     }
 
+    public OrderDetailView merchantOrder(UUID merchantUserId, UUID orderId) {
+        Order order = requireOrder(orderId);
+        assertMerchantOwnsOrder(merchantUserId, order.getRestaurantId());
+        return toDetail(order);
+    }
+
     public OrderDetailView merchantUpdateStatus(UUID merchantUserId, UUID orderId, OrderStatus targetStatus) {
         Order order = requireOrder(orderId);
         assertMerchantOwnsOrder(merchantUserId, order.getRestaurantId());

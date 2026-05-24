@@ -72,6 +72,7 @@ class MerchantHomePage extends StatelessWidget {
             title: 'Order Operations',
             subtitle: 'SRS FR16',
             icon: Icons.receipt_long_outlined,
+            routePath: '/merchant/orders',
           ),
           SizedBox(height: 12),
           _FeatureCard(

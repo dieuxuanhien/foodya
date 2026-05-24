@@ -46,6 +46,16 @@ public class MerchantOrderController {
         return ApiSuccessResponse.of(data, RequestTrace.from(request));
     }
 
+    @GetMapping("/orders/{orderId}")
+    public ApiSuccessResponse<OrderDetailResponse> orderDetail(Authentication authentication,
+                                                               @PathVariable UUID orderId,
+                                                               HttpServletRequest request) {
+        OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
+                orderLifecycleService.merchantOrder(CurrentUser.userId(authentication), orderId)
+        );
+        return ApiSuccessResponse.of(data, RequestTrace.from(request));
+    }
+
     @PatchMapping("/orders/{orderId}/status")
     public ApiSuccessResponse<OrderDetailResponse> updateOrderStatus(Authentication authentication,
                                                                      @PathVariable UUID orderId,

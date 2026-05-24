@@ -20,6 +20,8 @@ public interface OrderLifecycleUseCase {
 
     List<OrderSummaryView> merchantOrders(UUID merchantUserId, UUID restaurantId);
 
+    OrderDetailView merchantOrder(UUID merchantUserId, UUID orderId);
+
     OrderDetailView merchantUpdateStatus(UUID merchantUserId, UUID orderId, OrderStatus targetStatus);
 
     List<OrderSummaryView> deliveryAssignments();
