@@ -88,12 +88,19 @@ class _FakeMerchantReviewRepository implements MerchantReviewRepository {
 }
 
 class _FakeMerchantRevenueRepository implements MerchantRevenueRepository {
+  DateTime? lastFrom;
+  DateTime? lastTo;
+  int? lastTopItems;
+
   @override
   Future<MerchantRevenueReport> getRevenueReport({
     DateTime? from,
     DateTime? to,
     int topItems = 5,
   }) async {
+    lastFrom = from;
+    lastTo = to;
+    lastTopItems = topItems;
     return MerchantRevenueReport(
       fromDate: DateTime(2026, 1, 1),
       toDate: DateTime(2026, 1, 31),
@@ -148,5 +155,23 @@ void main() {
     expect(cubit.state.status, MerchantRevenueStatus.success);
     expect(cubit.state.report?.orderCount, 20);
     expect(cubit.state.report?.topSellingItems.single.itemName, 'Pho Bo');
+  });
+
+  test('MerchantRevenueCubit applies custom filters', () async {
+    final repo = _FakeMerchantRevenueRepository();
+    final cubit = MerchantRevenueCubit(repository: repo);
+    final from = DateTime(2026, 2, 1);
+    final to = DateTime(2026, 2, 28);
+
+    await cubit.setDateRange(from: from, to: to);
+    await cubit.setTopItems(10);
+
+    expect(cubit.state.status, MerchantRevenueStatus.success);
+    expect(cubit.state.from, from);
+    expect(cubit.state.to, to);
+    expect(cubit.state.topItems, 10);
+    expect(repo.lastFrom, from);
+    expect(repo.lastTo, to);
+    expect(repo.lastTopItems, 10);
   });
 }

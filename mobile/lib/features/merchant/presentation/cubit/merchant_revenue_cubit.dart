@@ -14,7 +14,28 @@ class MerchantRevenueCubit extends Cubit<MerchantRevenueState> {
   Future<void> loadLast30Days() {
     final to = DateTime.now();
     final from = to.subtract(const Duration(days: 30));
-    return load(from: from, to: to, topItems: 5);
+    return load(from: from, to: to, topItems: state.topItems);
+  }
+
+  Future<void> loadLast7Days() {
+    final to = DateTime.now();
+    final from = to.subtract(const Duration(days: 7));
+    return load(from: from, to: to, topItems: state.topItems);
+  }
+
+  Future<void> loadLast90Days() {
+    final to = DateTime.now();
+    final from = to.subtract(const Duration(days: 90));
+    return load(from: from, to: to, topItems: state.topItems);
+  }
+
+  Future<void> setTopItems(int value) {
+    final normalized = value.clamp(3, 20);
+    return load(from: state.from, to: state.to, topItems: normalized);
+  }
+
+  Future<void> setDateRange({required DateTime from, required DateTime to}) {
+    return load(from: from, to: to, topItems: state.topItems);
   }
 
   Future<void> load({DateTime? from, DateTime? to, int topItems = 5}) async {
@@ -22,7 +43,13 @@ class MerchantRevenueCubit extends Cubit<MerchantRevenueState> {
       return;
     }
     emit(
-      state.copyWith(status: MerchantRevenueStatus.loading, clearError: true),
+      state.copyWith(
+        status: MerchantRevenueStatus.loading,
+        from: from,
+        to: to,
+        topItems: topItems,
+        clearError: true,
+      ),
     );
     try {
       final report = await _repository.getRevenueReport(
