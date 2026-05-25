@@ -95,6 +95,13 @@ class MerchantHomePage extends StatelessWidget {
             icon: Icons.notifications_active_outlined,
             routePath: '/merchant/notifications',
           ),
+          SizedBox(height: 12),
+          _FeatureCard(
+            title: 'Profile and Password',
+            subtitle: 'SRS FR04, FR05, FR06',
+            icon: Icons.person_outline,
+            routePath: '/merchant/profile',
+          ),
         ],
       ),
     );

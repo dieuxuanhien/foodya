@@ -37,7 +37,7 @@ export default function MenuItemsPage() {
 
   const { data: restaurants } = useQuery({ queryKey: ['admin-restaurants'], queryFn: () => getRestaurants(undefined, undefined, 0, 100) });
   const { data: taxonomies } = useQuery({ queryKey: ['admin-taxonomies'], queryFn: () => getCategories() });
-  const { data: menuCategories } = useQuery({
+  const { data: menuCategories, isLoading: areMenuCategoriesLoading } = useQuery({
     queryKey: ['admin-restaurant-menu-categories', restaurantFilter],
     queryFn: () => getRestaurantMenuCategories(restaurantFilter),
     enabled: Boolean(restaurantFilter),
@@ -80,9 +80,7 @@ export default function MenuItemsPage() {
   const taxonomyList = taxonomies?.data?.data ?? [];
   const categoryList = menuCategories?.data?.data ?? [];
   const selectedRestaurant = useMemo(() => restList.find((r) => r.id === restaurantFilter), [restList, restaurantFilter]);
-  const restaurantNameById = useMemo(() => new Map(restList.map((r) => [r.id, r.name] as const)), [restList]);
-  const categoryNameById = useMemo(() => new Map(categoryList.map((c) => [c.id, c.name] as const)), [categoryList]);
-  const taxonomyNameByCode = useMemo(() => new Map(taxonomyList.map((c) => [c.code, c.name] as const)), [taxonomyList]);
+  const taxonomyNameByCode = useMemo(() => new Map(taxonomyList.map((c) => [c.code, c.displayName] as const)), [taxonomyList]);
 
   const handleRestaurantChange = (nextRestaurantId: string) => {
     setRestaurantFilter(nextRestaurantId);
@@ -173,7 +171,7 @@ export default function MenuItemsPage() {
             <option value="">All Taxonomies</option>
             {taxonomyList.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.name}
+                {c.displayName}
               </option>
             ))}
           </select>
@@ -272,7 +270,7 @@ export default function MenuItemsPage() {
           }}
           onSubmit={submitMenuItem}
           loading={mutCreate.isPending || mutUpdate.isPending}
-          categoriesLoading={menuCategories?.isLoading}
+          categoriesLoading={areMenuCategoriesLoading}
         />
       )}
     </div>

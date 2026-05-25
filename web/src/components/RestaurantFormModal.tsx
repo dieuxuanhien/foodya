@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Spinner } from './ui';
 import type { Restaurant } from '../api/restaurants';
-import { getUsers, type User } from '../api/users';
+import { getUsers } from '../api/users';
 import { useQuery } from '@tanstack/react-query';
 
 interface Props {

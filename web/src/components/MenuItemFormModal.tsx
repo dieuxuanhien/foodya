@@ -49,7 +49,7 @@ export function MenuItemFormModal({ restaurantName, item, categories, taxonomies
     }
   }, [item, categories]);
 
-  const taxonomyOptions = useMemo(() => taxonomies.map((t) => ({ value: t.code, label: t.name })), [taxonomies]);
+  const taxonomyOptions = useMemo(() => taxonomies.map((t) => ({ value: t.code, label: t.displayName })), [taxonomies]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -97,7 +97,7 @@ export function MenuItemFormModal({ restaurantName, item, categories, taxonomies
               <label className="text-xs font-medium">Menu Category</label>
               {categoriesLoading ? (
                 <div className="input" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-subtle)' }}>
-                  <Spinner size={14} />
+                  <Spinner />
                   <span className="text-sm text-muted">Loading categories...</span>
                 </div>
               ) : categories.length > 0 ? (
