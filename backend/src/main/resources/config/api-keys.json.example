@@ -12,5 +12,7 @@
   "firebase.messaging.sender.id": "<FIREBASE_MESSAGING_SENDER_ID>",
   "firebase.app.id": "<FIREBASE_APP_ID>",
   "firebase.measurement.id": "<FIREBASE_MEASUREMENT_ID>",
+  "firebase.service.account.file": "<ABSOLUTE_OR_RELATIVE_PATH_TO_FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON>",
+  "firebase.service.account.json": "<OPTIONAL_INLINE_FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON>",
   "openweather.api.key": "<OPENWEATHER_API_KEY>"
 }

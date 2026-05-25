@@ -2,5 +2,8 @@
 config/api-keys.json
 src/main/resources/config/api-keys.json
 firebase-service-account.json
+*firebase-adminsdk*.json
 .idea/
 target/
+
+foodya-bf729-firebase-adminsdk-fbsvc-475f9d0400.json

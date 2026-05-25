@@ -119,8 +119,9 @@ public class AppConfig {
 	public NotificationService notificationService(
 			NotificationLogPort notificationLogPort,
 			PushNotificationPort pushNotificationPort,
+			DeviceTokenPort deviceTokenPort,
 			PaginationPolicy paginationPolicy) {
-		return new NotificationService(notificationLogPort, pushNotificationPort, paginationPolicy);
+		return new NotificationService(notificationLogPort, pushNotificationPort, deviceTokenPort, paginationPolicy);
 	}
 
 	@Bean

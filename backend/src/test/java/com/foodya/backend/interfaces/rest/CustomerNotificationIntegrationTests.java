@@ -10,6 +10,7 @@ import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.infrastructure.persistence.models.NotificationLogPersistenceModel;
 import com.foodya.backend.infrastructure.repository.CartItemRepository;
 import com.foodya.backend.infrastructure.repository.CartRepository;
+import com.foodya.backend.infrastructure.repository.DeviceTokenRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.NotificationLogRepository;
@@ -28,7 +29,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,6 +48,9 @@ class CustomerNotificationIntegrationTests {
 
     @Autowired
     private NotificationLogRepository notificationLogRepository;
+
+    @Autowired
+    private DeviceTokenRepository deviceTokenRepository;
 
     @Autowired
     private UserAccountRepository userAccountRepository;
@@ -72,6 +78,7 @@ class CustomerNotificationIntegrationTests {
 
     @BeforeEach
     void setUp() {
+        deviceTokenRepository.deleteAll();
         notificationLogRepository.deleteAll();
         cartItemRepository.deleteAll();
         cartRepository.deleteAll();
@@ -128,6 +135,41 @@ class CustomerNotificationIntegrationTests {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("notification not found"));
+    }
+
+    @Test
+    void authenticatedUserCanRegisterAndUnregisterDeviceToken() throws Exception {
+        UserAccount merchant = seedUser("merchant-device-token", UserRole.MERCHANT);
+        String merchantToken = tokenService.issueAccessToken(
+                AuthPersistenceMapper.toData(merchant),
+                UUID.randomUUID().toString()
+        );
+
+        mockMvc.perform(post("/api/v1/notifications/devices")
+                        .header("Authorization", "Bearer " + merchantToken)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "token": "fcm-token-merchant-1",
+                                  "platform": "ANDROID",
+                                  "deviceId": "emulator-5554",
+                                  "appVersion": "1.0.0"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userId").value(merchant.getId().toString()))
+                .andExpect(jsonPath("$.data.platform").value("ANDROID"))
+                .andExpect(jsonPath("$.data.enabled").value(true));
+
+        mockMvc.perform(delete("/api/v1/notifications/devices")
+                        .header("Authorization", "Bearer " + merchantToken)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "token": "fcm-token-merchant-1"
+                                }
+                                """))
+                .andExpect(status().isOk());
     }
 
     private UserAccount seedUser(String stem, UserRole role) {

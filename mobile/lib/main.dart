@@ -1,12 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 
 import 'app.dart';
+import 'firebase_options.dart';
 import 'core/auth/session_cubit.dart';
 import 'core/auth/auth_session_recovery.dart';
 import 'core/auth/token_store.dart';
 import 'core/config/app_config.dart';
+import 'core/notifications/fcm_notification_service.dart';
 import 'core/router/app_router.dart';
 import 'core/location/location_address_remote_data_source.dart';
 import 'features/auth/data/data_sources/auth_remote_data_source.dart';
@@ -51,7 +57,12 @@ import 'features/merchant/domain/repositories/merchant_revenue_repository.dart';
 import 'features/merchant/domain/repositories/merchant_notification_repository.dart';
 import 'core/location/geolocation_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(
+    foodyaFirebaseMessagingBackgroundHandler,
+  );
   runApp(FoodyaMobileBootstrap());
 }
 
@@ -83,6 +94,8 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final GeolocationService _geolocationService;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
+  late final FcmNotificationService _fcmNotificationService;
+  StreamSubscription? _sessionSubscription;
 
   @override
   void initState() {
@@ -103,6 +116,18 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       tokenStore: widget._tokenStore,
       refreshTokenExchange: _authRemoteDataSource.refresh,
     );
+
+    _fcmNotificationService = FcmNotificationService(
+      baseUrl: AppConfig.apiBaseUrl,
+      client: widget._httpClient,
+      sessionRecovery: _authSessionRecovery,
+    );
+    unawaited(_fcmNotificationService.initialize());
+    _sessionSubscription = _sessionCubit.stream.listen((state) {
+      if (state.isAuthenticated) {
+        unawaited(_fcmNotificationService.registerCurrentDevice());
+      }
+    });
 
     _customerCatalogRepository = HttpCustomerCatalogRepository(
       remoteDataSource: CustomerCatalogRemoteDataSource(
@@ -212,6 +237,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
 
   @override
   void dispose() {
+    _sessionSubscription?.cancel();
     _sessionCubit.close();
     widget._httpClient.close();
     super.dispose();
@@ -271,6 +297,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
                 (context) => LoginCubit(
                   authRepository: context.read<AuthRepository>(),
                   sessionCubit: _sessionCubit,
+                  notificationService: _fcmNotificationService,
                 )..restoreSession(),
           ),
         ],

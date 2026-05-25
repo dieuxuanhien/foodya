@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/session_cubit.dart';
+import '../../../../core/notifications/fcm_notification_service.dart';
 import '../../../../core/auth/user_role.dart';
 import '../../../../core/network/api_error_ui_message.dart';
 import '../../../../core/network/api_exception.dart';
@@ -13,12 +14,15 @@ class LoginCubit extends Cubit<LoginState> {
   LoginCubit({
     required AuthRepository authRepository,
     required SessionCubit sessionCubit,
+    FcmNotificationService? notificationService,
   }) : _authRepository = authRepository,
        _sessionCubit = sessionCubit,
+       _notificationService = notificationService,
        super(const LoginState.initial());
 
   final AuthRepository _authRepository;
   final SessionCubit _sessionCubit;
+  final FcmNotificationService? _notificationService;
 
   Future<void> restoreSession() async {
     if (state.status == LoginStatus.restoring) {
@@ -278,6 +282,7 @@ class LoginCubit extends Cubit<LoginState> {
     );
 
     try {
+      await _notificationService?.unregisterCurrentDevice();
       await _authRepository.logoutAll();
       _sessionCubit.signOut();
       emit(
