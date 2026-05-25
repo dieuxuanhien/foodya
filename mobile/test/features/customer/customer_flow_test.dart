@@ -14,6 +14,8 @@ import 'package:foodya_mobile/features/customer/domain/repositories/customer_car
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_order_repository.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/cart_cubit.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/cart_state.dart';
+import 'package:foodya_mobile/features/customer/presentation/cubit/order_detail_cubit.dart';
+import 'package:foodya_mobile/features/customer/presentation/cubit/order_detail_state.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/order_list_cubit.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/order_list_state.dart';
 import 'package:foodya_mobile/features/customer/presentation/pages/customer_cart_page.dart';
@@ -77,6 +79,9 @@ class _FakeCustomerCartRepository implements CustomerCartRepository {
 }
 
 class _FakeCustomerOrderRepository implements CustomerOrderRepository {
+  int detailLoads = 0;
+  int trackingLoads = 0;
+
   @override
   Future<OrderDetail> cancelOrder(String orderId, {String? reason}) {
     throw UnimplementedError();
@@ -91,13 +96,40 @@ class _FakeCustomerOrderRepository implements CustomerOrderRepository {
   }
 
   @override
-  Future<OrderDetail> getOrderDetail(String orderId) {
-    throw UnimplementedError();
+  Future<OrderDetail> getOrderDetail(String orderId) async {
+    detailLoads++;
+    return OrderDetail(
+      orderId: orderId,
+      orderCode: 'FDY-001',
+      restaurantId: 'rest-1',
+      restaurantName: 'Pho House',
+      customerUserId: 'customer-1',
+      customerName: 'Alice',
+      status: 'DELIVERING',
+      paymentMethod: 'COD',
+      paymentStatus: 'UNPAID',
+      subtotalAmount: 40000.0,
+      deliveryFee: 5000.0,
+      totalAmount: 45000.0,
+      deliveryAddress: '1 Nguyen Trai',
+    );
   }
 
   @override
-  Future<List<OrderTrackingPoint>> getTrackingPoints(String orderId) {
-    throw UnimplementedError();
+  Future<List<OrderTrackingPoint>> getTrackingPoints(String orderId) async {
+    trackingLoads++;
+    return [
+      OrderTrackingPoint(
+        lat: 10.762622,
+        lng: 106.660172,
+        recordedAt: DateTime.utc(2026, 1, 1, 10),
+      ),
+      OrderTrackingPoint(
+        lat: 10.763,
+        lng: 106.662,
+        recordedAt: DateTime.utc(2026, 1, 1, 10, 1),
+      ),
+    ];
   }
 
   @override
@@ -183,4 +215,24 @@ void main() {
     expect(cubit.state.status, OrderListStatus.success);
     expect(cubit.state.orders, hasLength(1));
   });
+
+  test(
+    'OrderDetailCubit loads live tracking points for assigned delivery',
+    () async {
+      final repo = _FakeCustomerOrderRepository();
+      final cubit = OrderDetailCubit(repository: repo);
+
+      await cubit.load('order-1');
+
+      expect(cubit.state.status, OrderDetailStatus.success);
+      expect(cubit.state.order?.status, 'DELIVERING');
+      expect(cubit.state.trackingPoints, hasLength(2));
+      expect(cubit.state.isLiveTrackingEnabled, isTrue);
+      expect(cubit.state.lastTrackingRefreshAt, isNotNull);
+      expect(repo.detailLoads, 2);
+      expect(repo.trackingLoads, 1);
+
+      await cubit.close();
+    },
+  );
 }
