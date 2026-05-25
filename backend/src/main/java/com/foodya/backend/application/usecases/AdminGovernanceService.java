@@ -17,14 +17,17 @@ import com.foodya.backend.application.ports.out.AdminRestaurantPort;
 import com.foodya.backend.application.ports.out.AdminUserPort;
 import com.foodya.backend.application.ports.out.CategoryTaxonomyPort;
 import com.foodya.backend.application.ports.out.MenuCategoryPort;
+import com.foodya.backend.application.ports.out.OrderPaymentPort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.entities.MenuCategory;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.domain.entities.SystemParameter;
 import com.foodya.backend.domain.value_objects.OrderStatus;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 
 import java.math.BigDecimal;
@@ -54,6 +57,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
     private final AdminUserPort adminUserPort;
     private final PaginationPolicy paginationPolicy;
     private final AuditLogService auditLogService;
+    private final OrderPaymentPort orderPaymentPort;
 
     public AdminGovernanceService(AdminRestaurantPort adminRestaurantPort,
                                   AdminOrderPort adminOrderPort,
@@ -63,7 +67,8 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                                   SystemParameterPort systemParameterPort,
                                   AdminUserPort adminUserPort,
                                   PaginationPolicy paginationPolicy,
-                                  AuditLogService auditLogService) {
+                                  AuditLogService auditLogService,
+                                  OrderPaymentPort orderPaymentPort) {
         this.adminRestaurantPort = adminRestaurantPort;
         this.adminOrderPort = adminOrderPort;
         this.adminMenuItemPort = adminMenuItemPort;
@@ -73,6 +78,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         this.adminUserPort = adminUserPort;
         this.paginationPolicy = paginationPolicy;
         this.auditLogService = auditLogService;
+        this.orderPaymentPort = orderPaymentPort;
     }
 
     public PaginatedResult<RestaurantData> listRestaurants(String keyword, RestaurantStatus status, Integer page, Integer size) {
@@ -301,6 +307,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         }
 
         order.adminTransitionTo(targetStatus);
+        syncCodPaymentState(order, targetStatus);
         Order saved = adminOrderPort.save(order);
         auditLogService.securityEvent(
                 actorId.toString(),
@@ -416,6 +423,27 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
             case DELIVERING -> target == OrderStatus.SUCCESS || target == OrderStatus.FAILED;
             case SUCCESS, CANCELLED, FAILED -> false;
         };
+    }
+
+    private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
+        if (targetStatus == OrderStatus.SUCCESS) {
+            order.markCodPaid();
+        } else if (targetStatus == OrderStatus.FAILED) {
+            order.markCodFailed();
+        } else {
+            return;
+        }
+
+        OrderPayment payment = orderPaymentPort.findByOrderId(order.getId())
+                .orElseGet(OrderPayment::new);
+        payment.setOrderId(order.getId());
+        payment.setPaymentMethod(order.getPaymentMethod());
+        payment.setPaymentStatus(order.getPaymentStatus());
+        payment.setAmount(order.getTotalAmount());
+        payment.setPaidAt(order.getPaymentStatus() == PaymentStatus.PAID
+                ? (order.getCompletedAt() == null ? OffsetDateTime.now() : order.getCompletedAt())
+                : null);
+        orderPaymentPort.save(payment);
     }
 
     private RestaurantData toRestaurantData(Restaurant restaurant) {

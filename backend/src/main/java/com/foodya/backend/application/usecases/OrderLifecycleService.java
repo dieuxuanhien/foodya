@@ -12,12 +12,15 @@ import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
+import com.foodya.backend.application.ports.out.OrderPaymentPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
 import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -32,17 +35,20 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
     private final UserAccountPort userAccountPort;
+    private final OrderPaymentPort orderPaymentPort;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
                                  DeliveryTrackingPointPort deliveryTrackingPointPort,
                                  OrderEventPublisherPort orderEventPublisherPort,
-                                 UserAccountPort userAccountPort) {
+                                 UserAccountPort userAccountPort,
+                                 OrderPaymentPort orderPaymentPort) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
         this.userAccountPort = userAccountPort;
+        this.orderPaymentPort = orderPaymentPort;
     }
 
     public List<OrderSummaryView> customerOrders(UUID customerUserId) {
@@ -161,6 +167,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         if (targetStatus == OrderStatus.SUCCESS || targetStatus == OrderStatus.FAILED) {
             try {
                 order.deliveryFinish(targetStatus);
+                syncCodPaymentState(order, targetStatus);
             } catch (IllegalStateException ex) {
                 throw new ValidationException("invalid delivery status transition",
                         Map.of("status", "allowed: ASSIGNED->DELIVERING and DELIVERING->SUCCESS|FAILED"));
@@ -233,6 +240,27 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 "Order update " + order.getOrderCode(),
                 message
         ));
+    }
+
+    private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
+        if (targetStatus == OrderStatus.SUCCESS) {
+            order.markCodPaid();
+        } else if (targetStatus == OrderStatus.FAILED) {
+            order.markCodFailed();
+        } else {
+            return;
+        }
+
+        OrderPayment payment = orderPaymentPort.findByOrderId(order.getId())
+                .orElseGet(OrderPayment::new);
+        payment.setOrderId(order.getId());
+        payment.setPaymentMethod(order.getPaymentMethod());
+        payment.setPaymentStatus(order.getPaymentStatus());
+        payment.setAmount(order.getTotalAmount());
+        payment.setPaidAt(order.getPaymentStatus() == PaymentStatus.PAID
+                ? (order.getCompletedAt() == null ? OffsetDateTime.now() : order.getCompletedAt())
+                : null);
+        orderPaymentPort.save(payment);
     }
 
     private OrderSummaryView toSummary(Order order) {

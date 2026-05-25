@@ -95,8 +95,9 @@ public class AppConfig {
 			RestaurantPort restaurantPort,
 			DeliveryTrackingPointPort deliveryTrackingPointPort,
 			OrderEventPublisherPort orderEventPublisherPort,
-			UserAccountPort userAccountPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort);
+			UserAccountPort userAccountPort,
+			OrderPaymentPort orderPaymentPort) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort);
 	}
 
 	@Bean
@@ -150,7 +151,8 @@ public class AppConfig {
 			SystemParameterPort systemParameterPort,
 			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
-			AuditLogService auditLogService) {
+			AuditLogService auditLogService,
+			OrderPaymentPort orderPaymentPort) {
 		return new AdminGovernanceService(
 				adminRestaurantPort,
 				adminOrderPort,
@@ -160,7 +162,8 @@ public class AppConfig {
 				systemParameterPort,
 				adminUserPort,
 				paginationPolicy,
-				auditLogService
+				auditLogService,
+				orderPaymentPort
 		);
 	}
 

@@ -253,7 +253,10 @@ class _OrderDetailCard extends StatelessWidget {
             _InfoRow(label: 'Customer', value: order.customerName),
             _InfoRow(label: 'Restaurant', value: order.restaurantName),
             _InfoRow(label: 'Status', value: order.status),
-            _InfoRow(label: 'Payment', value: order.paymentStatus),
+            _InfoRow(
+              label: 'Payment',
+              value: _paymentStatusLabel(order.paymentStatus),
+            ),
             _InfoRow(
               label: 'Subtotal',
               value: order.subtotalAmount.toStringAsFixed(0),
@@ -316,4 +319,14 @@ class _InfoRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _paymentStatusLabel(String value) {
+  return switch (value.toUpperCase()) {
+    'UNPAID' => 'COD pending',
+    'PAID' => 'COD collected',
+    'FAILED' => 'Payment failed',
+    'REFUNDED' => 'Payment refunded',
+    _ => value,
+  };
 }

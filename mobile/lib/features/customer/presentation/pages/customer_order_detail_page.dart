@@ -99,8 +99,20 @@ class _CustomerOrderDetailView extends StatelessWidget {
                                   runSpacing: 8,
                                   children: [
                                     Chip(label: Text(order.status)),
-                                    Chip(label: Text(order.paymentStatus)),
-                                    Chip(label: Text(order.paymentMethod)),
+                                    Chip(
+                                      label: Text(
+                                        _paymentStatusLabel(
+                                          order.paymentStatus,
+                                        ),
+                                      ),
+                                    ),
+                                    Chip(
+                                      label: Text(
+                                        _paymentMethodLabel(
+                                          order.paymentMethod,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -471,6 +483,23 @@ String _formatDateTime(DateTime value) {
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')} '
       '${_formatClock(value)}';
+}
+
+String _paymentMethodLabel(String value) {
+  return switch (value.toUpperCase()) {
+    'COD' => 'Cash on delivery',
+    _ => value,
+  };
+}
+
+String _paymentStatusLabel(String value) {
+  return switch (value.toUpperCase()) {
+    'UNPAID' => 'Payment pending',
+    'PAID' => 'Payment collected',
+    'FAILED' => 'Payment failed',
+    'REFUNDED' => 'Payment refunded',
+    _ => value,
+  };
 }
 
 class _ReviewForm extends StatefulWidget {
