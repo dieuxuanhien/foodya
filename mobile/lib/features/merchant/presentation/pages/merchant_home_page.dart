@@ -88,6 +88,13 @@ class MerchantHomePage extends StatelessWidget {
             icon: Icons.bar_chart_outlined,
             routePath: '/merchant/revenue',
           ),
+          SizedBox(height: 12),
+          _FeatureCard(
+            title: 'Notifications',
+            subtitle: 'SRS FR23',
+            icon: Icons.notifications_active_outlined,
+            routePath: '/merchant/notifications',
+          ),
         ],
       ),
     );
