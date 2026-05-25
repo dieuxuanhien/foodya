@@ -39,11 +39,21 @@ class GeolocationService {
   }
 
   Future<String?> getFriendlyAddress(Position position) async {
+    return getFriendlyAddressForCoordinates(
+      lat: position.latitude,
+      lng: position.longitude,
+    );
+  }
+
+  Future<String?> getFriendlyAddressForCoordinates({
+    required double lat,
+    required double lng,
+  }) async {
     try {
       final resolved = await _sessionRecovery.runAuthorized((accessToken) {
         return _remoteDataSource.resolveAddress(
-          lat: position.latitude,
-          lng: position.longitude,
+          lat: lat,
+          lng: lng,
           accessToken: accessToken,
         );
       });

@@ -56,7 +56,7 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
 
   Future<void> toggleNearby(bool enabled) async {
     if (!enabled) {
-      emit(state.copyWith(isNearby: false, latitude: null, longitude: null));
+      emit(state.copyWith(isNearby: false, clearCoordinates: true));
       await refresh();
       return;
     }
@@ -91,6 +91,22 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
       );
       emit(state.copyWith(errorMessage: presentation.message));
     }
+  }
+
+  Future<void> useManualNearbyLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    emit(
+      state.copyWith(
+        isNearby: true,
+        latitude: latitude,
+        longitude: longitude,
+        sort: state.sort == 'relevance' ? 'distance_asc' : state.sort,
+        clearError: true,
+      ),
+    );
+    await refresh();
   }
 
   Future<void> toggleOpenNow(bool enabled) async {

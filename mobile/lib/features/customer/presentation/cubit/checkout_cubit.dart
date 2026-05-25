@@ -70,8 +70,27 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     emit(state.copyWith(customerNote: value));
   }
 
-  void updateLocation({required double lat, required double lng}) {
-    emit(state.copyWith(deliveryLatitude: lat, deliveryLongitude: lng));
+  Future<void> updateLocation({
+    required double lat,
+    required double lng,
+  }) async {
+    final friendly = await _geolocationService.getFriendlyAddressForCoordinates(
+      lat: lat,
+      lng: lng,
+    );
+
+    emit(
+      state.copyWith(
+        deliveryLatitude: lat,
+        deliveryLongitude: lng,
+        deliveryAddress:
+            friendly != null && friendly.trim().isNotEmpty
+                ? friendly
+                : state.deliveryAddress,
+        infoMessage: 'Delivery coordinates updated.',
+        clearError: true,
+      ),
+    );
   }
 
   Future<void> useCurrentLocation() async {

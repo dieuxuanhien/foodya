@@ -7,6 +7,7 @@ import '../../domain/repositories/customer_catalog_repository.dart';
 import '../../../../core/location/geolocation_service.dart';
 import '../cubit/restaurant_browse_cubit.dart';
 import '../cubit/restaurant_browse_state.dart';
+import '../widgets/manual_location_sheet.dart';
 
 class RestaurantBrowsePage extends StatelessWidget {
   const RestaurantBrowsePage({super.key});
@@ -87,9 +88,7 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                           .read<RestaurantBrowseCubit>()
                           .changeSort(sort),
                   onNearbyToggle:
-                      (enabled) => context
-                          .read<RestaurantBrowseCubit>()
-                          .toggleNearby(enabled),
+                      (enabled) => _toggleNearby(context, state, enabled),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -155,6 +154,61 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _toggleNearby(
+    BuildContext context,
+    RestaurantBrowseState state,
+    bool enabled,
+  ) async {
+    final cubit = context.read<RestaurantBrowseCubit>();
+    if (!enabled) {
+      await cubit.toggleNearby(false);
+      return;
+    }
+
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.my_location_outlined),
+                  title: const Text('Use device location'),
+                  onTap: () => Navigator.of(context).pop('device'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_location_alt_outlined),
+                  title: const Text('Enter latitude and longitude'),
+                  onTap: () => Navigator.of(context).pop('manual'),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (!context.mounted || source == null) {
+      return;
+    }
+
+    if (source == 'device') {
+      await cubit.toggleNearby(true);
+      return;
+    }
+
+    final manual = await showManualLocationSheet(
+      context: context,
+      initialLatitude: state.latitude,
+      initialLongitude: state.longitude,
+    );
+    if (!context.mounted || manual == null) {
+      return;
+    }
+    await cubit.useManualNearbyLocation(
+      latitude: manual.latitude,
+      longitude: manual.longitude,
     );
   }
 }

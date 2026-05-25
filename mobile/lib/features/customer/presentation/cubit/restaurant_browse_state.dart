@@ -91,6 +91,7 @@ class RestaurantBrowseState extends Equatable {
     bool clearError = false,
     bool resetOpenNow = false,
     bool resetMinRating = false,
+    bool clearCoordinates = false,
   }) {
     return RestaurantBrowseState(
       status: status ?? this.status,
@@ -101,8 +102,8 @@ class RestaurantBrowseState extends Equatable {
       keyword: keyword ?? this.keyword,
       sort: sort ?? this.sort,
       isNearby: isNearby ?? this.isNearby,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
+      latitude: clearCoordinates ? null : (latitude ?? this.latitude),
+      longitude: clearCoordinates ? null : (longitude ?? this.longitude),
       radiusKm: radiusKm ?? this.radiusKm,
       openNow: resetOpenNow ? null : (openNow ?? this.openNow),
       minRating: resetMinRating ? null : (minRating ?? this.minRating),

@@ -114,6 +114,27 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
     }
   }
 
+  Future<void> useManualLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final friendlyAddress = await _geolocationService
+        .getFriendlyAddressForCoordinates(lat: latitude, lng: longitude);
+
+    emit(
+      state.copyWith(
+        isRefreshingLocation: true,
+        latitude: latitude,
+        longitude: longitude,
+        friendlyAddress: friendlyAddress,
+        clearFriendlyAddress: friendlyAddress == null,
+        clearLocationMessage: true,
+        clearNearbyMessage: true,
+      ),
+    );
+    await _loadNearby(lat: latitude, lng: longitude);
+  }
+
   Future<void> _loadNearby({required double lat, required double lng}) async {
     emit(state.copyWith(isNearbyLoading: true, clearNearbyMessage: true));
 

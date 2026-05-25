@@ -8,6 +8,7 @@ import '../../domain/models/restaurant_search_item.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
 import '../cubit/customer_home_cubit.dart';
 import '../cubit/customer_home_state.dart';
+import '../widgets/manual_location_sheet.dart';
 
 enum _CustomerSessionAction { refresh, logoutAll }
 
@@ -56,10 +57,7 @@ class _CustomerHomeView extends StatelessWidget {
                   onPressed:
                       homeState.isRefreshingLocation
                           ? null
-                          : () =>
-                              context
-                                  .read<CustomerHomeCubit>()
-                                  .refreshLocation(),
+                          : () => _chooseLocationSource(context, homeState),
                   icon:
                       homeState.isRefreshingLocation
                           ? const SizedBox(
@@ -173,6 +171,55 @@ class _CustomerHomeView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _chooseLocationSource(
+    BuildContext context,
+    CustomerHomeState state,
+  ) async {
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.my_location_outlined),
+                  title: const Text('Use device location'),
+                  onTap: () => Navigator.of(context).pop('device'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_location_alt_outlined),
+                  title: const Text('Enter latitude and longitude'),
+                  onTap: () => Navigator.of(context).pop('manual'),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (!context.mounted || source == null) {
+      return;
+    }
+
+    final cubit = context.read<CustomerHomeCubit>();
+    if (source == 'device') {
+      await cubit.refreshLocation();
+      return;
+    }
+
+    final manual = await showManualLocationSheet(
+      context: context,
+      initialLatitude: state.latitude,
+      initialLongitude: state.longitude,
+    );
+    if (!context.mounted || manual == null) {
+      return;
+    }
+    await cubit.useManualLocation(
+      latitude: manual.latitude,
+      longitude: manual.longitude,
     );
   }
 }

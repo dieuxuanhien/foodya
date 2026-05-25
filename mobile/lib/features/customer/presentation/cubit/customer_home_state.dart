@@ -65,6 +65,7 @@ class CustomerHomeState extends Equatable {
     bool clearLocationMessage = false,
     bool clearNearbyMessage = false,
     bool clearCoordinates = false,
+    bool clearFriendlyAddress = false,
   }) {
     return CustomerHomeState(
       status: status ?? this.status,
@@ -79,7 +80,10 @@ class CustomerHomeState extends Equatable {
               : (locationMessage ?? this.locationMessage),
       nearbyMessage:
           clearNearbyMessage ? null : (nearbyMessage ?? this.nearbyMessage),
-      friendlyAddress: friendlyAddress ?? this.friendlyAddress,
+      friendlyAddress:
+          clearFriendlyAddress
+              ? null
+              : (friendlyAddress ?? this.friendlyAddress),
     );
   }
 

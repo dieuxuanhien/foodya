@@ -9,6 +9,7 @@ import '../../domain/repositories/customer_cart_repository.dart';
 import '../../domain/repositories/customer_order_repository.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
+import '../widgets/manual_location_sheet.dart';
 
 class CustomerCheckoutPage extends StatelessWidget {
   const CustomerCheckoutPage({super.key});
@@ -142,11 +143,9 @@ class _CheckoutViewState extends State<_CheckoutView> {
                                 state.isBusy
                                     ? null
                                     : () =>
-                                        context
-                                            .read<CheckoutCubit>()
-                                            .useCurrentLocation(),
+                                        _chooseDeliveryLocation(context, state),
                             icon: const Icon(Icons.my_location_outlined),
-                            label: const Text('Use current'),
+                            label: const Text('Set location'),
                           ),
                         ],
                       ),
@@ -206,6 +205,52 @@ class _CheckoutViewState extends State<_CheckoutView> {
         );
       },
     );
+  }
+
+  Future<void> _chooseDeliveryLocation(
+    BuildContext context,
+    CheckoutState state,
+  ) async {
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.my_location_outlined),
+                  title: const Text('Use device location'),
+                  onTap: () => Navigator.of(context).pop('device'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_location_alt_outlined),
+                  title: const Text('Enter latitude and longitude'),
+                  onTap: () => Navigator.of(context).pop('manual'),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (!context.mounted || source == null) {
+      return;
+    }
+
+    final cubit = context.read<CheckoutCubit>();
+    if (source == 'device') {
+      await cubit.useCurrentLocation();
+      return;
+    }
+
+    final manual = await showManualLocationSheet(
+      context: context,
+      initialLatitude: state.deliveryLatitude,
+      initialLongitude: state.deliveryLongitude,
+    );
+    if (!context.mounted || manual == null) {
+      return;
+    }
+    await cubit.updateLocation(lat: manual.latitude, lng: manual.longitude);
   }
 }
 
