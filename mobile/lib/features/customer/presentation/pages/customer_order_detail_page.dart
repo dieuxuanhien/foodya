@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/order_detail.dart';
 import '../../domain/models/order_tracking_point.dart';
 import '../../domain/repositories/customer_order_repository.dart';
@@ -98,7 +99,10 @@ class _CustomerOrderDetailView extends StatelessWidget {
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: [
-                                    Chip(label: Text(order.status)),
+                                    FoodyaStatusChip(
+                                      value: order.status,
+                                      icon: Icons.delivery_dining_outlined,
+                                    ),
                                     Chip(
                                       label: Text(
                                         _paymentStatusLabel(
@@ -338,7 +342,7 @@ class _TrackingStatusRow extends StatelessWidget {
       children: [
         Chip(
           avatar: const Icon(Icons.local_shipping_outlined, size: 18),
-          label: Text(orderStatus),
+          label: Text(friendlyStatusLabel(orderStatus)),
         ),
         Chip(
           avatar: const Icon(Icons.route_outlined, size: 18),

@@ -88,11 +88,12 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                       Text(
                         'Foodya',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displaySmall,
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Customer and Merchant access',
+                        'Order food or manage your restaurant in one place.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
@@ -166,7 +167,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 forceErrorText: state.fieldErrors['usernameOrEmail'],
                 decoration: const InputDecoration(
                   labelText: 'Username or Email',
-                  hintText: 'api_customer or api_customer@foodya.local',
+                  hintText: 'name@example.com',
                 ),
                 validator: AuthFormValidators.loginIdentity,
               ),
@@ -178,7 +179,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 forceErrorText: state.fieldErrors['password'],
                 decoration: const InputDecoration(
                   labelText: 'Password',
-                  hintText: 'Strong@123',
+                  hintText: 'Enter your password',
                 ),
                 validator: AuthFormValidators.loginPassword,
               ),

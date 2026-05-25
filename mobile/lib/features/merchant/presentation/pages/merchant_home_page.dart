@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../../auth/presentation/cubit/login_cubit.dart';
 
 enum _MerchantSessionAction { refresh, logoutAll }
@@ -53,54 +54,67 @@ class MerchantHomePage extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
-          _FeatureCard(
-            title: 'Restaurant and Menu Management',
-            subtitle: 'SRS FR13',
-            icon: Icons.restaurant_menu_outlined,
-            routePath: '/merchant/restaurant',
+        children: [
+          const _MerchantHero(),
+          const SizedBox(height: 20),
+          const FoodyaSectionHeader(
+            title: 'Run your restaurant',
+            subtitle: 'Manage orders, menu, customer feedback, and revenue.',
           ),
-          SizedBox(height: 12),
-          _FeatureCard(
-            title: 'Catalog Management',
-            subtitle: 'SRS FR14, FR15',
-            icon: Icons.fastfood_outlined,
-            routePath: '/merchant/catalog',
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            childAspectRatio: 0.95,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            children: [
+              FoodyaActionCard(
+                title: 'Restaurant',
+                subtitle: 'Edit profile, hours, delivery range, and status.',
+                icon: Icons.storefront_outlined,
+                onTap: () => context.push('/merchant/restaurant'),
+              ),
+              FoodyaActionCard(
+                title: 'Catalog',
+                subtitle:
+                    'Organize categories, items, prices, and availability.',
+                icon: Icons.fastfood_outlined,
+                onTap: () => context.push('/merchant/catalog'),
+              ),
+              FoodyaActionCard(
+                title: 'Orders',
+                subtitle: 'Accept incoming orders and update preparation.',
+                icon: Icons.receipt_long_outlined,
+                onTap: () => context.push('/merchant/orders'),
+              ),
+              FoodyaActionCard(
+                title: 'Reviews',
+                subtitle: 'Reply to customers and protect service quality.',
+                icon: Icons.rate_review_outlined,
+                onTap: () => context.push('/merchant/reviews'),
+              ),
+              FoodyaActionCard(
+                title: 'Insights',
+                subtitle: 'Track revenue, profit, and best-selling items.',
+                icon: Icons.bar_chart_outlined,
+                onTap: () => context.push('/merchant/revenue'),
+              ),
+              FoodyaActionCard(
+                title: 'Alerts',
+                subtitle: 'Read order, customer, and system updates.',
+                icon: Icons.notifications_active_outlined,
+                onTap: () => context.push('/merchant/notifications'),
+              ),
+            ],
           ),
-          SizedBox(height: 12),
-          _FeatureCard(
-            title: 'Order Operations',
-            subtitle: 'SRS FR16',
-            icon: Icons.receipt_long_outlined,
-            routePath: '/merchant/orders',
-          ),
-          SizedBox(height: 12),
-          _FeatureCard(
-            title: 'Review Center',
-            subtitle: 'SRS FR16',
-            icon: Icons.rate_review_outlined,
-            routePath: '/merchant/reviews',
-          ),
-          SizedBox(height: 12),
-          _FeatureCard(
-            title: 'Revenue and Insights',
-            subtitle: 'SRS FR25',
-            icon: Icons.bar_chart_outlined,
-            routePath: '/merchant/revenue',
-          ),
-          SizedBox(height: 12),
-          _FeatureCard(
-            title: 'Notifications',
-            subtitle: 'SRS FR23',
-            icon: Icons.notifications_active_outlined,
-            routePath: '/merchant/notifications',
-          ),
-          SizedBox(height: 12),
-          _FeatureCard(
-            title: 'Profile and Password',
-            subtitle: 'SRS FR04, FR05, FR06',
+          const SizedBox(height: 20),
+          FoodyaActionCard(
+            title: 'Merchant account',
+            subtitle: 'Update contact details and password.',
             icon: Icons.person_outline,
-            routePath: '/merchant/profile',
+            onTap: () => context.push('/merchant/profile'),
           ),
         ],
       ),
@@ -108,32 +122,42 @@ class MerchantHomePage extends StatelessWidget {
   }
 }
 
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    this.routePath,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final String? routePath;
+class _MerchantHero extends StatelessWidget {
+  const _MerchantHero();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing:
-            routePath == null
-                ? null
-                : const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-        onTap: routePath == null ? null : () => context.push(routePath!),
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.restaurant_menu_outlined,
+            color: theme.colorScheme.onPrimaryContainer,
+            size: 32,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Merchant dashboard',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Keep the kitchen moving with clear order, catalog, and revenue tools.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ],
       ),
     );
   }

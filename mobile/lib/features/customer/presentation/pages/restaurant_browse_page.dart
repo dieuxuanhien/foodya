@@ -230,59 +230,70 @@ class _SearchSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            const Text('Nearby'),
-            const SizedBox(width: 8),
-            Switch(value: state.isNearby, onChanged: onNearbyToggle),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            textInputAction: TextInputAction.search,
-            onSubmitted: onSearch,
-            decoration: InputDecoration(
-              hintText: 'Search by restaurant or menu item',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon:
-                  state.keyword.isEmpty
-                      ? null
-                      : IconButton(
-                        onPressed: () {
-                          controller.clear();
-                          onSearch('');
-                        },
-                        icon: const Icon(Icons.clear),
-                      ),
-            ),
+        TextField(
+          controller: controller,
+          textInputAction: TextInputAction.search,
+          onSubmitted: onSearch,
+          decoration: InputDecoration(
+            hintText: 'Search by restaurant or menu item',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon:
+                state.keyword.isEmpty
+                    ? null
+                    : IconButton(
+                      onPressed: () {
+                        controller.clear();
+                        onSearch('');
+                      },
+                      icon: const Icon(Icons.clear),
+                    ),
           ),
         ),
-        const SizedBox(width: 8),
-        DropdownButton<String>(
-          value: state.sort,
-          onChanged: (value) {
-            if (value != null) {
-              onSortChanged(value);
-            }
-          },
-          items: [
-            const DropdownMenuItem(
-              value: 'relevance',
-              child: Text('Relevance'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            FilterChip(
+              avatar: const Icon(Icons.near_me_outlined),
+              label: const Text('Nearby'),
+              selected: state.isNearby,
+              onSelected: onNearbyToggle,
             ),
-            const DropdownMenuItem(
-              value: 'rating_desc',
-              child: Text('Top rated'),
-            ),
-            if (state.latitude != null && state.longitude != null)
-              const DropdownMenuItem(
-                value: 'distance_asc',
-                child: Text('Closest'),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 160, maxWidth: 220),
+              child: DropdownButtonFormField<String>(
+                value: state.sort,
+                decoration: const InputDecoration(
+                  labelText: 'Sort by',
+                  prefixIcon: Icon(Icons.sort),
+                ),
+                onChanged: (value) {
+                  if (value != null) {
+                    onSortChanged(value);
+                  }
+                },
+                items: [
+                  const DropdownMenuItem(
+                    value: 'relevance',
+                    child: Text('Relevance'),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'rating_desc',
+                    child: Text('Top rated'),
+                  ),
+                  if (state.latitude != null && state.longitude != null)
+                    const DropdownMenuItem(
+                      value: 'distance_asc',
+                      child: Text('Closest'),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
       ],

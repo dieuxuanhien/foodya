@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_order_detail.dart';
 import '../../domain/models/merchant_order_summary.dart';
 import '../../domain/models/merchant_restaurant.dart';
@@ -213,7 +214,9 @@ class _OrderList extends StatelessWidget {
               onTap: isBusy ? null : () => onSelected(order),
               leading: const Icon(Icons.receipt_long_outlined),
               title: Text(order.orderCode),
-              subtitle: Text('${order.customerName} - ${order.status}'),
+              subtitle: Text(
+                '${order.customerName} - ${friendlyStatusLabel(order.status)}',
+              ),
               trailing: Text(order.totalAmount.toStringAsFixed(0)),
             ),
           ),
@@ -252,7 +255,7 @@ class _OrderDetailCard extends StatelessWidget {
             const SizedBox(height: 8),
             _InfoRow(label: 'Customer', value: order.customerName),
             _InfoRow(label: 'Restaurant', value: order.restaurantName),
-            _InfoRow(label: 'Status', value: order.status),
+            _InfoRow(label: 'Status', value: friendlyStatusLabel(order.status)),
             _InfoRow(
               label: 'Payment',
               value: _paymentStatusLabel(order.paymentStatus),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/repositories/customer_order_repository.dart';
 import '../cubit/order_list_cubit.dart';
 import '../cubit/order_list_state.dart';
@@ -30,7 +31,7 @@ class _CustomerOrdersView extends StatelessWidget {
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('My Orders'),
+            title: const Text('My orders'),
             actions: [
               IconButton(
                 onPressed:
@@ -61,19 +62,45 @@ class _CustomerOrdersView extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final order = state.orders[index];
                       return Card(
-                        child: ListTile(
-                          title: Text(order.restaurantName),
-                          subtitle: Text(
-                            'Order ${order.orderCode} • ${order.status}',
-                          ),
-                          trailing: Text(
-                            '${order.totalAmount.toStringAsFixed(0)} VND',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
+                        child: InkWell(
                           onTap:
                               () => context.push(
                                 '/customer/orders/${order.orderId}',
                               ),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        order.restaurantName,
+                                        style:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.titleMedium,
+                                      ),
+                                    ),
+                                    FoodyaStatusChip(value: order.status),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text('Order ${order.orderCode}'),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    '${order.totalAmount.toStringAsFixed(0)} VND',
+                                    style:
+                                        Theme.of(context).textTheme.titleSmall,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },
