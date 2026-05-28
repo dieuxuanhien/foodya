@@ -85,11 +85,12 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Foodya',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                      Center(
+                        child: Image.asset(
+                          'assets/branding/img_logo_full.webp',
+                          height: 88,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
