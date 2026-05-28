@@ -50,6 +50,10 @@ class _FakeMerchantRestaurantRepository
 }
 
 class _FakeMerchantCatalogRepository implements MerchantCatalogRepository {
+  _FakeMerchantCatalogRepository({this.shouldFail = false});
+
+  final bool shouldFail;
+
   MerchantMenuItem item = const MerchantMenuItem(
     id: 'item-1',
     restaurantId: 'restaurant-1',
@@ -66,6 +70,9 @@ class _FakeMerchantCatalogRepository implements MerchantCatalogRepository {
 
   @override
   Future<List<MerchantCategoryTaxonomy>> listCategoryTaxonomies() async {
+    if (shouldFail) {
+      throw Exception('taxonomies');
+    }
     return const [
       MerchantCategoryTaxonomy(
         code: 'NOODLES',
@@ -189,4 +196,50 @@ void main() {
     expect(cubit.state.status, MerchantCatalogStatus.success);
     expect(cubit.state.items.single.available, isFalse);
   });
+
+  test(
+    'MerchantCatalogCubit reports empty restaurants and load failure',
+    () async {
+      final emptyCubit = MerchantCatalogCubit(
+        catalogRepository: _FakeMerchantCatalogRepository(),
+        restaurantRepository: _EmptyMerchantRestaurantRepository(),
+      );
+
+      await emptyCubit.load();
+
+      expect(emptyCubit.state.status, MerchantCatalogStatus.success);
+      expect(emptyCubit.state.selectedRestaurant, isNull);
+
+      final failureCubit = MerchantCatalogCubit(
+        catalogRepository: _FakeMerchantCatalogRepository(shouldFail: true),
+        restaurantRepository: _FakeMerchantRestaurantRepository(),
+      );
+
+      await failureCubit.load();
+
+      expect(failureCubit.state.status, MerchantCatalogStatus.failure);
+      expect(failureCubit.state.errorMessage, isNotEmpty);
+    },
+  );
+}
+
+class _EmptyMerchantRestaurantRepository
+    implements MerchantRestaurantRepository {
+  @override
+  Future<List<MerchantRestaurant>> listRestaurants() async => const [];
+
+  @override
+  Future<MerchantRestaurant> createRestaurant(
+    MerchantRestaurantRequest request,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MerchantRestaurant> updateRestaurant({
+    required String restaurantId,
+    required MerchantRestaurantRequest request,
+  }) {
+    throw UnimplementedError();
+  }
 }

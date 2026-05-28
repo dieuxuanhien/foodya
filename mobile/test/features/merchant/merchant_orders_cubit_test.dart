@@ -10,8 +10,15 @@ import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_orde
 
 class _FakeMerchantRestaurantRepository
     implements MerchantRestaurantRepository {
+  _FakeMerchantRestaurantRepository({this.shouldFail = false});
+
+  final bool shouldFail;
+
   @override
   Future<List<MerchantRestaurant>> listRestaurants() async {
+    if (shouldFail) {
+      throw Exception('restaurants');
+    }
     return const [
       MerchantRestaurant(
         id: 'restaurant-1',
@@ -47,6 +54,10 @@ class _FakeMerchantRestaurantRepository
 }
 
 class _FakeMerchantOrderRepository implements MerchantOrderRepository {
+  _FakeMerchantOrderRepository({this.shouldFail = false});
+
+  final bool shouldFail;
+
   MerchantOrderDetail detail = const MerchantOrderDetail(
     orderId: 'order-1',
     orderCode: 'FDY-001',
@@ -67,6 +78,9 @@ class _FakeMerchantOrderRepository implements MerchantOrderRepository {
   Future<List<MerchantOrderSummary>> listRestaurantOrders(
     String restaurantId,
   ) async {
+    if (shouldFail) {
+      throw Exception('orders');
+    }
     return [
       MerchantOrderSummary(
         orderId: detail.orderId,
@@ -135,4 +149,31 @@ void main() {
     expect(cubit.state.selectedOrder?.status, 'ACCEPTED');
     expect(cubit.state.orders.single.status, 'ACCEPTED');
   });
+
+  test(
+    'MerchantOrdersCubit reports restaurant and order load failures',
+    () async {
+      final restaurantFailureCubit = MerchantOrdersCubit(
+        orderRepository: _FakeMerchantOrderRepository(),
+        restaurantRepository: _FakeMerchantRestaurantRepository(
+          shouldFail: true,
+        ),
+      );
+
+      await restaurantFailureCubit.load();
+
+      expect(restaurantFailureCubit.state.status, MerchantOrdersStatus.failure);
+      expect(restaurantFailureCubit.state.errorMessage, isNotEmpty);
+
+      final orderFailureCubit = MerchantOrdersCubit(
+        orderRepository: _FakeMerchantOrderRepository(shouldFail: true),
+        restaurantRepository: _FakeMerchantRestaurantRepository(),
+      );
+
+      await orderFailureCubit.load();
+
+      expect(orderFailureCubit.state.status, MerchantOrdersStatus.failure);
+      expect(orderFailureCubit.state.errorMessage, isNotEmpty);
+    },
+  );
 }

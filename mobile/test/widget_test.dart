@@ -47,6 +47,40 @@ void main() {
     expect(find.textContaining('FR'), findsNothing);
   });
 
+  testWidgets('login form shows validation copy for empty submit', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = MockAuthRepository();
+    final sessionCubit = SessionCubit();
+    sessionCubit.signOut();
+
+    await tester.pumpWidget(
+      RepositoryProvider<AuthRepository>.value(
+        value: authRepository,
+        child: MultiBlocProvider(
+          providers: [
+            BlocProvider<SessionCubit>.value(value: sessionCubit),
+            BlocProvider<LoginCubit>(
+              create:
+                  (context) => LoginCubit(
+                    authRepository: context.read<AuthRepository>(),
+                    sessionCubit: sessionCubit,
+                  ),
+            ),
+          ],
+          child: FoodyaMobileApp(router: AppRouter(sessionCubit).router),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign In'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Username or email is required.'), findsOneWidget);
+    expect(find.text('Password is required.'), findsOneWidget);
+  });
+
   testWidgets('customer shell shows customer bottom navigation', (
     WidgetTester tester,
   ) async {

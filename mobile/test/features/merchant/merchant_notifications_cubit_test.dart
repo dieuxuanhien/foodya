@@ -6,6 +6,10 @@ import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_noti
 
 class _FakeMerchantNotificationRepository
     implements MerchantNotificationRepository {
+  _FakeMerchantNotificationRepository({this.shouldFail = false});
+
+  final bool shouldFail;
+
   List<MerchantNotification> notifications = [
     MerchantNotification(
       id: 'notification-1',
@@ -26,6 +30,9 @@ class _FakeMerchantNotificationRepository
     int page = 0,
     int size = 20,
   }) async {
+    if (shouldFail) {
+      throw Exception('notifications');
+    }
     return notifications;
   }
 
@@ -80,5 +87,24 @@ void main() {
     expect(cubit.state.unreadCount, 0);
     expect(cubit.state.visibleNotifications, isEmpty);
     expect(cubit.state.notifications.single.isRead, isTrue);
+  });
+
+  test('MerchantNotificationsCubit handles empty and failure states', () async {
+    final emptyRepository =
+        _FakeMerchantNotificationRepository()..notifications = [];
+    final emptyCubit = MerchantNotificationsCubit(repository: emptyRepository);
+
+    await emptyCubit.load();
+
+    expect(emptyCubit.state.status, MerchantNotificationsStatus.empty);
+
+    final failureCubit = MerchantNotificationsCubit(
+      repository: _FakeMerchantNotificationRepository(shouldFail: true),
+    );
+
+    await failureCubit.load();
+
+    expect(failureCubit.state.status, MerchantNotificationsStatus.failure);
+    expect(failureCubit.state.errorMessage, isNotEmpty);
   });
 }
