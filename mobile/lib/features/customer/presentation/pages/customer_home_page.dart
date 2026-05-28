@@ -52,35 +52,13 @@ class _CustomerHomeView extends StatelessWidget {
       builder: (context, homeState) {
         return Scaffold(
           appBar: AppBar(
-            title: Row(
-              children: [
-                IconButton(
-                  onPressed:
-                      homeState.isRefreshingLocation
-                          ? null
-                          : () => _chooseLocationSource(context, homeState),
-                  icon:
-                      homeState.isRefreshingLocation
-                          ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : const Icon(Icons.gps_fixed),
-                  tooltip: 'Update current location',
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    homeState.locationLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-              ],
-            ),
+            title: const Text('Foodya'),
             actions: [
+              IconButton(
+                onPressed: () => context.push('/customer/notifications'),
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: 'Notifications',
+              ),
               PopupMenuButton<_CustomerSessionAction>(
                 onSelected: (action) async {
                   final cubit = context.read<LoginCubit>();
@@ -120,72 +98,77 @@ class _CustomerHomeView extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _HomeHero(
-                locationLabel: homeState.locationLabel,
-                isRefreshingLocation: homeState.isRefreshingLocation,
-                onLocationTap: () => _chooseLocationSource(context, homeState),
+              FoodyaHomeHero(
+                eyebrow: 'DELIVER TO',
+                title: homeState.locationLabel,
+                subtitle: 'Hot meals nearby, ready when you are.',
+                icon: Icons.restaurant,
+                primaryAction: FilledButton.icon(
+                  onPressed: () => context.push('/customer/restaurants'),
+                  icon: const Icon(Icons.search),
+                  label: const Text('Browse food'),
+                ),
+                secondaryAction: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFFFEDD5)),
+                  ),
+                  onPressed:
+                      homeState.isRefreshingLocation
+                          ? null
+                          : () => _chooseLocationSource(context, homeState),
+                  icon:
+                      homeState.isRefreshingLocation
+                          ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Icon(Icons.my_location_outlined),
+                  label: const Text('Location'),
+                ),
               ),
               const SizedBox(height: 20),
               FoodyaSectionHeader(
-                title: 'Nearby restaurants',
-                subtitle: 'Fresh options based on your current delivery area.',
+                title: 'Near you',
                 action: TextButton.icon(
                   onPressed: () => context.push('/customer/restaurants'),
                   icon: const Icon(Icons.search),
-                  label: const Text('Browse'),
+                  label: const Text('All'),
                 ),
               ),
               const SizedBox(height: 12),
               _NearbyRestaurantsRow(state: homeState),
               const SizedBox(height: 20),
-              const FoodyaSectionHeader(
-                title: 'Today on Foodya',
-                subtitle: 'Everything you need to order and track food faster.',
-              ),
+              const FoodyaSectionHeader(title: 'Quick actions'),
               const SizedBox(height: 12),
               GridView.count(
                 crossAxisCount: 2,
-                childAspectRatio: 0.95,
+                childAspectRatio: 2.7,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
                 children: [
-                  FoodyaActionCard(
-                    title: 'Find food',
-                    subtitle: 'Search restaurants, dishes, and categories.',
-                    icon: Icons.search,
-                    onTap: () => context.push('/customer/restaurants'),
-                  ),
-                  FoodyaActionCard(
-                    title: 'Your cart',
-                    subtitle: 'Review items and continue checkout.',
+                  FoodyaQuickActionTile(
+                    label: 'Cart',
                     icon: Icons.shopping_bag_outlined,
                     onTap: () => context.push('/customer/cart'),
                   ),
-                  FoodyaActionCard(
-                    title: 'Orders',
-                    subtitle: 'Track delivery and review completed meals.',
+                  FoodyaQuickActionTile(
+                    label: 'Orders',
                     icon: Icons.delivery_dining_outlined,
                     onTap: () => context.push('/customer/orders'),
                   ),
-                  FoodyaActionCard(
-                    title: 'AI picks',
-                    subtitle: 'Get meal ideas based on your taste.',
+                  FoodyaQuickActionTile(
+                    label: 'AI picks',
                     icon: Icons.auto_awesome_outlined,
                     onTap: () => context.push('/customer/ai'),
                   ),
-                  FoodyaActionCard(
-                    title: 'Updates',
-                    subtitle: 'See order and promotion notifications.',
+                  FoodyaQuickActionTile(
+                    label: 'Updates',
                     icon: Icons.notifications_outlined,
                     onTap: () => context.push('/customer/notifications'),
-                  ),
-                  FoodyaActionCard(
-                    title: 'Account',
-                    subtitle: 'Manage profile and password settings.',
-                    icon: Icons.person_outline,
-                    onTap: () => context.push('/customer/profile'),
                   ),
                 ],
               ),
@@ -246,66 +229,6 @@ class _CustomerHomeView extends StatelessWidget {
   }
 }
 
-class _HomeHero extends StatelessWidget {
-  const _HomeHero({
-    required this.locationLabel,
-    required this.isRefreshingLocation,
-    required this.onLocationTap,
-  });
-
-  final String locationLabel;
-  final bool isRefreshingLocation;
-  final VoidCallback onLocationTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Hungry now?',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Find warm meals, local favorites, and fast delivery nearby.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: isRefreshingLocation ? null : onLocationTap,
-            icon:
-                isRefreshingLocation
-                    ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Icon(Icons.location_on_outlined),
-            label: Text(
-              locationLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _NearbyRestaurantsRow extends StatelessWidget {
   const _NearbyRestaurantsRow({required this.state});
 
@@ -337,7 +260,7 @@ class _NearbyRestaurantsRow extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 190,
+      height: 285,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: state.nearbyRestaurants.length,
@@ -368,10 +291,17 @@ class _NearbyRestaurantCard extends StatelessWidget {
                 '/customer/restaurants/${restaurant.restaurantId}',
               ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                FoodyaImageSurface(
+                  imageUrl: restaurant.backgroundImageUrl,
+                  icon: Icons.restaurant,
+                  height: 104,
+                  width: double.infinity,
+                ),
+                const SizedBox(height: 10),
                 Text(
                   restaurant.restaurantName,
                   maxLines: 1,
@@ -379,11 +309,19 @@ class _NearbyRestaurantCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  restaurant.cuisine,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        restaurant.cuisine,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _OpenBadge(isOpen: restaurant.openStatus),
+                  ],
                 ),
                 const Spacer(),
                 Wrap(
@@ -407,6 +345,33 @@ class _NearbyRestaurantCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenBadge extends StatelessWidget {
+  const _OpenBadge({required this.isOpen});
+
+  final bool isOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isOpen ? const Color(0xFF166534) : const Color(0xFF991B1B);
+    final background =
+        isOpen ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        isOpen ? 'Open' : 'Closed',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

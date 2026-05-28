@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static ThemeData light() {
-    const seed = Color(0xFFF97316);
-    final colorScheme = ColorScheme.fromSeed(seedColor: seed);
+    const primary = Color(0xFFEA580C);
+    const surface = Color(0xFFFFF8F1);
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primary,
+      primary: primary,
+      secondary: const Color(0xFF16A34A),
+      tertiary: const Color(0xFFF59E0B),
+      surface: surface,
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFFFFBF7),
+      scaffoldBackgroundColor: surface,
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: const Color(0xFFFFFBF7),
+        backgroundColor: surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -19,11 +26,11 @@ class AppTheme {
       cardTheme: CardThemeData(
         margin: EdgeInsets.zero,
         elevation: 0,
-        color: Colors.white,
-        surfaceTintColor: colorScheme.primary.withValues(alpha: 0.04),
+        color: const Color(0xFFFFFFFF),
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFFF2E2D3)),
         ),
       ),
       chipTheme: ChipThemeData(
@@ -31,15 +38,25 @@ class AppTheme {
         selectedColor: const Color(0xFFFED7AA),
         labelStyle: TextStyle(color: colorScheme.onSurface),
         side: BorderSide.none,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: seed,
+          backgroundColor: primary,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(48),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.onSurface,
+          side: const BorderSide(color: Color(0xFFF2D5BA)),
+          minimumSize: const Size.fromHeight(44),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -47,17 +64,20 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFF2D5BA)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFF2D5BA)),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
+        elevation: 1,
+        surfaceTintColor: Colors.transparent,
         indicatorColor: const Color(0xFFFFEDD5),
+        height: 70,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,
