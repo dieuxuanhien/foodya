@@ -435,27 +435,98 @@ class _CategorySection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        for (final category in categories)
-          Card(
+        const SizedBox(height: 12),
+        if (categories.isEmpty)
+          const Card(
             child: ListTile(
-              selected: selectedCategory?.id == category.id,
-              onTap: isBusy ? null : () => onSelect(category),
-              leading: Icon(
-                category.active
-                    ? Icons.folder_open_outlined
-                    : Icons.folder_off_outlined,
-              ),
-              title: Text(category.name),
-              subtitle: Text('Sort ${category.sortOrder}'),
-              trailing: IconButton(
-                onPressed: isBusy ? null : () => onDelete(category),
-                icon: const Icon(Icons.delete_outline),
-                tooltip: 'Delete',
-              ),
+              leading: Icon(Icons.folder_open_outlined),
+              title: Text('No categories yet'),
+              subtitle: Text('Create one before adding menu items.'),
+            ),
+          )
+        else
+          SizedBox(
+            height: 128,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: categories.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder:
+                  (context, index) => SizedBox(
+                    width: 236,
+                    child: _CategoryCatalogTile(
+                      category: categories[index],
+                      selected: selectedCategory?.id == categories[index].id,
+                      isBusy: isBusy,
+                      onSelect: onSelect,
+                      onDelete: onDelete,
+                    ),
+                  ),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _CategoryCatalogTile extends StatelessWidget {
+  const _CategoryCatalogTile({
+    required this.category,
+    required this.selected,
+    required this.isBusy,
+    required this.onSelect,
+    required this.onDelete,
+  });
+
+  final MerchantMenuCategory category;
+  final bool selected;
+  final bool isBusy;
+  final ValueChanged<MerchantMenuCategory> onSelect;
+  final ValueChanged<MerchantMenuCategory> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      color: selected ? theme.colorScheme.primaryContainer : null,
+      child: InkWell(
+        onTap: isBusy ? null : () => onSelect(category),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    category.active
+                        ? Icons.folder_open_outlined
+                        : Icons.folder_off_outlined,
+                    color:
+                        selected ? theme.colorScheme.onPrimaryContainer : null,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: isBusy ? null : () => onDelete(category),
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Delete',
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                category.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 2),
+              Text('Sort ${category.sortOrder}'),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -585,6 +656,31 @@ class _ItemSection extends StatelessWidget {
                             ? 'Required.'
                             : null,
               ),
+              if (taxonomyHints.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _HorizontalChipList(
+                  children: taxonomyHints
+                      .map(
+                        (code) => ActionChip(
+                          label: Text(code),
+                          onPressed:
+                              isBusy
+                                  ? null
+                                  : () {
+                                    final values =
+                                        taxonomyController.text
+                                            .split(',')
+                                            .map((item) => item.trim())
+                                            .where((item) => item.isNotEmpty)
+                                            .toSet();
+                                    values.add(code);
+                                    taxonomyController.text = values.join(', ');
+                                  },
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ],
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: active,
@@ -621,25 +717,81 @@ class _ItemSection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        for (final item in items)
-          Card(
+        const SizedBox(height: 12),
+        if (items.isEmpty)
+          const Card(
             child: ListTile(
-              selected: selectedItem?.id == item.id,
-              onTap: isBusy ? null : () => onSelect(item),
-              leading: Icon(
-                item.available
-                    ? Icons.check_circle_outline
-                    : Icons.pause_circle_outline,
-              ),
-              title: Text(item.name),
-              subtitle: Text(
-                '${item.categoryName} - ${item.price.toStringAsFixed(0)}',
-              ),
-              trailing: Wrap(
-                spacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              leading: Icon(Icons.fastfood_outlined),
+              title: Text('No menu items yet'),
+              subtitle: Text('Create the first item for this restaurant.'),
+            ),
+          )
+        else
+          SizedBox(
+            height: 156,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder:
+                  (context, index) => SizedBox(
+                    width: 308,
+                    child: _MenuCatalogTile(
+                      item: items[index],
+                      selected: selectedItem?.id == items[index].id,
+                      isBusy: isBusy,
+                      onSelect: onSelect,
+                      onAvailabilityChanged: onAvailabilityChanged,
+                      onDelete: onDelete,
+                    ),
+                  ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MenuCatalogTile extends StatelessWidget {
+  const _MenuCatalogTile({
+    required this.item,
+    required this.selected,
+    required this.isBusy,
+    required this.onSelect,
+    required this.onAvailabilityChanged,
+    required this.onDelete,
+  });
+
+  final MerchantMenuItem item;
+  final bool selected;
+  final bool isBusy;
+  final ValueChanged<MerchantMenuItem> onSelect;
+  final void Function(MerchantMenuItem item, bool value) onAvailabilityChanged;
+  final ValueChanged<MerchantMenuItem> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      color: selected ? theme.colorScheme.primaryContainer : null,
+      child: InkWell(
+        onTap: isBusy ? null : () => onSelect(item),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
+                  Icon(
+                    item.available
+                        ? Icons.check_circle_outline
+                        : Icons.pause_circle_outline,
+                    color:
+                        selected ? theme.colorScheme.onPrimaryContainer : null,
+                  ),
+                  const Spacer(),
                   Switch(
                     value: item.available,
                     onChanged:
@@ -654,9 +806,46 @@ class _ItemSection extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+              const Spacer(),
+              Text(
+                item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.categoryName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text('${item.price.toStringAsFixed(0)} VND'),
+            ],
           ),
-      ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HorizontalChipList extends StatelessWidget {
+  const _HorizontalChipList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var index = 0; index < children.length; index++) ...[
+            if (index > 0) const SizedBox(width: 8),
+            children[index],
+          ],
+        ],
+      ),
     );
   }
 }

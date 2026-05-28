@@ -147,43 +147,54 @@ class _ReportControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('7 days'),
-              selected: _isPreset(days: 7),
-              onSelected:
-                  state.isLoading
-                      ? null
-                      : (_) =>
-                          context.read<MerchantRevenueCubit>().loadLast7Days(),
-            ),
-            ChoiceChip(
-              label: const Text('30 days'),
-              selected: _isPreset(days: 30),
-              onSelected:
-                  state.isLoading
-                      ? null
-                      : (_) =>
-                          context.read<MerchantRevenueCubit>().loadLast30Days(),
-            ),
-            ChoiceChip(
-              label: const Text('90 days'),
-              selected: _isPreset(days: 90),
-              onSelected:
-                  state.isLoading
-                      ? null
-                      : (_) =>
-                          context.read<MerchantRevenueCubit>().loadLast90Days(),
-            ),
-            ActionChip(
-              avatar: const Icon(Icons.date_range_outlined),
-              label: Text(_rangeLabel),
-              onPressed: state.isLoading ? null : () => _pickDateRange(context),
-            ),
-          ],
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              ChoiceChip(
+                label: const Text('7 days'),
+                selected: _isPreset(days: 7),
+                onSelected:
+                    state.isLoading
+                        ? null
+                        : (_) =>
+                            context
+                                .read<MerchantRevenueCubit>()
+                                .loadLast7Days(),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('30 days'),
+                selected: _isPreset(days: 30),
+                onSelected:
+                    state.isLoading
+                        ? null
+                        : (_) =>
+                            context
+                                .read<MerchantRevenueCubit>()
+                                .loadLast30Days(),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('90 days'),
+                selected: _isPreset(days: 90),
+                onSelected:
+                    state.isLoading
+                        ? null
+                        : (_) =>
+                            context
+                                .read<MerchantRevenueCubit>()
+                                .loadLast90Days(),
+              ),
+              const SizedBox(width: 8),
+              ActionChip(
+                avatar: const Icon(Icons.date_range_outlined),
+                label: Text(_rangeLabel),
+                onPressed:
+                    state.isLoading ? null : () => _pickDateRange(context),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         Row(

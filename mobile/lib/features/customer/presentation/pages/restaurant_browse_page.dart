@@ -91,9 +91,7 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                       (enabled) => _toggleNearby(context, state, enabled),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                _HorizontalChipList(
                   children: [
                     FilterChip(
                       label: const Text('Open now'),
@@ -128,9 +126,7 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  _HorizontalChipList(
                     children: state.taxonomies
                         .map(
                           (taxonomy) => FilterChip(
@@ -253,10 +249,7 @@ class _SearchSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        _HorizontalChipList(
           children: [
             FilterChip(
               avatar: const Icon(Icons.near_me_outlined),
@@ -264,8 +257,8 @@ class _SearchSection extends StatelessWidget {
               selected: state.isNearby,
               onSelected: onNearbyToggle,
             ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 160, maxWidth: 220),
+            SizedBox(
+              width: 220,
               child: DropdownButtonFormField<String>(
                 value: state.sort,
                 decoration: const InputDecoration(
@@ -332,28 +325,40 @@ class _ResultSection extends StatelessWidget {
       );
     }
 
-    return Column(
-      children: [
-        ...state.restaurants.map(
-          (restaurant) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _RestaurantCard(restaurant: restaurant),
-          ),
-        ),
-        if (state.status == RestaurantBrowseStatus.loadingMore)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: CircularProgressIndicator(),
-          )
-        else if (state.hasMore)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
+    return SizedBox(
+      height: 224,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount:
+            state.restaurants.length +
+            (state.status == RestaurantBrowseStatus.loadingMore || state.hasMore
+                ? 1
+                : 0),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          if (index < state.restaurants.length) {
+            return SizedBox(
+              width: 308,
+              child: _RestaurantCard(restaurant: state.restaurants[index]),
+            );
+          }
+
+          if (state.status == RestaurantBrowseStatus.loadingMore) {
+            return const SizedBox(
+              width: 132,
+              child: Card(child: Center(child: CircularProgressIndicator())),
+            );
+          }
+
+          return SizedBox(
+            width: 132,
             child: OutlinedButton(
               onPressed: () => context.read<RestaurantBrowseCubit>().loadMore(),
-              child: const Text('Load more'),
+              child: const Text('Load more', textAlign: TextAlign.center),
             ),
-          ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
@@ -443,6 +448,27 @@ class _RestaurantCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HorizontalChipList extends StatelessWidget {
+  const _HorizontalChipList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var index = 0; index < children.length; index++) ...[
+            if (index > 0) const SizedBox(width: 8),
+            children[index],
+          ],
+        ],
       ),
     );
   }

@@ -99,27 +99,29 @@ class _NotificationFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        FilterChip(
-          label: const Text('All'),
-          selected: !showUnreadOnly,
-          onSelected:
-              (_) => context.read<MerchantNotificationsCubit>().showUnreadOnly(
-                false,
-              ),
-        ),
-        FilterChip(
-          label: Text('Unread ($unreadCount)'),
-          selected: showUnreadOnly,
-          onSelected:
-              (_) => context.read<MerchantNotificationsCubit>().showUnreadOnly(
-                true,
-              ),
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          FilterChip(
+            label: const Text('All'),
+            selected: !showUnreadOnly,
+            onSelected:
+                (_) => context
+                    .read<MerchantNotificationsCubit>()
+                    .showUnreadOnly(false),
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Text('Unread ($unreadCount)'),
+            selected: showUnreadOnly,
+            onSelected:
+                (_) => context
+                    .read<MerchantNotificationsCubit>()
+                    .showUnreadOnly(true),
+          ),
+        ],
+      ),
     );
   }
 }

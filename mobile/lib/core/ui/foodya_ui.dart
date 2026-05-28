@@ -109,6 +109,7 @@ class FoodyaHomeHero extends StatelessWidget {
     required this.primaryAction,
     this.secondaryAction,
     this.trailing,
+    this.titleMaxLines = 2,
   });
 
   final String eyebrow;
@@ -118,6 +119,7 @@ class FoodyaHomeHero extends StatelessWidget {
   final Widget primaryAction;
   final Widget? secondaryAction;
   final Widget? trailing;
+  final int titleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +156,8 @@ class FoodyaHomeHero extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       title,
+                      maxLines: titleMaxLines,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,

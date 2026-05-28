@@ -213,8 +213,7 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                     const SizedBox(height: 4),
                     Text(restaurant.cuisineType),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
+                    _HorizontalChipList(
                       children: [
                         Chip(label: Text(restaurant.open ? 'Open' : 'Closed')),
                         Chip(
@@ -285,9 +284,7 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                     ),
                     if (state.taxonomies.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                      _HorizontalChipList(
                         children: state.taxonomies
                             .map(
                               (taxonomy) => FilterChip(
@@ -307,39 +304,69 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                     const SizedBox(height: 14),
                     if (state.status == RestaurantDetailStatus.empty)
                       const _EmptyMenuState()
-                    else ...[
-                      ...state.menuItems.map(
-                        (item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _MenuItemCard(
-                            item: item,
-                            isAdding: addState.isBusy,
-                            onAdd:
-                                addState.isBusy
-                                    ? null
-                                    : () =>
-                                        context.read<AddToCartCubit>().addItem(
-                                          menuItemId: item.id,
-                                          quantity: 1,
-                                        ),
-                          ),
+                    else
+                      SizedBox(
+                        height: 238,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount:
+                              state.menuItems.length +
+                              (state.status ==
+                                          RestaurantDetailStatus.loadingMore ||
+                                      state.hasMore
+                                  ? 1
+                                  : 0),
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            if (index < state.menuItems.length) {
+                              final item = state.menuItems[index];
+                              return SizedBox(
+                                width: 292,
+                                child: _MenuItemCard(
+                                  item: item,
+                                  isAdding: addState.isBusy,
+                                  onAdd:
+                                      addState.isBusy
+                                          ? null
+                                          : () => context
+                                              .read<AddToCartCubit>()
+                                              .addItem(
+                                                menuItemId: item.id,
+                                                quantity: 1,
+                                              ),
+                                ),
+                              );
+                            }
+
+                            if (state.status ==
+                                RestaurantDetailStatus.loadingMore) {
+                              return const SizedBox(
+                                width: 132,
+                                child: Card(
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return SizedBox(
+                              width: 148,
+                              child: OutlinedButton(
+                                onPressed:
+                                    () =>
+                                        context
+                                            .read<RestaurantDetailCubit>()
+                                            .loadMoreMenu(),
+                                child: const Text(
+                                  'Load more menu items',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      if (state.status == RestaurantDetailStatus.loadingMore)
-                        const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(),
-                        )
-                      else if (state.hasMore)
-                        OutlinedButton(
-                          onPressed:
-                              () =>
-                                  context
-                                      .read<RestaurantDetailCubit>()
-                                      .loadMoreMenu(),
-                          child: const Text('Load more menu items'),
-                        ),
-                    ],
                     const SizedBox(height: 20),
                     Text(
                       'Reviews',
@@ -400,55 +427,117 @@ class _MenuItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading:
-            item.imageUrl == null
-                ? const CircleAvatar(child: Icon(Icons.fastfood_outlined))
-                : ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    item.imageUrl!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (_, _, _) => const CircleAvatar(
-                          child: Icon(Icons.fastfood_outlined),
-                        ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                item.imageUrl == null
+                    ? const CircleAvatar(
+                      radius: 28,
+                      child: Icon(Icons.fastfood_outlined),
+                    )
+                    : ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        item.imageUrl!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, _, _) => const CircleAvatar(
+                              radius: 28,
+                              child: Icon(Icons.fastfood_outlined),
+                            ),
+                      ),
+                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.description ?? 'No description',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                 ),
-        title: Text(item.name),
-        subtitle: Text(item.description ?? 'No description'),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${item.price.toStringAsFixed(0)} VND',
-              style: Theme.of(context).textTheme.titleSmall,
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              item.available ? 'Available' : 'Unavailable',
-              style: Theme.of(context).textTheme.bodySmall,
+            const Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${item.price.toStringAsFixed(0)} VND',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(item.available ? 'Available' : 'Unavailable'),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: item.available && !isAdding ? onAdd : null,
-              icon:
-                  isAdding
-                      ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Icon(Icons.add_shopping_cart_outlined, size: 16),
-              label: const Text('Add'),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonalIcon(
+                onPressed: item.available && !isAdding ? onAdd : null,
+                icon:
+                    isAdding
+                        ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Icon(
+                          Icons.add_shopping_cart_outlined,
+                          size: 16,
+                        ),
+                label: const Text('Add'),
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HorizontalChipList extends StatelessWidget {
+  const _HorizontalChipList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var index = 0; index < children.length; index++) ...[
+            if (index > 0) const SizedBox(width: 8),
+            children[index],
+          ],
+        ],
       ),
     );
   }
