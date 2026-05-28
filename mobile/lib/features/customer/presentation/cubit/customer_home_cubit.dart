@@ -14,10 +14,25 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
        _geolocationService = geolocationService,
        super(const CustomerHomeState.initial());
 
+  static CustomerHomeState? _sessionCachedState;
+
   final CustomerCatalogRepository _catalogRepository;
   final GeolocationService _geolocationService;
 
   Future<void> initialize() async {
+    final cachedState = _sessionCachedState;
+    if (cachedState != null) {
+      emit(
+        cachedState.copyWith(
+          isRefreshingLocation: false,
+          isNearbyLoading: false,
+          clearLocationMessage: true,
+          clearNearbyMessage: true,
+        ),
+      );
+      return;
+    }
+
     emit(
       state.copyWith(
         status: CustomerHomeStatus.loading,
@@ -54,6 +69,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
             clearCoordinates: true,
           ),
         );
+        _cacheCurrentState();
         return;
       }
 
@@ -72,6 +88,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
             clearCoordinates: true,
           ),
         );
+        _cacheCurrentState();
         return;
       }
 
@@ -111,6 +128,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
           clearCoordinates: true,
         ),
       );
+      _cacheCurrentState();
     }
   }
 
@@ -160,6 +178,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
                   : null,
         ),
       );
+      _cacheCurrentState();
     } catch (error) {
       final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
@@ -175,6 +194,18 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
           nearbyMessage: presentation.message,
         ),
       );
+      _cacheCurrentState();
     }
+  }
+
+  void _cacheCurrentState() {
+    _sessionCachedState = state.copyWith(
+      isRefreshingLocation: false,
+      isNearbyLoading: false,
+    );
+  }
+
+  static void resetSessionCacheForTesting() {
+    _sessionCachedState = null;
   }
 }

@@ -10,6 +10,7 @@ import 'package:foodya_mobile/features/customer/domain/models/restaurant_detail.
 import 'package:foodya_mobile/features/customer/domain/models/restaurant_menu_item.dart';
 import 'package:foodya_mobile/features/customer/domain/models/restaurant_search_item.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_catalog_repository.dart';
+import 'package:foodya_mobile/features/customer/presentation/cubit/customer_home_cubit.dart';
 import 'package:foodya_mobile/features/customer/presentation/pages/customer_home_page.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_order_detail.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_order_summary.dart';
@@ -231,6 +232,8 @@ class _FakeMerchantRevenueRepository implements MerchantRevenueRepository {
 }
 
 void main() {
+  setUp(CustomerHomeCubit.resetSessionCacheForTesting);
+
   testWidgets('Customer home renders ordering-first content', (tester) async {
     await tester.pumpWidget(
       MultiRepositoryProvider(
