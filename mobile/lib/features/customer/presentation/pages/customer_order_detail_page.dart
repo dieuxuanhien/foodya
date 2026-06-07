@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/semantics.dart';
@@ -30,8 +31,57 @@ class CustomerOrderDetailPage extends StatelessWidget {
   }
 }
 
-class _CustomerOrderDetailView extends StatelessWidget {
+class _CustomerOrderDetailView extends StatefulWidget {
   const _CustomerOrderDetailView();
+
+  @override
+  State<_CustomerOrderDetailView> createState() =>
+      _CustomerOrderDetailViewState();
+}
+
+class _CustomerOrderDetailViewState extends State<_CustomerOrderDetailView> {
+  final _orderDetailScrollController = ScrollController();
+  var _isMapPointerActive = false;
+  double? _lockedMapScrollOffset;
+
+  @override
+  void dispose() {
+    _orderDetailScrollController.dispose();
+    super.dispose();
+  }
+
+  void _setMapPointerActive(bool isActive) {
+    if (isActive && _orderDetailScrollController.hasClients) {
+      _lockedMapScrollOffset = _orderDetailScrollController.offset;
+    } else if (!isActive) {
+      _lockedMapScrollOffset = null;
+    }
+    if (_isMapPointerActive == isActive) {
+      return;
+    }
+    setState(() {
+      _isMapPointerActive = isActive;
+    });
+  }
+
+  bool _holdScrollWhileMapIsActive(ScrollUpdateNotification notification) {
+    final lockedOffset = _lockedMapScrollOffset;
+    if (!_isMapPointerActive ||
+        lockedOffset == null ||
+        !_orderDetailScrollController.hasClients) {
+      return false;
+    }
+
+    final position = _orderDetailScrollController.position;
+    final target = lockedOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((position.pixels - target).abs() > 0.01) {
+      position.jumpTo(target);
+    }
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,96 +133,145 @@ class _CustomerOrderDetailView extends StatelessWidget {
                     onRefresh:
                         () =>
                             context.read<OrderDetailCubit>().refreshTracking(),
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  order.restaurantName,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isDelivering = _isDeliveringOrder(order.status);
+                        final mapHeight =
+                            (MediaQuery.sizeOf(context).height * 0.44)
+                                .clamp(280.0, 420.0)
+                                .toDouble();
+                        final destination = _TrackingMapCoordinate.fromOrder(
+                          order,
+                        );
+
+                        return NotificationListener<ScrollUpdateNotification>(
+                          onNotification: _holdScrollWhileMapIsActive,
+                          child: ListView(
+                            controller: _orderDetailScrollController,
+                            physics:
+                                _isMapPointerActive
+                                    ? const NeverScrollableScrollPhysics()
+                                    : const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.zero,
+                            children: [
+                              if (isDelivering)
+                                _TrackingMapSurface(
+                                  height: mapHeight,
+                                  points: state.trackingPoints,
+                                  destination: destination,
+                                  colorScheme: Theme.of(context).colorScheme,
+                                  isTrackingLoading: state.isTrackingLoading,
+                                  onPointerActiveChanged: _setMapPointerActive,
                                 ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
-                                    FoodyaStatusChip(
-                                      value: order.status,
-                                      icon: Icons.delivery_dining_outlined,
-                                    ),
-                                    Chip(
-                                      label: Text(
-                                        _paymentStatusLabel(
-                                          order.paymentStatus,
+                                    Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              order.restaurantName,
+                                              style:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.titleMedium,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 8,
+                                              children: [
+                                                FoodyaStatusChip(
+                                                  value: order.status,
+                                                  icon:
+                                                      Icons
+                                                          .delivery_dining_outlined,
+                                                ),
+                                                Chip(
+                                                  label: Text(
+                                                    _paymentStatusLabel(
+                                                      order.paymentStatus,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Chip(
+                                                  label: Text(
+                                                    _paymentMethodLabel(
+                                                      order.paymentMethod,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(order.deliveryAddress),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Subtotal ${order.subtotalAmount.toStringAsFixed(0)} VND',
+                                            ),
+                                            Text(
+                                              'Delivery fee ${order.deliveryFee.toStringAsFixed(0)} VND',
+                                            ),
+                                            Text(
+                                              'Total ${order.totalAmount.toStringAsFixed(0)} VND',
+                                              style:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.titleSmall,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                    Chip(
-                                      label: Text(
-                                        _paymentMethodLabel(
-                                          order.paymentMethod,
-                                        ),
+                                    if (isDelivering) ...[
+                                      const SizedBox(height: 16),
+                                      _DeliveryTrackingSection(
+                                        order: order,
+                                        state: state,
+                                        onRefresh:
+                                            () =>
+                                                context
+                                                    .read<OrderDetailCubit>()
+                                                    .refreshTracking(),
+                                        onLiveChanged:
+                                            (enabled) => context
+                                                .read<OrderDetailCubit>()
+                                                .toggleLiveTracking(enabled),
                                       ),
-                                    ),
+                                    ],
+                                    if (order.status.toUpperCase() ==
+                                        'SUCCESS') ...[
+                                      const SizedBox(height: 16),
+                                      _ReviewForm(
+                                        isSubmitting:
+                                            state.status ==
+                                            OrderDetailStatus.reviewing,
+                                      ),
+                                    ],
+                                    if (_canCancelOrder(order.status)) ...[
+                                      const SizedBox(height: 16),
+                                      FilledButton.tonal(
+                                        onPressed:
+                                            state.isBusy
+                                                ? null
+                                                : () => _cancelOrder(context),
+                                        child: const Text('Cancel order'),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                const SizedBox(height: 12),
-                                Text(order.deliveryAddress),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Subtotal ${order.subtotalAmount.toStringAsFixed(0)} VND',
-                                ),
-                                Text(
-                                  'Delivery fee ${order.deliveryFee.toStringAsFixed(0)} VND',
-                                ),
-                                Text(
-                                  'Total ${order.totalAmount.toStringAsFixed(0)} VND',
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ),
-                        if (_isDeliveringOrder(order.status)) ...[
-                          const SizedBox(height: 16),
-                          _DeliveryTrackingSection(
-                            order: order,
-                            state: state,
-                            onRefresh:
-                                () =>
-                                    context
-                                        .read<OrderDetailCubit>()
-                                        .refreshTracking(),
-                            onLiveChanged:
-                                (enabled) => context
-                                    .read<OrderDetailCubit>()
-                                    .toggleLiveTracking(enabled),
-                          ),
-                        ],
-                        if (order.status.toUpperCase() == 'SUCCESS') ...[
-                          const SizedBox(height: 16),
-                          _ReviewForm(
-                            isSubmitting:
-                                state.status == OrderDetailStatus.reviewing,
-                          ),
-                        ],
-                        if (_canCancelOrder(order.status)) ...[
-                          const SizedBox(height: 16),
-                          FilledButton.tonal(
-                            onPressed:
-                                state.isBusy
-                                    ? null
-                                    : () => _cancelOrder(context),
-                            child: const Text('Cancel order'),
-                          ),
-                        ],
-                      ],
+                        );
+                      },
                     ),
                   ),
         );
@@ -223,7 +322,6 @@ class _DeliveryTrackingSection extends StatelessWidget {
     final theme = Theme.of(context);
     final points = state.trackingPoints;
     final latest = points.isEmpty ? null : points.last;
-    final destination = _TrackingMapCoordinate.fromOrder(order);
     final canLiveTrack = _canLiveTrack(order.status);
 
     return Card(
@@ -273,76 +371,6 @@ class _DeliveryTrackingSection extends StatelessWidget {
               value: state.isLiveTrackingEnabled,
               onChanged: canLiveTrack ? onLiveChanged : null,
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 220,
-              width: double.infinity,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                  ),
-                  child: Stack(
-                    children: [
-                      CustomPaint(
-                        painter: _TrackingRoutePainter(
-                          points: points,
-                          destination: destination,
-                          colorScheme: theme.colorScheme,
-                        ),
-                        child: const SizedBox.expand(),
-                      ),
-                      if (points.isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surface.withValues(
-                                  alpha: 0.88,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                child: Text(
-                                  state.isTrackingLoading
-                                      ? 'Loading tracking updates...'
-                                      : 'No tracking updates yet.',
-                                  textAlign: TextAlign.center,
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (latest != null)
-                        const Positioned(
-                          left: 10,
-                          top: 10,
-                          child: _TrackingMapPill(
-                            icon: Icons.delivery_dining,
-                            label: 'Courier',
-                          ),
-                        ),
-                      if (destination != null)
-                        const Positioned(
-                          right: 10,
-                          bottom: 10,
-                          child: _TrackingMapPill(
-                            icon: Icons.location_pin,
-                            label: 'Destination',
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
             if (points.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Route timeline', style: theme.textTheme.titleSmall),
@@ -365,33 +393,268 @@ class _DeliveryTrackingSection extends StatelessWidget {
   }
 }
 
-class _TrackingMapPill extends StatelessWidget {
-  const _TrackingMapPill({required this.icon, required this.label});
+class _TrackingMapSurface extends StatefulWidget {
+  const _TrackingMapSurface({
+    required this.height,
+    required this.points,
+    required this.destination,
+    required this.colorScheme,
+    required this.isTrackingLoading,
+    required this.onPointerActiveChanged,
+  });
 
-  final IconData icon;
-  final String label;
+  final double height;
+  final List<OrderTrackingPoint> points;
+  final _TrackingMapCoordinate? destination;
+  final ColorScheme colorScheme;
+  final bool isTrackingLoading;
+  final ValueChanged<bool> onPointerActiveChanged;
+
+  @override
+  State<_TrackingMapSurface> createState() => _TrackingMapSurfaceState();
+}
+
+class _TrackingMapSurfaceState extends State<_TrackingMapSurface> {
+  static const double _minScale = 1;
+  static const double _maxScale = 4;
+  static const double _zoomStep = 1.4;
+
+  late final TransformationController _controller;
+  ScrollHoldController? _scrollHold;
+  var _scale = _minScale;
+
+  bool get _isZoomed => _scale > _minScale + 0.01;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TransformationController();
+  }
+
+  @override
+  void dispose() {
+    _releaseParentScrollHold();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _zoomIn() {
+    _setZoom((_scale * _zoomStep).clamp(_minScale, _maxScale));
+  }
+
+  void _zoomOut() {
+    _setZoom((_scale / _zoomStep).clamp(_minScale, _maxScale));
+  }
+
+  void _resetZoom() {
+    _controller.value = Matrix4.identity();
+    setState(() {
+      _scale = _minScale;
+    });
+  }
+
+  void _setZoom(double nextScale) {
+    if (nextScale <= _minScale + 0.01) {
+      _resetZoom();
+      return;
+    }
+    final value = Matrix4.identity()..scale(nextScale);
+    _controller.value = value;
+    setState(() {
+      _scale = nextScale;
+    });
+  }
+
+  void _panMap(Offset delta) {
+    if (!_isZoomed) {
+      return;
+    }
+    final next =
+        _controller.value.clone()
+          ..translate(delta.dx / _scale, delta.dy / _scale);
+    _controller.value = next;
+  }
+
+  void _setPointerActive(bool isActive) {
+    if (isActive) {
+      _holdParentScroll();
+    } else {
+      _releaseParentScrollHold();
+    }
+    widget.onPointerActiveChanged(isActive);
+  }
+
+  void _holdParentScroll() {
+    _scrollHold ??= Scrollable.maybeOf(context)?.position.hold(() {});
+  }
+
+  void _releaseParentScrollHold() {
+    _scrollHold?.cancel();
+    _scrollHold = null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+    final points = widget.points;
+    final latest = points.isEmpty ? null : points.last;
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) => _setPointerActive(true),
+      onPointerMove: (event) => _panMap(event.delta),
+      onPointerUp: (_) => _setPointerActive(false),
+      onPointerCancel: (_) => _setPointerActive(false),
+      child: SizedBox(
+        key: const ValueKey('tracking-map-surface'),
+        height: widget.height,
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: widget.colorScheme.surfaceContainerHighest,
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: RawGestureDetector(
+                  key: const ValueKey('tracking-map-viewer'),
+                  behavior: HitTestBehavior.opaque,
+                  gestures: {
+                    EagerGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          EagerGestureRecognizer
+                        >(EagerGestureRecognizer.new, (_) {}),
+                  },
+                  child: ClipRect(
+                    child: AnimatedBuilder(
+                      animation: _controller,
+                      child: CustomPaint(
+                        key: const ValueKey('tracking-map-painter'),
+                        painter: _TrackingRoutePainter(
+                          points: points,
+                          destination: widget.destination,
+                          colorScheme: widget.colorScheme,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                      builder: (context, child) => Transform(
+                        key: const ValueKey('tracking-map-transform'),
+                        transform: _controller.value,
+                        alignment: Alignment.topLeft,
+                        child: child,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (points.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(
+                          alpha: 0.88,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          widget.isTrackingLoading
+                              ? 'Loading tracking updates...'
+                              : 'No tracking updates yet.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (widget.destination != null)
+                const Positioned(
+                  left: 0,
+                  top: 0,
+                  child: SizedBox(
+                    key: ValueKey('tracking-map-destination-marker'),
+                    width: 1,
+                    height: 1,
+                  ),
+                ),
+              if (latest != null)
+                const Positioned(
+                  left: 0,
+                  top: 0,
+                  child: SizedBox(
+                    key: ValueKey('tracking-map-courier-marker'),
+                    width: 1,
+                    height: 1,
+                  ),
+                ),
+              Positioned(
+                right: 12,
+                top: 12,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _TrackingMapButton(
+                      tooltip: 'Zoom in',
+                      icon: Icons.add,
+                      onPressed: _scale >= _maxScale - 0.01 ? null : _zoomIn,
+                      key: const ValueKey('tracking-map-zoom-in'),
+                    ),
+                    const SizedBox(height: 8),
+                    _TrackingMapButton(
+                      tooltip: 'Zoom out',
+                      icon: Icons.remove,
+                      onPressed: _scale <= _minScale + 0.01 ? null : _zoomOut,
+                      key: const ValueKey('tracking-map-zoom-out'),
+                    ),
+                    const SizedBox(height: 8),
+                    _TrackingMapButton(
+                      tooltip: 'Reset map',
+                      icon: Icons.center_focus_strong,
+                      onPressed: _isZoomed ? _resetZoom : null,
+                      key: const ValueKey('tracking-map-reset'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16),
-            const SizedBox(width: 4),
-            Text(label, style: theme.textTheme.labelSmall),
-          ],
-        ),
+    );
+  }
+}
+
+class _TrackingMapButton extends StatelessWidget {
+  const _TrackingMapButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    super.key,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface.withValues(alpha: 0.92),
+      shape: const CircleBorder(),
+      elevation: 2,
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon),
+        iconSize: 20,
+        constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+        onPressed: onPressed,
       ),
     );
   }

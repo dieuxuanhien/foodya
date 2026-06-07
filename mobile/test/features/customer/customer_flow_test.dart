@@ -341,9 +341,24 @@ void main() {
   ) async {
     await _pumpOrderDetailPage(tester, _FakeCustomerOrderRepository());
 
+    expect(find.byKey(const ValueKey('tracking-map-surface')), findsOneWidget);
     expect(find.text('Live delivery tracking'), findsOneWidget);
-    expect(find.text('Destination'), findsOneWidget);
-    expect(find.text('Courier'), findsOneWidget);
+    expect(find.text('Destination'), findsNothing);
+    expect(find.text('Courier'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('tracking-map-destination-marker')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('tracking-map-courier-marker')),
+      findsOneWidget,
+    );
+
+    final mapTop = tester.getTopLeft(
+      find.byKey(const ValueKey('tracking-map-surface')),
+    );
+    final controlsTop = tester.getTopLeft(find.text('Live delivery tracking'));
+    expect(mapTop.dy, lessThan(controlsTop.dy));
   });
 
   testWidgets('Customer order detail hides tracking map before delivery', (
@@ -355,6 +370,103 @@ void main() {
     );
 
     expect(find.text('Live delivery tracking'), findsNothing);
+    expect(find.byKey(const ValueKey('tracking-map-surface')), findsNothing);
+  });
+
+  testWidgets('Tracking map zoom controls clamp scale and reset transform', (
+    tester,
+  ) async {
+    await _pumpOrderDetailPage(tester, _FakeCustomerOrderRepository());
+    Matrix4 transform() =>
+        tester
+            .widget<Transform>(
+              find.byKey(const ValueKey('tracking-map-transform')),
+            )
+            .transform;
+
+    expect(transform().getMaxScaleOnAxis(), 1);
+
+    for (var i = 0; i < 8; i++) {
+      await tester.tap(find.byKey(const ValueKey('tracking-map-zoom-in')));
+      await tester.pumpAndSettle();
+    }
+    expect(transform().getMaxScaleOnAxis(), 4);
+
+    for (var i = 0; i < 8; i++) {
+      await tester.tap(find.byKey(const ValueKey('tracking-map-zoom-out')));
+      await tester.pumpAndSettle();
+    }
+    expect(transform().getMaxScaleOnAxis(), 1);
+    expect(transform().storage, Matrix4.identity().storage);
+
+    await tester.tap(find.byKey(const ValueKey('tracking-map-zoom-in')));
+    await tester.pumpAndSettle();
+    expect(transform().getMaxScaleOnAxis(), greaterThan(1));
+
+    await tester.tap(find.byKey(const ValueKey('tracking-map-reset')));
+    await tester.pumpAndSettle();
+    expect(transform().storage, Matrix4.identity().storage);
+  });
+
+  testWidgets('Tracking map only drags while zoomed in', (tester) async {
+    await _pumpOrderDetailPage(tester, _FakeCustomerOrderRepository());
+    Matrix4 transform() =>
+        tester
+            .widget<Transform>(
+              find.byKey(const ValueKey('tracking-map-transform')),
+            )
+            .transform;
+    final initialStorage = List<double>.of(transform().storage);
+
+    await tester.drag(
+      find.byKey(const ValueKey('tracking-map-viewer')),
+      const Offset(80, 40),
+    );
+    await tester.pumpAndSettle();
+    expect(transform().storage, initialStorage);
+
+    await tester.tap(find.byKey(const ValueKey('tracking-map-zoom-in')));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('tracking-map-viewer')),
+      const Offset(80, 40),
+    );
+    await tester.pumpAndSettle();
+
+    expect(transform().storage[12], isNot(0));
+  });
+
+  testWidgets('Tracking map drag does not scroll order detail page', (
+    tester,
+  ) async {
+    await _pumpOrderDetailPage(tester, _FakeCustomerOrderRepository());
+    final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
+    Matrix4 transform() =>
+        tester
+            .widget<Transform>(
+              find.byKey(const ValueKey('tracking-map-transform')),
+            )
+            .transform;
+
+    final initialScrollOffset = scrollable.position.pixels;
+    await tester.drag(
+      find.byKey(const ValueKey('tracking-map-viewer')),
+      const Offset(0, -180),
+    );
+    await tester.pumpAndSettle();
+    expect(scrollable.position.pixels, initialScrollOffset);
+
+    await tester.tap(find.byKey(const ValueKey('tracking-map-zoom-in')));
+    await tester.pumpAndSettle();
+    final zoomedScrollOffset = scrollable.position.pixels;
+    await tester.drag(
+      find.byKey(const ValueKey('tracking-map-viewer')),
+      const Offset(0, -180),
+    );
+    await tester.pumpAndSettle();
+
+    expect(scrollable.position.pixels, zoomedScrollOffset);
+    expect(transform().storage[13], isNot(0));
   });
 
   for (final status in ['PENDING', 'ACCEPTED', 'ASSIGNED']) {
