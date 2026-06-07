@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/ui/foodya_ui.dart';
+import '../../../../core/realtime/order_tracking_realtime_service.dart';
 import '../../domain/models/order_detail.dart';
 import '../../domain/models/order_tracking_point.dart';
 import '../../domain/repositories/customer_order_repository.dart';
@@ -21,6 +22,7 @@ class CustomerOrderDetailPage extends StatelessWidget {
       create:
           (context) => OrderDetailCubit(
             repository: context.read<CustomerOrderRepository>(),
+            realtimeService: context.read<OrderTrackingRealtimeService>(),
           )..load(orderId),
       child: const _CustomerOrderDetailView(),
     );
@@ -257,10 +259,10 @@ class _DeliveryTrackingSection extends StatelessWidget {
             const SizedBox(height: 12),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Auto-refresh'),
+              title: const Text('Live updates'),
               subtitle: Text(
                 canLiveTrack
-                    ? 'Updates every 10 seconds while this screen is open.'
+                    ? 'Realtime when connected, fallback refresh if offline.'
                     : 'Available after the order is assigned to delivery.',
               ),
               value: state.isLiveTrackingEnabled,

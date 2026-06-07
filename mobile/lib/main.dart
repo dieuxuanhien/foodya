@@ -15,6 +15,7 @@ import 'core/config/app_config.dart';
 import 'core/notifications/fcm_notification_service.dart';
 import 'core/router/app_router.dart';
 import 'core/location/location_address_remote_data_source.dart';
+import 'core/realtime/order_tracking_realtime_service.dart';
 import 'features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/http_auth_repository.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -95,6 +96,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
   late final FcmNotificationService _fcmNotificationService;
+  late final OrderTrackingRealtimeService _orderTrackingRealtimeService;
   StreamSubscription? _sessionSubscription;
 
   @override
@@ -120,6 +122,11 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
     _fcmNotificationService = FcmNotificationService(
       baseUrl: AppConfig.apiBaseUrl,
       client: widget._httpClient,
+      sessionRecovery: _authSessionRecovery,
+    );
+    _orderTrackingRealtimeService = StompOrderTrackingRealtimeService(
+      baseUrl: AppConfig.apiBaseUrl,
+      tokenStore: widget._tokenStore,
       sessionRecovery: _authSessionRecovery,
     );
     unawaited(_fcmNotificationService.initialize());
@@ -239,6 +246,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   void dispose() {
     _sessionSubscription?.cancel();
     _sessionCubit.close();
+    unawaited(_orderTrackingRealtimeService.dispose());
     widget._httpClient.close();
     super.dispose();
   }
@@ -259,6 +267,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<CustomerOrderRepository>.value(
           value: _customerOrderRepository,
+        ),
+        RepositoryProvider<OrderTrackingRealtimeService>.value(
+          value: _orderTrackingRealtimeService,
         ),
         RepositoryProvider<CustomerProfileRepository>.value(
           value: _customerProfileRepository,

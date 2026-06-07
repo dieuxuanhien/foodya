@@ -13,6 +13,7 @@ import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
 import com.foodya.backend.application.ports.out.OrderPaymentPort;
+import com.foodya.backend.application.ports.out.OrderTrackingUpdatePublisherPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
@@ -21,6 +22,8 @@ import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -30,25 +33,30 @@ import java.util.UUID;
 
 public class OrderLifecycleService implements OrderLifecycleUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderLifecycleService.class);
+
     private final OrderManagementPort orderManagementPort;
     private final RestaurantPort restaurantPort;
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
     private final UserAccountPort userAccountPort;
     private final OrderPaymentPort orderPaymentPort;
+    private final OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
                                  DeliveryTrackingPointPort deliveryTrackingPointPort,
                                  OrderEventPublisherPort orderEventPublisherPort,
                                  UserAccountPort userAccountPort,
-                                 OrderPaymentPort orderPaymentPort) {
+                                 OrderPaymentPort orderPaymentPort,
+                                 OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
         this.userAccountPort = userAccountPort;
         this.orderPaymentPort = orderPaymentPort;
+        this.orderTrackingUpdatePublisherPort = orderTrackingUpdatePublisherPort;
     }
 
     public List<OrderSummaryView> customerOrders(UUID customerUserId) {
@@ -199,7 +207,13 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         point.setRecordedAt(recordedAt);
 
         DeliveryTrackingPoint saved = deliveryTrackingPointPort.save(point);
-        return new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
+        OrderTrackingPointView view = new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
+        try {
+            orderTrackingUpdatePublisherPort.publishTrackingPoint(order.getCustomerUserId(), orderId, view);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to publish tracking update for order {}", orderId, ex);
+        }
+        return view;
     }
 
     public List<OrderTrackingPointView> customerTrackingPoints(UUID customerUserId, UUID orderId) {

@@ -96,8 +96,9 @@ public class AppConfig {
 			DeliveryTrackingPointPort deliveryTrackingPointPort,
 			OrderEventPublisherPort orderEventPublisherPort,
 			UserAccountPort userAccountPort,
-			OrderPaymentPort orderPaymentPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort);
+			OrderPaymentPort orderPaymentPort,
+			OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort, orderTrackingUpdatePublisherPort);
 	}
 
 	@Bean

@@ -3,20 +3,29 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
+import '../../../../core/realtime/order_tracking_realtime_service.dart';
+import '../../domain/models/order_tracking_point.dart';
 import '../../domain/repositories/customer_order_repository.dart';
 import 'order_detail_state.dart';
 
 class OrderDetailCubit extends Cubit<OrderDetailState> {
-  OrderDetailCubit({required CustomerOrderRepository repository})
+  OrderDetailCubit({
+    required CustomerOrderRepository repository,
+    OrderTrackingRealtimeService? realtimeService,
+  })
     : _repository = repository,
+      _realtimeService =
+          realtimeService ?? const NoopOrderTrackingRealtimeService(),
       super(const OrderDetailState.initial());
 
   final CustomerOrderRepository _repository;
+  final OrderTrackingRealtimeService _realtimeService;
 
-  static const Duration _liveTrackingInterval = Duration(seconds: 10);
+  static const Duration _fallbackTrackingInterval = Duration(seconds: 30);
 
   String? _orderId;
-  Timer? _trackingTimer;
+  Timer? _fallbackTrackingTimer;
+  StreamSubscription<OrderTrackingRealtimeUpdate>? _trackingSubscription;
   bool _trackingRefreshInFlight = false;
 
   Future<void> load(String orderId) async {
@@ -62,7 +71,10 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
     }
   }
 
-  Future<void> refreshTracking({bool silent = false}) async {
+  Future<void> refreshTracking({
+    bool silent = false,
+    bool syncLiveTracking = true,
+  }) async {
     final orderId = _orderId;
     if (orderId == null || _trackingRefreshInFlight) {
       return;
@@ -84,7 +96,9 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
           clearError: true,
         ),
       );
-      _syncLiveTracking(detail.status);
+      if (syncLiveTracking) {
+        _syncLiveTracking(detail.status);
+      }
     } catch (error) {
       final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
@@ -207,17 +221,24 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
   }
 
   void _startLiveTracking() {
-    _trackingTimer?.cancel();
+    final orderId = _orderId;
+    if (orderId == null) {
+      return;
+    }
+    _trackingSubscription?.cancel();
+    _stopFallbackTracking();
     emit(state.copyWith(isLiveTrackingEnabled: true));
-    _trackingTimer = Timer.periodic(
-      _liveTrackingInterval,
-      (_) => refreshTracking(silent: true),
+    _trackingSubscription = _realtimeService.watchOrderTracking(orderId).listen(
+      _handleRealtimeUpdate,
+      onError: (_) => _startFallbackTracking(),
+      onDone: _startFallbackTracking,
     );
   }
 
   void _stopLiveTracking() {
-    _trackingTimer?.cancel();
-    _trackingTimer = null;
+    _trackingSubscription?.cancel();
+    _trackingSubscription = null;
+    _stopFallbackTracking();
     if (!isClosed && state.isLiveTrackingEnabled) {
       emit(state.copyWith(isLiveTrackingEnabled: false));
     }
@@ -230,9 +251,67 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
     };
   }
 
+  void _handleRealtimeUpdate(OrderTrackingRealtimeUpdate update) {
+    final isConnected = update.isConnected;
+    if (isConnected != null) {
+      if (isConnected) {
+        _stopFallbackTracking();
+      } else {
+        _startFallbackTracking();
+      }
+    }
+
+    final point = update.point;
+    if (point != null) {
+      _appendTrackingPoint(point);
+    }
+  }
+
+  void _appendTrackingPoint(OrderTrackingPoint point) {
+    final points = [...state.trackingPoints, point];
+    final deduped = <String, OrderTrackingPoint>{};
+    for (final item in points) {
+      deduped[_trackingPointKey(item)] = item;
+    }
+    final sorted =
+        deduped.values.toList(growable: false)
+          ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
+
+    emit(
+      state.copyWith(
+        trackingPoints: sorted,
+        lastTrackingRefreshAt: DateTime.now(),
+        clearError: true,
+      ),
+    );
+  }
+
+  String _trackingPointKey(OrderTrackingPoint point) {
+    return '${point.lat.toStringAsFixed(6)}|'
+        '${point.lng.toStringAsFixed(6)}|'
+        '${point.recordedAt.toIso8601String()}';
+  }
+
+  void _startFallbackTracking() {
+    if (!state.isLiveTrackingEnabled || _fallbackTrackingTimer != null) {
+      return;
+    }
+    _fallbackTrackingTimer = Timer.periodic(
+      _fallbackTrackingInterval,
+      (_) => refreshTracking(silent: true, syncLiveTracking: false),
+    );
+  }
+
+  void _stopFallbackTracking() {
+    _fallbackTrackingTimer?.cancel();
+    _fallbackTrackingTimer = null;
+  }
+
   @override
-  Future<void> close() {
-    _trackingTimer?.cancel();
+  Future<void> close() async {
+    await _trackingSubscription?.cancel();
+    _stopFallbackTracking();
+    await _realtimeService.dispose();
     return super.close();
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +14,7 @@ import 'package:foodya_mobile/features/customer/domain/models/order_tracking_poi
 import 'package:foodya_mobile/features/customer/domain/models/order_summary.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_cart_repository.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_order_repository.dart';
+import 'package:foodya_mobile/core/realtime/order_tracking_realtime_service.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/cart_cubit.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/cart_state.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/order_detail_cubit.dart';
@@ -162,6 +165,27 @@ class _FakeCustomerOrderRepository implements CustomerOrderRepository {
   }
 }
 
+class _FakeOrderTrackingRealtimeService
+    implements OrderTrackingRealtimeService {
+  final _controller = StreamController<OrderTrackingRealtimeUpdate>.broadcast();
+  var disposed = false;
+
+  @override
+  Stream<OrderTrackingRealtimeUpdate> watchOrderTracking(String orderId) {
+    return _controller.stream;
+  }
+
+  void emit(OrderTrackingRealtimeUpdate update) {
+    _controller.add(update);
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposed = true;
+    await _controller.close();
+  }
+}
+
 void main() {
   testWidgets('Customer cart page shows empty cart state', (tester) async {
     final cartRepo = _FakeCustomerCartRepository(
@@ -235,4 +259,33 @@ void main() {
       await cubit.close();
     },
   );
+
+  test('OrderDetailCubit appends realtime tracking points without polling', () async {
+    final repo = _FakeCustomerOrderRepository();
+    final realtime = _FakeOrderTrackingRealtimeService();
+    final cubit = OrderDetailCubit(
+      repository: repo,
+      realtimeService: realtime,
+    );
+
+    await cubit.load('order-1');
+    realtime.emit(const OrderTrackingRealtimeUpdate.connected());
+    realtime.emit(
+      OrderTrackingRealtimeUpdate.point(
+        OrderTrackingPoint(
+          lat: 10.764,
+          lng: 106.663,
+          recordedAt: DateTime.utc(2026, 1, 1, 10, 2),
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.trackingPoints, hasLength(3));
+    expect(cubit.state.trackingPoints.last.lat, 10.764);
+    expect(repo.trackingLoads, 1);
+
+    await cubit.close();
+    expect(realtime.disposed, isTrue);
+  });
 }
