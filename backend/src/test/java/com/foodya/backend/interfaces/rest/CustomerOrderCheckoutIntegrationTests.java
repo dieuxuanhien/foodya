@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -151,6 +152,13 @@ class CustomerOrderCheckoutIntegrationTests {
 
         org.junit.jupiter.api.Assertions.assertEquals(firstOrderId, secondOrderId);
         org.junit.jupiter.api.Assertions.assertEquals(1L, orderRepository.count());
+
+        mockMvc.perform(get("/api/v1/customer/orders/" + firstOrderId)
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.deliveryAddress").value("123 Main Street"))
+                .andExpect(jsonPath("$.data.deliveryLatitude").value(10.7800000))
+                .andExpect(jsonPath("$.data.deliveryLongitude").value(106.7100000));
     }
 
     @Test

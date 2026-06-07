@@ -12,11 +12,10 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
   OrderDetailCubit({
     required CustomerOrderRepository repository,
     OrderTrackingRealtimeService? realtimeService,
-  })
-    : _repository = repository,
-      _realtimeService =
-          realtimeService ?? const NoopOrderTrackingRealtimeService(),
-      super(const OrderDetailState.initial());
+  }) : _repository = repository,
+       _realtimeService =
+           realtimeService ?? const NoopOrderTrackingRealtimeService(),
+       super(const OrderDetailState.initial());
 
   final CustomerOrderRepository _repository;
   final OrderTrackingRealtimeService _realtimeService;
@@ -228,11 +227,13 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
     _trackingSubscription?.cancel();
     _stopFallbackTracking();
     emit(state.copyWith(isLiveTrackingEnabled: true));
-    _trackingSubscription = _realtimeService.watchOrderTracking(orderId).listen(
-      _handleRealtimeUpdate,
-      onError: (_) => _startFallbackTracking(),
-      onDone: _startFallbackTracking,
-    );
+    _trackingSubscription = _realtimeService
+        .watchOrderTracking(orderId)
+        .listen(
+          _handleRealtimeUpdate,
+          onError: (_) => _startFallbackTracking(),
+          onDone: _startFallbackTracking,
+        );
   }
 
   void _stopLiveTracking() {
@@ -246,7 +247,7 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
 
   bool _canLiveTrack(String status) {
     return switch (status.toUpperCase()) {
-      'ASSIGNED' || 'PREPARING' || 'DELIVERING' => true,
+      'DELIVERING' => true,
       _ => false,
     };
   }
@@ -273,9 +274,8 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
     for (final item in points) {
       deduped[_trackingPointKey(item)] = item;
     }
-    final sorted =
-        deduped.values.toList(growable: false)
-          ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
+    final sorted = deduped.values.toList(growable: false)
+      ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
 
     emit(
       state.copyWith(

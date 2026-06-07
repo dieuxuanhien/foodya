@@ -121,6 +121,8 @@ OrderDetail orderDetail({String status = 'PENDING'}) {
     deliveryFee: 10000,
     totalAmount: 60000,
     deliveryAddress: '1 Nguyen Hue',
+    deliveryLatitude: 10.765,
+    deliveryLongitude: 106.664,
   );
 }
 

@@ -22,6 +22,7 @@ import 'package:foodya_mobile/features/customer/presentation/cubit/order_detail_
 import 'package:foodya_mobile/features/customer/presentation/cubit/order_list_cubit.dart';
 import 'package:foodya_mobile/features/customer/presentation/cubit/order_list_state.dart';
 import 'package:foodya_mobile/features/customer/presentation/pages/customer_cart_page.dart';
+import 'package:foodya_mobile/features/customer/presentation/pages/customer_order_detail_page.dart';
 
 class _FakeCustomerCartRepository implements CustomerCartRepository {
   _FakeCustomerCartRepository(this.cart);
@@ -82,6 +83,9 @@ class _FakeCustomerCartRepository implements CustomerCartRepository {
 }
 
 class _FakeCustomerOrderRepository implements CustomerOrderRepository {
+  _FakeCustomerOrderRepository({this.detailStatus = 'DELIVERING'});
+
+  final String detailStatus;
   int detailLoads = 0;
   int trackingLoads = 0;
 
@@ -108,13 +112,15 @@ class _FakeCustomerOrderRepository implements CustomerOrderRepository {
       restaurantName: 'Pho House',
       customerUserId: 'customer-1',
       customerName: 'Alice',
-      status: 'DELIVERING',
+      status: detailStatus,
       paymentMethod: 'COD',
       paymentStatus: 'UNPAID',
       subtotalAmount: 40000.0,
       deliveryFee: 5000.0,
       totalAmount: 45000.0,
       deliveryAddress: '1 Nguyen Trai',
+      deliveryLatitude: 10.765,
+      deliveryLongitude: 106.664,
     );
   }
 
@@ -187,6 +193,29 @@ class _FakeOrderTrackingRealtimeService
 }
 
 void main() {
+  test('OrderDetail parses delivery coordinates from JSON', () {
+    final detail = OrderDetail.fromJson(const {
+      'orderId': 'order-1',
+      'orderCode': 'FDY-001',
+      'restaurantId': 'rest-1',
+      'restaurantName': 'Pho House',
+      'customerUserId': 'customer-1',
+      'customerName': 'Alice',
+      'status': 'DELIVERING',
+      'paymentMethod': 'COD',
+      'paymentStatus': 'UNPAID',
+      'subtotalAmount': 40000,
+      'deliveryFee': 5000,
+      'totalAmount': 45000,
+      'deliveryAddress': '1 Nguyen Trai',
+      'deliveryLatitude': '10.765',
+      'deliveryLongitude': 106.664,
+    });
+
+    expect(detail.deliveryLatitude, 10.765);
+    expect(detail.deliveryLongitude, 106.664);
+  });
+
   testWidgets('Customer cart page shows empty cart state', (tester) async {
     final cartRepo = _FakeCustomerCartRepository(
       ActiveCart(
@@ -240,52 +269,145 @@ void main() {
     expect(cubit.state.orders, hasLength(1));
   });
 
-  test(
-    'OrderDetailCubit loads live tracking points for assigned delivery',
-    () async {
-      final repo = _FakeCustomerOrderRepository();
+  test('OrderDetailCubit starts live tracking for delivering order', () async {
+    final repo = _FakeCustomerOrderRepository();
+    final cubit = OrderDetailCubit(repository: repo);
+
+    await cubit.load('order-1');
+
+    expect(cubit.state.status, OrderDetailStatus.success);
+    expect(cubit.state.order?.status, 'DELIVERING');
+    expect(cubit.state.trackingPoints, hasLength(2));
+    expect(cubit.state.isLiveTrackingEnabled, isTrue);
+    expect(cubit.state.lastTrackingRefreshAt, isNotNull);
+    expect(repo.detailLoads, 2);
+    expect(repo.trackingLoads, 1);
+
+    await cubit.close();
+  });
+
+  for (final status in ['ASSIGNED', 'PREPARING']) {
+    test('OrderDetailCubit does not start live tracking for $status', () async {
+      final repo = _FakeCustomerOrderRepository(detailStatus: status);
       final cubit = OrderDetailCubit(repository: repo);
 
       await cubit.load('order-1');
 
       expect(cubit.state.status, OrderDetailStatus.success);
-      expect(cubit.state.order?.status, 'DELIVERING');
+      expect(cubit.state.order?.status, status);
       expect(cubit.state.trackingPoints, hasLength(2));
-      expect(cubit.state.isLiveTrackingEnabled, isTrue);
-      expect(cubit.state.lastTrackingRefreshAt, isNotNull);
+      expect(cubit.state.isLiveTrackingEnabled, isFalse);
       expect(repo.detailLoads, 2);
       expect(repo.trackingLoads, 1);
 
       await cubit.close();
+    });
+  }
+
+  test(
+    'OrderDetailCubit appends realtime tracking points without polling',
+    () async {
+      final repo = _FakeCustomerOrderRepository();
+      final realtime = _FakeOrderTrackingRealtimeService();
+      final cubit = OrderDetailCubit(
+        repository: repo,
+        realtimeService: realtime,
+      );
+
+      await cubit.load('order-1');
+      realtime.emit(const OrderTrackingRealtimeUpdate.connected());
+      realtime.emit(
+        OrderTrackingRealtimeUpdate.point(
+          OrderTrackingPoint(
+            lat: 10.764,
+            lng: 106.663,
+            recordedAt: DateTime.utc(2026, 1, 1, 10, 2),
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.trackingPoints, hasLength(3));
+      expect(cubit.state.trackingPoints.last.lat, 10.764);
+      expect(repo.trackingLoads, 1);
+
+      await cubit.close();
+      expect(realtime.disposed, isTrue);
     },
   );
 
-  test('OrderDetailCubit appends realtime tracking points without polling', () async {
-    final repo = _FakeCustomerOrderRepository();
-    final realtime = _FakeOrderTrackingRealtimeService();
-    final cubit = OrderDetailCubit(
-      repository: repo,
-      realtimeService: realtime,
-    );
+  testWidgets('Customer order detail shows tracking map for delivering order', (
+    tester,
+  ) async {
+    await _pumpOrderDetailPage(tester, _FakeCustomerOrderRepository());
 
-    await cubit.load('order-1');
-    realtime.emit(const OrderTrackingRealtimeUpdate.connected());
-    realtime.emit(
-      OrderTrackingRealtimeUpdate.point(
-        OrderTrackingPoint(
-          lat: 10.764,
-          lng: 106.663,
-          recordedAt: DateTime.utc(2026, 1, 1, 10, 2),
-        ),
-      ),
-    );
-    await Future<void>.delayed(Duration.zero);
-
-    expect(cubit.state.trackingPoints, hasLength(3));
-    expect(cubit.state.trackingPoints.last.lat, 10.764);
-    expect(repo.trackingLoads, 1);
-
-    await cubit.close();
-    expect(realtime.disposed, isTrue);
+    expect(find.text('Live delivery tracking'), findsOneWidget);
+    expect(find.text('Destination'), findsOneWidget);
+    expect(find.text('Courier'), findsOneWidget);
   });
+
+  testWidgets('Customer order detail hides tracking map before delivery', (
+    tester,
+  ) async {
+    await _pumpOrderDetailPage(
+      tester,
+      _FakeCustomerOrderRepository(detailStatus: 'PREPARING'),
+    );
+
+    expect(find.text('Live delivery tracking'), findsNothing);
+  });
+
+  for (final status in ['PENDING', 'ACCEPTED', 'ASSIGNED']) {
+    testWidgets('Customer order detail shows cancel button for $status', (
+      tester,
+    ) async {
+      await _pumpOrderDetailPage(
+        tester,
+        _FakeCustomerOrderRepository(detailStatus: status),
+      );
+
+      expect(find.text('Cancel order'), findsOneWidget);
+    });
+  }
+
+  for (final status in [
+    'PREPARING',
+    'DELIVERING',
+    'SUCCESS',
+    'FAILED',
+    'CANCELLED',
+  ]) {
+    testWidgets('Customer order detail hides cancel button for $status', (
+      tester,
+    ) async {
+      await _pumpOrderDetailPage(
+        tester,
+        _FakeCustomerOrderRepository(detailStatus: status),
+      );
+
+      expect(find.text('Cancel order'), findsNothing);
+    });
+  }
+}
+
+Future<void> _pumpOrderDetailPage(
+  WidgetTester tester,
+  _FakeCustomerOrderRepository orderRepository,
+) async {
+  await tester.pumpWidget(
+    MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<CustomerOrderRepository>.value(
+          value: orderRepository,
+        ),
+        RepositoryProvider<OrderTrackingRealtimeService>.value(
+          value: _FakeOrderTrackingRealtimeService(),
+        ),
+      ],
+      child: const MaterialApp(
+        home: CustomerOrderDetailPage(orderId: 'order-1'),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }

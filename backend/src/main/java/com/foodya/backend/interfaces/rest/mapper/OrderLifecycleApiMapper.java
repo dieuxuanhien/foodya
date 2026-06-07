@@ -38,7 +38,9 @@ public final class OrderLifecycleApiMapper {
                 view.subtotalAmount(),
                 view.deliveryFee(),
                 view.totalAmount(),
-                view.deliveryAddress()
+                view.deliveryAddress(),
+                view.deliveryLatitude(),
+                view.deliveryLongitude()
         );
     }
 

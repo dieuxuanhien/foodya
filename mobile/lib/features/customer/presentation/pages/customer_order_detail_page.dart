@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../../../core/ui/foodya_ui.dart';
 import '../../../../core/realtime/order_tracking_realtime_service.dart';
@@ -138,20 +139,22 @@ class _CustomerOrderDetailView extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _DeliveryTrackingSection(
-                          order: order,
-                          state: state,
-                          onRefresh:
-                              () =>
-                                  context
-                                      .read<OrderDetailCubit>()
-                                      .refreshTracking(),
-                          onLiveChanged:
-                              (enabled) => context
-                                  .read<OrderDetailCubit>()
-                                  .toggleLiveTracking(enabled),
-                        ),
+                        if (_isDeliveringOrder(order.status)) ...[
+                          const SizedBox(height: 16),
+                          _DeliveryTrackingSection(
+                            order: order,
+                            state: state,
+                            onRefresh:
+                                () =>
+                                    context
+                                        .read<OrderDetailCubit>()
+                                        .refreshTracking(),
+                            onLiveChanged:
+                                (enabled) => context
+                                    .read<OrderDetailCubit>()
+                                    .toggleLiveTracking(enabled),
+                          ),
+                        ],
                         if (order.status.toUpperCase() == 'SUCCESS') ...[
                           const SizedBox(height: 16),
                           _ReviewForm(
@@ -159,8 +162,8 @@ class _CustomerOrderDetailView extends StatelessWidget {
                                 state.status == OrderDetailStatus.reviewing,
                           ),
                         ],
-                        const SizedBox(height: 16),
-                        if (order.status.toUpperCase() != 'CANCELLED')
+                        if (_canCancelOrder(order.status)) ...[
+                          const SizedBox(height: 16),
                           FilledButton.tonal(
                             onPressed:
                                 state.isBusy
@@ -168,6 +171,7 @@ class _CustomerOrderDetailView extends StatelessWidget {
                                     : () => _cancelOrder(context),
                             child: const Text('Cancel order'),
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -219,6 +223,7 @@ class _DeliveryTrackingSection extends StatelessWidget {
     final theme = Theme.of(context);
     final points = state.trackingPoints;
     final latest = points.isEmpty ? null : points.last;
+    final destination = _TrackingMapCoordinate.fromOrder(order);
     final canLiveTrack = _canLiveTrack(order.status);
 
     return Card(
@@ -263,7 +268,7 @@ class _DeliveryTrackingSection extends StatelessWidget {
               subtitle: Text(
                 canLiveTrack
                     ? 'Realtime when connected, fallback refresh if offline.'
-                    : 'Available after the order is assigned to delivery.',
+                    : 'Available while the courier is delivering.',
               ),
               value: state.isLiveTrackingEnabled,
               onChanged: canLiveTrack ? onLiveChanged : null,
@@ -272,32 +277,70 @@ class _DeliveryTrackingSection extends StatelessWidget {
             SizedBox(
               height: 220,
               width: double.infinity,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child:
-                    points.isEmpty
-                        ? Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                  ),
+                  child: Stack(
+                    children: [
+                      CustomPaint(
+                        painter: _TrackingRoutePainter(
+                          points: points,
+                          destination: destination,
+                          colorScheme: theme.colorScheme,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                      if (points.isEmpty)
+                        Center(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
-                            child: Text(
-                              state.isTrackingLoading
-                                  ? 'Loading tracking updates...'
-                                  : 'No tracking updates yet.',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface.withValues(
+                                  alpha: 0.88,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  state.isTrackingLoading
+                                      ? 'Loading tracking updates...'
+                                      : 'No tracking updates yet.',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ),
                             ),
                           ),
-                        )
-                        : CustomPaint(
-                          painter: _TrackingRoutePainter(
-                            points: points,
-                            colorScheme: theme.colorScheme,
-                          ),
-                          child: const SizedBox.expand(),
                         ),
+                      if (latest != null)
+                        const Positioned(
+                          left: 10,
+                          top: 10,
+                          child: _TrackingMapPill(
+                            icon: Icons.delivery_dining,
+                            label: 'Courier',
+                          ),
+                        ),
+                      if (destination != null)
+                        const Positioned(
+                          right: 10,
+                          bottom: 10,
+                          child: _TrackingMapPill(
+                            icon: Icons.location_pin,
+                            label: 'Destination',
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
             if (points.isNotEmpty) ...[
@@ -316,9 +359,41 @@ class _DeliveryTrackingSection extends StatelessWidget {
 
   bool _canLiveTrack(String status) {
     return switch (status.toUpperCase()) {
-      'ASSIGNED' || 'PREPARING' || 'DELIVERING' => true,
+      'DELIVERING' => true,
       _ => false,
     };
+  }
+}
+
+class _TrackingMapPill extends StatelessWidget {
+  const _TrackingMapPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 4),
+            Text(label, style: theme.textTheme.labelSmall),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -395,28 +470,23 @@ class _TrackingTimelineTile extends StatelessWidget {
 class _TrackingRoutePainter extends CustomPainter {
   const _TrackingRoutePainter({
     required this.points,
+    required this.destination,
     required this.colorScheme,
   });
 
   final List<OrderTrackingPoint> points;
+  final _TrackingMapCoordinate? destination;
   final ColorScheme colorScheme;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final route = _project(points, size);
-    final gridPaint =
-        Paint()
-          ..color = colorScheme.outlineVariant.withValues(alpha: 0.55)
-          ..strokeWidth = 1;
+    _paintSchematicMap(canvas, size);
 
-    for (var i = 1; i < 4; i++) {
-      final dx = size.width * i / 4;
-      final dy = size.height * i / 4;
-      canvas.drawLine(Offset(dx, 0), Offset(dx, size.height), gridPaint);
-      canvas.drawLine(Offset(0, dy), Offset(size.width, dy), gridPaint);
-    }
+    final route = _projectRoute(points, size);
+    final destinationOffset =
+        destination == null ? null : _project(destination!, size);
 
-    if (route.isEmpty) {
+    if (route.isEmpty && destinationOffset == null) {
       return;
     }
 
@@ -436,47 +506,302 @@ class _TrackingRoutePainter extends CustomPainter {
       canvas.drawPath(path, routePaint);
     }
 
-    final startPaint = Paint()..color = colorScheme.secondary;
-    final latestPaint = Paint()..color = colorScheme.error;
-    final pointPaint = Paint()..color = colorScheme.primary;
+    if (route.isNotEmpty && destinationOffset != null) {
+      final remainingPaint =
+          Paint()
+            ..color = colorScheme.primary.withValues(alpha: 0.35)
+            ..strokeWidth = 2
+            ..strokeCap = StrokeCap.round
+            ..style = PaintingStyle.stroke;
+      canvas.drawLine(route.last, destinationOffset, remainingPaint);
+    }
+
+    final originPaint = Paint()..color = colorScheme.secondary;
+    final pointPaint =
+        Paint()..color = colorScheme.primary.withValues(alpha: 0.7);
 
     for (var i = 0; i < route.length; i++) {
-      final paint =
-          i == 0
-              ? startPaint
-              : i == route.length - 1
-              ? latestPaint
-              : pointPaint;
-      canvas.drawCircle(route[i], i == route.length - 1 ? 8 : 5, paint);
+      final isLatest = i == route.length - 1;
+      if (isLatest) {
+        continue;
+      }
+      canvas.drawCircle(
+        route[i],
+        i == 0 ? 6 : 4,
+        i == 0 ? originPaint : pointPaint,
+      );
+    }
+
+    if (destinationOffset != null) {
+      _drawIconMarker(
+        canvas,
+        destinationOffset,
+        Icons.location_pin,
+        background: colorScheme.tertiaryContainer,
+        foreground: colorScheme.onTertiaryContainer,
+      );
+    }
+
+    if (route.isNotEmpty) {
+      _drawIconMarker(
+        canvas,
+        route.last,
+        Icons.delivery_dining,
+        background: colorScheme.primary,
+        foreground: colorScheme.onPrimary,
+      );
     }
   }
 
-  List<Offset> _project(List<OrderTrackingPoint> points, Size size) {
+  void _paintSchematicMap(Canvas canvas, Size size) {
+    final basePaint = Paint()..color = colorScheme.surfaceContainerHighest;
+    canvas.drawRect(Offset.zero & size, basePaint);
+
+    final parkPaint =
+        Paint()..color = colorScheme.secondaryContainer.withValues(alpha: 0.28);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          size.width * 0.05,
+          size.height * 0.08,
+          size.width * 0.28,
+          size.height * 0.28,
+        ),
+        const Radius.circular(18),
+      ),
+      parkPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          size.width * 0.68,
+          size.height * 0.58,
+          size.width * 0.24,
+          size.height * 0.24,
+        ),
+        const Radius.circular(16),
+      ),
+      parkPaint,
+    );
+
+    final blockPaint =
+        Paint()..color = colorScheme.outlineVariant.withValues(alpha: 0.42);
+    for (final block in <Rect>[
+      Rect.fromLTWH(size.width * 0.43, size.height * 0.10, 26, 42),
+      Rect.fromLTWH(size.width * 0.54, size.height * 0.18, 46, 24),
+      Rect.fromLTWH(size.width * 0.15, size.height * 0.58, 36, 52),
+      Rect.fromLTWH(size.width * 0.77, size.height * 0.20, 32, 48),
+      Rect.fromLTWH(size.width * 0.47, size.height * 0.70, 54, 28),
+    ]) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(block, const Radius.circular(4)),
+        blockPaint,
+      );
+    }
+
+    final roadPaint =
+        Paint()
+          ..color = colorScheme.surface.withValues(alpha: 0.95)
+          ..strokeWidth = 18
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke;
+    final roadOutlinePaint =
+        Paint()
+          ..color = colorScheme.outlineVariant.withValues(alpha: 0.45)
+          ..strokeWidth = 20
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke;
+    final mainRoad =
+        Path()
+          ..moveTo(-10, size.height * 0.70)
+          ..cubicTo(
+            size.width * 0.25,
+            size.height * 0.56,
+            size.width * 0.45,
+            size.height * 0.48,
+            size.width + 10,
+            size.height * 0.34,
+          );
+    canvas.drawPath(mainRoad, roadOutlinePaint);
+    canvas.drawPath(mainRoad, roadPaint);
+
+    final sideRoadPaint =
+        Paint()
+          ..color = colorScheme.surface.withValues(alpha: 0.76)
+          ..strokeWidth = 10
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      Offset(size.width * 0.30, -10),
+      Offset(size.width * 0.62, size.height + 10),
+      sideRoadPaint,
+    );
+    canvas.drawLine(
+      Offset(-10, size.height * 0.25),
+      Offset(size.width * 0.82, size.height * 0.88),
+      sideRoadPaint,
+    );
+  }
+
+  List<Offset> _projectRoute(List<OrderTrackingPoint> points, Size size) {
+    return points
+        .map(
+          (point) =>
+              _project(_TrackingMapCoordinate(point.lat, point.lng), size),
+        )
+        .toList(growable: false);
+  }
+
+  Offset _project(_TrackingMapCoordinate point, Size size) {
+    final bounds = _bounds();
     const padding = 24.0;
-    final minLat = points.map((point) => point.lat).reduce(math.min);
-    final maxLat = points.map((point) => point.lat).reduce(math.max);
-    final minLng = points.map((point) => point.lng).reduce(math.min);
-    final maxLng = points.map((point) => point.lng).reduce(math.max);
-    final latRange = math.max(maxLat - minLat, 0.00001);
-    final lngRange = math.max(maxLng - minLng, 0.00001);
     final width = math.max(size.width - padding * 2, 1);
     final height = math.max(size.height - padding * 2, 1);
 
-    return points
-        .map(
-          (point) => Offset(
-            padding + ((point.lng - minLng) / lngRange) * width,
-            padding + (1 - ((point.lat - minLat) / latRange)) * height,
-          ),
-        )
-        .toList(growable: false);
+    return Offset(
+      padding + ((point.lng - bounds.minLng) / bounds.lngRange) * width,
+      padding + (1 - ((point.lat - bounds.minLat) / bounds.latRange)) * height,
+    );
+  }
+
+  _TrackingBounds _bounds() {
+    final coordinates = <_TrackingMapCoordinate>[
+      ...points.map((point) => _TrackingMapCoordinate(point.lat, point.lng)),
+      if (destination != null) destination!,
+    ];
+
+    if (coordinates.isEmpty) {
+      return const _TrackingBounds(0, 0.001, 0, 0.001);
+    }
+
+    var minLat = coordinates.first.lat;
+    var maxLat = coordinates.first.lat;
+    var minLng = coordinates.first.lng;
+    var maxLng = coordinates.first.lng;
+    for (final point in coordinates.skip(1)) {
+      minLat = math.min(minLat, point.lat);
+      maxLat = math.max(maxLat, point.lat);
+      minLng = math.min(minLng, point.lng);
+      maxLng = math.max(maxLng, point.lng);
+    }
+
+    if ((maxLat - minLat).abs() < 0.00001) {
+      minLat -= 0.0005;
+      maxLat += 0.0005;
+    }
+    if ((maxLng - minLng).abs() < 0.00001) {
+      minLng -= 0.0005;
+      maxLng += 0.0005;
+    }
+
+    return _TrackingBounds(minLat, maxLat, minLng, maxLng);
+  }
+
+  void _drawIconMarker(
+    Canvas canvas,
+    Offset center,
+    IconData icon, {
+    required Color background,
+    required Color foreground,
+  }) {
+    final shadowPaint = Paint()..color = Colors.black.withValues(alpha: 0.12);
+    canvas.drawCircle(center.translate(0, 2), 17, shadowPaint);
+    canvas.drawCircle(center, 16, Paint()..color = background);
+
+    final iconPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          color: foreground,
+          fontFamily: icon.fontFamily,
+          fontSize: 20,
+          package: icon.fontPackage,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    iconPainter.paint(
+      canvas,
+      center - Offset(iconPainter.width / 2, iconPainter.height / 2),
+    );
   }
 
   @override
   bool shouldRepaint(covariant _TrackingRoutePainter oldDelegate) {
     return oldDelegate.points != points ||
+        oldDelegate.destination != destination ||
         oldDelegate.colorScheme != colorScheme;
   }
+
+  @override
+  SemanticsBuilderCallback get semanticsBuilder {
+    return (Size size) {
+      final semantics = <CustomPainterSemantics>[];
+      if (destination != null) {
+        final center = _project(destination!, size);
+        semantics.add(
+          CustomPainterSemantics(
+            rect: Rect.fromCircle(center: center, radius: 18),
+            properties: const SemanticsProperties(
+              label: 'Destination marker',
+              textDirection: TextDirection.ltr,
+            ),
+          ),
+        );
+      }
+      if (points.isNotEmpty) {
+        final center = _projectRoute(points, size).last;
+        semantics.add(
+          CustomPainterSemantics(
+            rect: Rect.fromCircle(center: center, radius: 18),
+            properties: const SemanticsProperties(
+              label: 'Courier marker',
+              textDirection: TextDirection.ltr,
+            ),
+          ),
+        );
+      }
+      return semantics;
+    };
+  }
+
+  @override
+  bool shouldRebuildSemantics(covariant _TrackingRoutePainter oldDelegate) {
+    return oldDelegate.points != points ||
+        oldDelegate.destination != destination ||
+        oldDelegate.colorScheme != colorScheme;
+  }
+}
+
+class _TrackingMapCoordinate {
+  const _TrackingMapCoordinate(this.lat, this.lng);
+
+  final double lat;
+  final double lng;
+
+  static _TrackingMapCoordinate? fromOrder(OrderDetail order) {
+    final lat = order.deliveryLatitude;
+    final lng = order.deliveryLongitude;
+    if (lat == null || lng == null) {
+      return null;
+    }
+    return _TrackingMapCoordinate(lat, lng);
+  }
+}
+
+class _TrackingBounds {
+  const _TrackingBounds(this.minLat, this.maxLat, this.minLng, this.maxLng);
+
+  final double minLat;
+  final double maxLat;
+  final double minLng;
+  final double maxLng;
+
+  double get latRange => maxLat - minLat;
+
+  double get lngRange => maxLng - minLng;
 }
 
 String _formatClock(DateTime value) {
@@ -505,6 +830,15 @@ String _paymentStatusLabel(String value) {
     'FAILED' => 'Payment failed',
     'REFUNDED' => 'Payment refunded',
     _ => value,
+  };
+}
+
+bool _isDeliveringOrder(String status) => status.toUpperCase() == 'DELIVERING';
+
+bool _canCancelOrder(String status) {
+  return switch (status.toUpperCase()) {
+    'PENDING' || 'ACCEPTED' || 'ASSIGNED' => true,
+    _ => false,
   };
 }
 

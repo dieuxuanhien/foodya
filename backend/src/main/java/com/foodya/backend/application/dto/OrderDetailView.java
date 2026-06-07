@@ -20,6 +20,8 @@ public record OrderDetailView(
         BigDecimal subtotalAmount,
         BigDecimal deliveryFee,
         BigDecimal totalAmount,
-        String deliveryAddress
+        String deliveryAddress,
+        BigDecimal deliveryLatitude,
+        BigDecimal deliveryLongitude
 ) {
 }

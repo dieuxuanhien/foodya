@@ -13,6 +13,8 @@ class OrderDetail {
     required this.deliveryFee,
     required this.totalAmount,
     required this.deliveryAddress,
+    this.deliveryLatitude,
+    this.deliveryLongitude,
   });
 
   final String orderId;
@@ -28,6 +30,8 @@ class OrderDetail {
   final double deliveryFee;
   final double totalAmount;
   final String deliveryAddress;
+  final double? deliveryLatitude;
+  final double? deliveryLongitude;
 
   factory OrderDetail.fromJson(Map<String, dynamic> json) {
     return OrderDetail(
@@ -44,6 +48,8 @@ class OrderDetail {
       deliveryFee: _toDouble(json['deliveryFee']),
       totalAmount: _toDouble(json['totalAmount']),
       deliveryAddress: json['deliveryAddress']?.toString() ?? '',
+      deliveryLatitude: _toNullableDouble(json['deliveryLatitude']),
+      deliveryLongitude: _toNullableDouble(json['deliveryLongitude']),
     );
   }
 
@@ -52,5 +58,15 @@ class OrderDetail {
       return value.toDouble();
     }
     return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double? _toNullableDouble(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString());
   }
 }
