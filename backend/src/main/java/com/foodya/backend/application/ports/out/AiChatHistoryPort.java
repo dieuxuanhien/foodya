@@ -12,5 +12,7 @@ public interface AiChatHistoryPort {
 
     List<AiChatHistoryData> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    long deleteByUserId(UUID userId);
+
     long deleteByCreatedAtBefore(OffsetDateTime cutoff);
 }

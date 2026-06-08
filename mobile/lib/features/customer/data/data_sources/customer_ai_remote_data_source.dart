@@ -46,6 +46,13 @@ class CustomerAiRemoteDataSource {
     return AiChatResponse.fromJson(_extractDataMap(json));
   }
 
+  Future<void> deleteConversation({required String accessToken}) async {
+    await _delete(
+      '/api/v1/customer/ai/chats',
+      headers: _authHeaders(accessToken),
+    );
+  }
+
   Map<String, String> _authHeaders(String accessToken) {
     return {'Authorization': 'Bearer $accessToken'};
   }
@@ -73,6 +80,19 @@ class CustomerAiRemoteDataSource {
         Uri.parse('$_baseUrl$path'),
         headers: {'Content-Type': 'application/json', ...?headers},
         body: body == null ? null : jsonEncode(body),
+      ),
+      'AI request failed with status',
+    );
+  }
+
+  Future<Map<String, dynamic>> _delete(
+    String path, {
+    Map<String, String>? headers,
+  }) {
+    return _send(
+      () => _client.delete(
+        Uri.parse('$_baseUrl$path'),
+        headers: {'Content-Type': 'application/json', ...?headers},
       ),
       'AI request failed with status',
     );

@@ -13,5 +13,7 @@ public interface AiRecommendationUseCase {
 
     List<AiChatHistoryView> history(UUID customerUserId);
 
+    void clearHistory(UUID customerUserId);
+
     void refreshCatalogSnapshot();
 }

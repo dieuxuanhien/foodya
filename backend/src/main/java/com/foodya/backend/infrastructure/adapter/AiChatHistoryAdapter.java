@@ -6,6 +6,7 @@ import com.foodya.backend.domain.entities.AiChatHistory;
 import com.foodya.backend.infrastructure.mapper.AiChatHistoryMapper;
 import com.foodya.backend.infrastructure.repository.AiChatHistoryRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,6 +40,13 @@ public class AiChatHistoryAdapter implements AiChatHistoryPort {
     }
 
     @Override
+    @Transactional
+    public long deleteByUserId(UUID userId) {
+        return repository.deleteByUserId(userId);
+    }
+
+    @Override
+    @Transactional
     public long deleteByCreatedAtBefore(OffsetDateTime cutoff) {
         return repository.deleteByCreatedAtBefore(cutoff);
     }

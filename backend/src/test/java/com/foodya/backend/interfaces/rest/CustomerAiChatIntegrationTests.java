@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -164,6 +165,39 @@ class CustomerAiChatIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].prompt").value("second request"))
                 .andExpect(jsonPath("$.data[1].prompt").value("first request"));
+    }
+
+    @Test
+    void deleteConversationClearsCustomerHistory() throws Exception {
+        UserAccount customer = seedUser("ai-customer-delete", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("ai-merchant-delete", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Delete Test Kitchen");
+        MenuCategory category = seedCategory(restaurant, "Main", 1);
+        seedMenuItem(restaurant, category, "Delete Test Pho", new BigDecimal("55000"), true);
+
+        String token = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+
+        mockMvc.perform(post("/api/v1/customer/ai/chats")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"prompt\":\"first request\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/customer/ai/chats")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"prompt\":\"second request\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/v1/customer/ai/chats")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/customer/ai/chats")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
             @Test

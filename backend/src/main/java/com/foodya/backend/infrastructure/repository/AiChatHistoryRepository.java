@@ -11,5 +11,7 @@ public interface AiChatHistoryRepository extends JpaRepository<AiChatHistoryPers
 
     List<AiChatHistoryPersistenceModel> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    long deleteByUserId(UUID userId);
+
     long deleteByCreatedAtBefore(OffsetDateTime cutoff);
 }

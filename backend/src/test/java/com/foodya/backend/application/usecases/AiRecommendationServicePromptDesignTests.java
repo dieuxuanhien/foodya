@@ -203,4 +203,13 @@ class AiRecommendationServicePromptDesignTests {
                 response.responseSummary());
         verify(aiDraftPort, never()).generateRecommendationDraft(anyString());
     }
+
+    @Test
+    void clearHistoryDeletesOnlyCurrentUserHistory() {
+        when(aiChatHistoryPort.deleteByUserId(userId)).thenReturn(2L);
+
+        service.clearHistory(userId);
+
+        verify(aiChatHistoryPort).deleteByUserId(userId);
+    }
 }

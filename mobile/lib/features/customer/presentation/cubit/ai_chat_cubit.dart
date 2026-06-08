@@ -45,10 +45,17 @@ class AiChatCubit extends Cubit<AiChatState> {
     if (state.isBusy || prompt.trim().isEmpty) {
       return;
     }
-    emit(state.copyWith(status: AiChatStatus.submitting, clearError: true));
+    final normalizedPrompt = prompt.trim();
+    emit(
+      state.copyWith(
+        status: AiChatStatus.submitting,
+        pendingPrompt: normalizedPrompt,
+        clearError: true,
+      ),
+    );
     try {
       final response = await _repository.createChat(
-        prompt: prompt.trim(),
+        prompt: normalizedPrompt,
         lat: lat,
         lng: lng,
       );
@@ -67,6 +74,7 @@ class AiChatCubit extends Cubit<AiChatState> {
           latestResponse: response,
           history: nextHistory,
           clearError: true,
+          clearPendingPrompt: true,
         ),
       );
     } catch (error) {
@@ -78,6 +86,38 @@ class AiChatCubit extends Cubit<AiChatState> {
         state.copyWith(
           status: AiChatStatus.failure,
           errorMessage: presentation.message,
+          clearPendingPrompt: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> deleteConversation() async {
+    if (state.isBusy) {
+      return;
+    }
+    emit(state.copyWith(status: AiChatStatus.deleting, clearError: true));
+    try {
+      await _repository.deleteConversation();
+      emit(
+        state.copyWith(
+          status: AiChatStatus.success,
+          history: const [],
+          clearLatestResponse: true,
+          clearPendingPrompt: true,
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to delete AI conversation.',
+      );
+      emit(
+        state.copyWith(
+          status: AiChatStatus.failure,
+          errorMessage: presentation.message,
+          clearPendingPrompt: true,
         ),
       );
     }

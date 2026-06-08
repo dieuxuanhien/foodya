@@ -116,7 +116,13 @@ class AppRouter {
       GoRoute(
         path: '/customer/ai',
         name: 'customer-ai',
-        builder: (context, state) => const CustomerAiChatPage(),
+        builder: (context, state) {
+          final query = state.uri.queryParameters;
+          return CustomerAiChatPage(
+            initialLatitude: double.tryParse(query['lat'] ?? ''),
+            initialLongitude: double.tryParse(query['lng'] ?? ''),
+          );
+        },
       ),
       ShellRoute(
         builder:

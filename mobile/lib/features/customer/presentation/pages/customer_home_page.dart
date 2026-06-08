@@ -163,7 +163,7 @@ class _CustomerHomeView extends StatelessWidget {
                     icon: Icons.auto_awesome_outlined,
                     iconBackgroundColor: const Color(0xFFFEF3C7),
                     iconColor: const Color(0xFFB45309),
-                    onTap: () => context.push('/customer/ai'),
+                    onTap: () => _openAiPicks(context, homeState),
                   ),
                   FoodyaQuickActionTile(
                     label: 'Updates',
@@ -178,6 +178,25 @@ class _CustomerHomeView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _openAiPicks(BuildContext context, CustomerHomeState state) {
+    final latitude = state.latitude;
+    final longitude = state.longitude;
+    if (latitude == null || longitude == null) {
+      context.push('/customer/ai');
+      return;
+    }
+
+    context.push(
+      Uri(
+        path: '/customer/ai',
+        queryParameters: {
+          'lat': latitude.toString(),
+          'lng': longitude.toString(),
+        },
+      ).toString(),
     );
   }
 

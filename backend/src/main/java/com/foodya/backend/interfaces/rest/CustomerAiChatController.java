@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,5 +64,17 @@ public class CustomerAiChatController {
                 .map(AiChatApiMapper::toHistory)
                 .toList();
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
+    }
+
+    @DeleteMapping
+    @Operation(summary = "Delete AI chat conversation", description = "Clears the authenticated customer's AI chat history")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Conversation deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ApiSuccessResponse<Void> deleteConversation(Authentication authentication,
+                                                       HttpServletRequest httpServletRequest) {
+        aiRecommendationService.clearHistory(CurrentUser.userId(authentication));
+        return ApiSuccessResponse.of(null, RequestTrace.from(httpServletRequest));
     }
 }

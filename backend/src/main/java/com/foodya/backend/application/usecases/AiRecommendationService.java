@@ -210,6 +210,12 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                 .toList();
     }
 
+    public void clearHistory(UUID customerUserId) {
+        userAccountPort.findById(customerUserId)
+                .orElseThrow(() -> new NotFoundException("user not found"));
+        aiChatHistoryPort.deleteByUserId(customerUserId);
+    }
+
     private List<MenuItem> resolveCandidateItems(List<String> tokens,
                                                  String prompt,
                                                  Map<UUID, Restaurant> activeRestaurants,

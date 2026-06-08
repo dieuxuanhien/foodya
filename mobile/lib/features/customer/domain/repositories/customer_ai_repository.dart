@@ -8,4 +8,6 @@ abstract class CustomerAiRepository {
     double? lat,
     double? lng,
   });
+
+  Future<void> deleteConversation();
 }

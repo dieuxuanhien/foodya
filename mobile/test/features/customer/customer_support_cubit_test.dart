@@ -98,18 +98,21 @@ void main() {
           lng: any(named: 'lng'),
         ),
       ).thenAnswer((_) async => aiChatResponse());
+      when(() => repository.deleteConversation()).thenAnswer((_) async {});
       final cubit = AiChatCubit(repository: repository);
 
       await cubit.loadHistory();
       await cubit.submit(prompt: '  Dinner  ', lat: 10.77, lng: 106.7);
       await cubit.submit(prompt: '   ');
+      await cubit.deleteConversation();
 
       expect(cubit.state.status, AiChatStatus.success);
-      expect(cubit.state.latestResponse?.responseSummary, 'Try pho.');
-      expect(cubit.state.history.first.prompt, 'Dinner');
+      expect(cubit.state.latestResponse, isNull);
+      expect(cubit.state.history, isEmpty);
       verify(
         () => repository.createChat(prompt: 'Dinner', lat: 10.77, lng: 106.7),
       ).called(1);
+      verify(() => repository.deleteConversation()).called(1);
     },
   );
 
@@ -125,6 +128,17 @@ void main() {
     final cubit = AiChatCubit(repository: repository);
 
     await cubit.submit(prompt: 'Dinner');
+
+    expect(cubit.state.status, AiChatStatus.failure);
+    expect(cubit.state.errorMessage, isNotEmpty);
+  });
+
+  test('AiChatCubit reports delete failure', () async {
+    final repository = MockCustomerAiRepository();
+    when(() => repository.deleteConversation()).thenThrow(Exception('delete'));
+    final cubit = AiChatCubit(repository: repository);
+
+    await cubit.deleteConversation();
 
     expect(cubit.state.status, AiChatStatus.failure);
     expect(cubit.state.errorMessage, isNotEmpty);

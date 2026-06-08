@@ -35,4 +35,11 @@ class HttpCustomerAiRepository implements CustomerAiRepository {
       );
     });
   }
+
+  @override
+  Future<void> deleteConversation() {
+    return _sessionRecovery.runAuthorized((accessToken) {
+      return _remoteDataSource.deleteConversation(accessToken: accessToken);
+    });
+  }
 }
