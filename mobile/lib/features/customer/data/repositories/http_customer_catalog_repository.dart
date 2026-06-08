@@ -38,7 +38,10 @@ class HttpCustomerCatalogRepository implements CustomerCatalogRepository {
   }
 
   @override
-  Future<RestaurantDetail> getRestaurantDetail(String restaurantId) {
+  Future<RestaurantDetail> getRestaurantDetail(
+    String restaurantId, {
+    bool forceRefresh = false,
+  }) {
     return _remoteDataSource.getRestaurantDetail(restaurantId);
   }
 
@@ -74,6 +77,7 @@ class HttpCustomerCatalogRepository implements CustomerCatalogRepository {
     String? sort,
     int page = 0,
     int size = 10,
+    bool forceRefresh = false,
   }) {
     return _remoteDataSource.nearbyRestaurants(
       lat: lat,

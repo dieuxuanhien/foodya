@@ -17,7 +17,10 @@ abstract class CustomerCatalogRepository {
     int size = 10,
   });
 
-  Future<RestaurantDetail> getRestaurantDetail(String restaurantId);
+  Future<RestaurantDetail> getRestaurantDetail(
+    String restaurantId, {
+    bool forceRefresh = false,
+  });
 
   Future<PagedResult<RestaurantMenuItem>> getRestaurantMenuItems(
     String restaurantId, {
@@ -37,6 +40,7 @@ abstract class CustomerCatalogRepository {
     String? sort,
     int page = 0,
     int size = 10,
+    bool forceRefresh = false,
   });
 
   Future<List<OrderReview>> listRestaurantReviews(String restaurantId);

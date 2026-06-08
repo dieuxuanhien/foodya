@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -158,10 +159,11 @@ class FoodyaHomeHero extends StatelessWidget {
           Positioned.fill(
             child:
                 hasImage
-                    ? Image.network(
-                      normalizedImageUrl,
+                    ? CachedNetworkImage(
+                      imageUrl: normalizedImageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => gradientBackdrop,
+                      placeholder: (_, _) => gradientBackdrop,
+                      errorWidget: (_, _, _) => gradientBackdrop,
                     )
                     : gradientBackdrop,
           ),
@@ -404,22 +406,24 @@ class FoodyaImageSurface extends StatelessWidget {
       }
       return ClipRRect(
         borderRadius: radius,
-        child: Image.network(
-          normalizedUrl,
+        child: CachedNetworkImage(
+          imageUrl: normalizedUrl,
           height: height,
           width: width,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback,
+          placeholder: (_, _) => fallback,
+          errorWidget: (_, _, _) => fallback,
         ),
       );
     }
 
     final image =
         hasUrl
-            ? Image.network(
-              normalizedUrl,
+            ? CachedNetworkImage(
+              imageUrl: normalizedUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
+              placeholder: (_, _) => fallback,
+              errorWidget: (_, _, _) => fallback,
             )
             : fallback;
 

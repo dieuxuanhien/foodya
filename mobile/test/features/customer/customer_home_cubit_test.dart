@@ -70,6 +70,7 @@ class _FakeCustomerCatalogRepository implements CustomerCatalogRepository {
     String? sort,
     int page = 0,
     int size = 10,
+    bool forceRefresh = false,
   }) async {
     nearbyCalls++;
     return const PagedResult(
@@ -95,7 +96,10 @@ class _FakeCustomerCatalogRepository implements CustomerCatalogRepository {
   }
 
   @override
-  Future<RestaurantDetail> getRestaurantDetail(String restaurantId) {
+  Future<RestaurantDetail> getRestaurantDetail(
+    String restaurantId, {
+    bool forceRefresh = false,
+  }) {
     throw UnimplementedError();
   }
 

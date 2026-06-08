@@ -23,6 +23,8 @@ class SessionState extends Equatable {
 
   bool get isAuthenticated => status == SessionStatus.authenticated;
 
+  bool get isUnauthenticated => status == SessionStatus.unauthenticated;
+
   @override
   List<Object?> get props => [status, role];
 }

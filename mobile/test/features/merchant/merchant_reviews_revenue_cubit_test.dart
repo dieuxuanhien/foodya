@@ -15,7 +15,9 @@ import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_revi
 class _FakeMerchantRestaurantRepository
     implements MerchantRestaurantRepository {
   @override
-  Future<List<MerchantRestaurant>> listRestaurants() async {
+  Future<List<MerchantRestaurant>> listRestaurants({
+    bool forceRefresh = false,
+  }) async {
     return const [
       MerchantRestaurant(
         id: 'restaurant-1',

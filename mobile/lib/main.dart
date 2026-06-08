@@ -32,6 +32,7 @@ import 'features/customer/data/repositories/http_customer_notification_repositor
 import 'features/customer/data/repositories/http_customer_order_repository.dart';
 import 'features/customer/data/repositories/http_customer_profile_repository.dart';
 import 'features/customer/data/data_sources/customer_catalog_remote_data_source.dart';
+import 'features/customer/data/repositories/cached_customer_catalog_repository.dart';
 import 'features/customer/data/repositories/http_customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_ai_repository.dart';
 import 'features/customer/domain/repositories/customer_cart_repository.dart';
@@ -47,6 +48,7 @@ import 'features/merchant/data/data_sources/merchant_revenue_remote_data_source.
 import 'features/merchant/data/data_sources/merchant_notification_remote_data_source.dart';
 import 'features/merchant/data/repositories/http_merchant_catalog_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_order_repository.dart';
+import 'features/merchant/data/repositories/cached_merchant_restaurant_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_restaurant_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_review_repository.dart';
 import 'features/merchant/data/repositories/http_merchant_revenue_repository.dart';
@@ -88,7 +90,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final CustomerProfileRepository _customerProfileRepository;
   late final CustomerNotificationRepository _customerNotificationRepository;
   late final CustomerAiRepository _customerAiRepository;
-  late final MerchantRestaurantRepository _merchantRestaurantRepository;
+  late final CachedMerchantRestaurantRepository _merchantRestaurantRepository;
   late final MerchantCatalogRepository _merchantCatalogRepository;
   late final MerchantOrderRepository _merchantOrderRepository;
   late final MerchantReviewRepository _merchantReviewRepository;
@@ -137,13 +139,19 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
     _sessionSubscription = _sessionCubit.stream.listen((state) {
       if (state.isAuthenticated) {
         unawaited(_fcmNotificationService.registerCurrentDevice());
+      } else if (state.isUnauthenticated) {
+        // Per-account data must never leak to the next account signing in
+        // on the same device.
+        _merchantRestaurantRepository.clearCache();
       }
     });
 
-    _customerCatalogRepository = HttpCustomerCatalogRepository(
-      remoteDataSource: CustomerCatalogRemoteDataSource(
-        baseUrl: AppConfig.apiBaseUrl,
-        client: widget._httpClient,
+    _customerCatalogRepository = CachedCustomerCatalogRepository(
+      delegate: HttpCustomerCatalogRepository(
+        remoteDataSource: CustomerCatalogRemoteDataSource(
+          baseUrl: AppConfig.apiBaseUrl,
+          client: widget._httpClient,
+        ),
       ),
     );
 
@@ -187,12 +195,14 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       sessionRecovery: _authSessionRecovery,
     );
 
-    _merchantRestaurantRepository = HttpMerchantRestaurantRepository(
-      remoteDataSource: MerchantRestaurantRemoteDataSource(
-        baseUrl: AppConfig.apiBaseUrl,
-        client: widget._httpClient,
+    _merchantRestaurantRepository = CachedMerchantRestaurantRepository(
+      delegate: HttpMerchantRestaurantRepository(
+        remoteDataSource: MerchantRestaurantRemoteDataSource(
+          baseUrl: AppConfig.apiBaseUrl,
+          client: widget._httpClient,
+        ),
+        sessionRecovery: _authSessionRecovery,
       ),
-      sessionRecovery: _authSessionRecovery,
     );
 
     _merchantCatalogRepository = HttpMerchantCatalogRepository(

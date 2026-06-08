@@ -4,7 +4,7 @@ import '../models/merchant_restaurant.dart';
 import '../models/merchant_restaurant_request.dart';
 
 abstract class MerchantRestaurantRepository {
-  Future<List<MerchantRestaurant>> listRestaurants();
+  Future<List<MerchantRestaurant>> listRestaurants({bool forceRefresh = false});
 
   Future<MerchantRestaurant> createRestaurant(
     MerchantRestaurantRequest request, {

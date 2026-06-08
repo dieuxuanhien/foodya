@@ -124,7 +124,11 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
         ),
       );
 
-      await _loadNearby(lat: position.latitude, lng: position.longitude);
+      await _loadNearby(
+        lat: position.latitude,
+        lng: position.longitude,
+        forceRefresh: true,
+      );
     } catch (error) {
       final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
@@ -164,10 +168,14 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
         clearNearbyMessage: true,
       ),
     );
-    await _loadNearby(lat: latitude, lng: longitude);
+    await _loadNearby(lat: latitude, lng: longitude, forceRefresh: true);
   }
 
-  Future<void> _loadNearby({required double lat, required double lng}) async {
+  Future<void> _loadNearby({
+    required double lat,
+    required double lng,
+    bool forceRefresh = false,
+  }) async {
     emit(state.copyWith(isNearbyLoading: true, clearNearbyMessage: true));
 
     try {
@@ -178,6 +186,7 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
         sort: 'distance_asc',
         page: 0,
         size: 10,
+        forceRefresh: forceRefresh,
       );
 
       emit(

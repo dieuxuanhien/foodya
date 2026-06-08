@@ -255,6 +255,7 @@ void main() {
             sort: any(named: 'sort'),
             page: any(named: 'page'),
             size: any(named: 'size'),
+            forceRefresh: any(named: 'forceRefresh'),
           ),
         ).thenAnswer((_) async => restaurantSearchPage());
 

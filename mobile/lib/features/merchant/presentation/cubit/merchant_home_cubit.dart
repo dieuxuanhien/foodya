@@ -25,7 +25,7 @@ class MerchantHomeCubit extends Cubit<MerchantHomeState> {
   final MerchantRevenueRepository _revenueRepository;
   final MerchantRestaurantSelectionCubit? _selectionCubit;
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     if (state.isLoading) {
       return;
     }
@@ -33,7 +33,9 @@ class MerchantHomeCubit extends Cubit<MerchantHomeState> {
     emit(state.copyWith(status: MerchantHomeStatus.loading, clearError: true));
 
     try {
-      final restaurants = await _restaurantRepository.listRestaurants();
+      final restaurants = await _restaurantRepository.listRestaurants(
+        forceRefresh: forceRefresh,
+      );
       final selected = _resolveSelectedRestaurant(restaurants);
 
       if (selected == null) {

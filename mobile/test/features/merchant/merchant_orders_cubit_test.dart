@@ -16,7 +16,9 @@ class _FakeMerchantRestaurantRepository
   final bool shouldFail;
 
   @override
-  Future<List<MerchantRestaurant>> listRestaurants() async {
+  Future<List<MerchantRestaurant>> listRestaurants({
+    bool forceRefresh = false,
+  }) async {
     if (shouldFail) {
       throw Exception('restaurants');
     }

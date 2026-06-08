@@ -78,6 +78,7 @@ class _FakeCustomerCatalogRepository implements CustomerCatalogRepository {
     String? sort,
     int page = 0,
     int size = 10,
+    bool forceRefresh = false,
   }) async {
     return const PagedResult(
       items: [
@@ -102,7 +103,10 @@ class _FakeCustomerCatalogRepository implements CustomerCatalogRepository {
   }
 
   @override
-  Future<RestaurantDetail> getRestaurantDetail(String restaurantId) {
+  Future<RestaurantDetail> getRestaurantDetail(
+    String restaurantId, {
+    bool forceRefresh = false,
+  }) {
     throw UnimplementedError();
   }
 
@@ -146,7 +150,9 @@ class _FakeCustomerCatalogRepository implements CustomerCatalogRepository {
 class _FakeMerchantRestaurantRepository
     implements MerchantRestaurantRepository {
   @override
-  Future<List<MerchantRestaurant>> listRestaurants() async {
+  Future<List<MerchantRestaurant>> listRestaurants({
+    bool forceRefresh = false,
+  }) async {
     return const [
       MerchantRestaurant(
         id: 'restaurant-1',

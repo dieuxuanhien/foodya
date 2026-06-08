@@ -88,7 +88,10 @@ class _MerchantHomeView extends StatelessWidget {
             ],
           ),
           body: RefreshIndicator(
-            onRefresh: () => context.read<MerchantHomeCubit>().load(),
+            onRefresh:
+                () => context.read<MerchantHomeCubit>().load(
+                  forceRefresh: true,
+                ),
             child: _MerchantHomeBody(state: state),
           ),
         );

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -374,7 +375,8 @@ class _ProfileHeader extends StatelessWidget {
         CircleAvatar(
           radius: 48,
           backgroundColor: theme.colorScheme.primaryContainer,
-          backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+          backgroundImage:
+              hasAvatar ? CachedNetworkImageProvider(avatarUrl) : null,
           child:
               hasAvatar
                   ? null

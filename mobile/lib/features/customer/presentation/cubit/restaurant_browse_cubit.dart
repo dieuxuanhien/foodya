@@ -152,7 +152,7 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
   }
 
   Future<void> refresh() async {
-    await _fetchPage(pageIndex: 0);
+    await _fetchPage(pageIndex: 0, forceRefresh: true);
   }
 
   Future<void> nextPage() async {
@@ -183,7 +183,10 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
     await _fetchPage(pageIndex: pageIndex);
   }
 
-  Future<void> _fetchPage({required int pageIndex}) async {
+  Future<void> _fetchPage({
+    required int pageIndex,
+    bool forceRefresh = false,
+  }) async {
     emit(
       state.copyWith(status: RestaurantBrowseStatus.loading, clearError: true),
     );
@@ -198,6 +201,7 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
                 sort: state.sort,
                 page: pageIndex,
                 size: restaurantPageSize,
+                forceRefresh: forceRefresh,
               )
               : await _repository.searchRestaurants(
                 keyword:
