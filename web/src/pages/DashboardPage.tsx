@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Users, Store, ShoppingBag, TrendingUp } from 'lucide-react';
 import { getUsers } from '../api/users';
 import { getRestaurants } from '../api/restaurants';
@@ -67,10 +68,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <a href="/users" className="btn btn-ghost">Manage Users</a>
-            <a href="/restaurants" className="btn btn-ghost">Review Restaurants</a>
-            <a href="/orders" className="btn btn-ghost">Monitor Orders</a>
-            <a href="/system-params" className="btn btn-ghost">Configure System</a>
+            <Link to="/users" className="btn btn-ghost">Manage Users</Link>
+            <Link to="/restaurants" className="btn btn-ghost">Review Restaurants</Link>
+            <Link to="/orders" className="btn btn-ghost">Monitor Orders</Link>
+            <Link to="/system-params" className="btn btn-ghost">Configure System</Link>
           </div>
         </div>
       </div>

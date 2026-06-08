@@ -85,7 +85,7 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
             title: const Text('Restaurant Console'),
             actions: [
               IconButton(
-                onPressed: () => context.push('/merchant/catalog'),
+                onPressed: () => context.go('/merchant/catalog'),
                 icon: const Icon(Icons.fastfood_outlined),
                 tooltip: 'Catalog',
               ),

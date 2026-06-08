@@ -151,22 +151,22 @@ class AppRouter {
             name: 'merchant-profile',
             builder: (context, state) => const MerchantProfilePage(),
           ),
+          GoRoute(
+            path: '/merchant/restaurant',
+            name: 'merchant-restaurant',
+            builder: (context, state) => const MerchantRestaurantPage(),
+          ),
+          GoRoute(
+            path: '/merchant/reviews',
+            name: 'merchant-reviews',
+            builder: (context, state) => const MerchantReviewsPage(),
+          ),
+          GoRoute(
+            path: '/merchant/notifications',
+            name: 'merchant-notifications',
+            builder: (context, state) => const MerchantNotificationsPage(),
+          ),
         ],
-      ),
-      GoRoute(
-        path: '/merchant/restaurant',
-        name: 'merchant-restaurant',
-        builder: (context, state) => const MerchantRestaurantPage(),
-      ),
-      GoRoute(
-        path: '/merchant/reviews',
-        name: 'merchant-reviews',
-        builder: (context, state) => const MerchantReviewsPage(),
-      ),
-      GoRoute(
-        path: '/merchant/notifications',
-        name: 'merchant-notifications',
-        builder: (context, state) => const MerchantNotificationsPage(),
       ),
     ],
   );

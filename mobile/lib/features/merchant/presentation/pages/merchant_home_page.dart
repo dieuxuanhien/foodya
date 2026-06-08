@@ -44,7 +44,7 @@ class _MerchantHomeView extends StatelessWidget {
             title: const Text('Dashboard'),
             actions: [
               IconButton(
-                onPressed: () => context.push('/merchant/notifications'),
+                onPressed: () => context.go('/merchant/notifications'),
                 icon: const Icon(Icons.notifications_outlined),
                 tooltip: 'Alerts',
               ),
@@ -142,7 +142,7 @@ class _MerchantHomeBody extends StatelessWidget {
             title: 'Create your restaurant',
             message: 'Set up a restaurant before taking orders.',
             actionLabel: 'Restaurant setup',
-            onAction: () => context.push('/merchant/restaurant'),
+            onAction: () => context.go('/merchant/restaurant'),
           ),
         ],
       );
@@ -192,7 +192,7 @@ class _MerchantHomeBody extends StatelessWidget {
           title: 'Order queue',
           leadingIcon: Icons.receipt_long_outlined,
           action: TextButton.icon(
-            onPressed: () => context.push('/merchant/orders'),
+            onPressed: () => context.go('/merchant/orders'),
             icon: const Icon(Icons.receipt_long_outlined),
             label: const Text('Orders'),
           ),
@@ -216,35 +216,35 @@ class _MerchantHomeBody extends StatelessWidget {
             FoodyaQuickActionTile(
               label: 'Catalog',
               icon: Icons.restaurant_menu_outlined,
-              onTap: () => context.push('/merchant/catalog'),
+              onTap: () => context.go('/merchant/catalog'),
             ),
             FoodyaQuickActionTile(
               label: 'Orders',
               icon: Icons.receipt_long_outlined,
               iconBackgroundColor: const Color(0xFFFED7AA),
               iconColor: const Color(0xFF9A3412),
-              onTap: () => context.push('/merchant/orders'),
+              onTap: () => context.go('/merchant/orders'),
             ),
             FoodyaQuickActionTile(
               label: 'Insights',
               icon: Icons.bar_chart_outlined,
               iconBackgroundColor: const Color(0xFFFEF3C7),
               iconColor: const Color(0xFFB45309),
-              onTap: () => context.push('/merchant/revenue'),
+              onTap: () => context.go('/merchant/revenue'),
             ),
             FoodyaQuickActionTile(
               label: 'Reviews',
               icon: Icons.rate_review_outlined,
               iconBackgroundColor: const Color(0xFFDCFCE7),
               iconColor: const Color(0xFF166534),
-              onTap: () => context.push('/merchant/reviews'),
+              onTap: () => context.go('/merchant/reviews'),
             ),
             FoodyaQuickActionTile(
               label: 'Alerts',
               icon: Icons.notifications_active_outlined,
               iconBackgroundColor: const Color(0xFFFFE4D6),
               iconColor: const Color(0xFFC2410C),
-              onTap: () => context.push('/merchant/notifications'),
+              onTap: () => context.go('/merchant/notifications'),
             ),
           ],
         ),
@@ -268,7 +268,7 @@ class _RestaurantHero extends StatelessWidget {
       backgroundImageUrl: restaurant.backgroundImageUrl,
       trailing: FoodyaStatusChip(value: restaurant.status),
       primaryAction: FilledButton.icon(
-        onPressed: () => context.push('/merchant/orders'),
+        onPressed: () => context.go('/merchant/orders'),
         icon: const Icon(Icons.receipt_long_outlined),
         label: const Text('View orders'),
       ),
@@ -277,7 +277,7 @@ class _RestaurantHero extends StatelessWidget {
           foregroundColor: Colors.white,
           side: const BorderSide(color: Color(0xFFFFEDD5)),
         ),
-        onPressed: () => context.push('/merchant/restaurant'),
+        onPressed: () => context.go('/merchant/restaurant'),
         icon: const Icon(Icons.tune_outlined),
         label: const Text('Manage'),
       ),
@@ -308,7 +308,7 @@ class _RecentOrderList extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Card(
                 child: ListTile(
-                  onTap: () => context.push('/merchant/orders'),
+                  onTap: () => context.go('/merchant/orders'),
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFFFFEDD5),
                     foregroundColor: const Color(0xFFEA580C),

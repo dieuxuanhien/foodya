@@ -169,7 +169,7 @@ class _NotificationTile extends StatelessWidget {
                 ),
         onTap:
             notification.isOrderNotification
-                ? () => context.push('/merchant/orders')
+                ? () => context.go('/merchant/orders')
                 : null,
       ),
     );

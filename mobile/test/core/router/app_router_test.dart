@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodya_mobile/app.dart';
 import 'package:foodya_mobile/core/auth/session_cubit.dart';
@@ -130,6 +131,15 @@ void main() {
         topItems: any(named: 'topItems'),
       ),
     ).thenAnswer((_) async => merchantRevenueReport());
+    when(
+      () => merchantReviewRepository.listRestaurantReviews(any()),
+    ).thenAnswer((_) async => []);
+    when(
+      () => merchantNotificationRepository.listNotifications(
+        page: any(named: 'page'),
+        size: any(named: 'size'),
+      ),
+    ).thenAnswer((_) async => []);
   });
 
   tearDown(() async {
@@ -241,5 +251,31 @@ void main() {
 
     expect(router.state.matchedLocation, '/merchant/home');
     expect(find.text('Dashboard'), findsAtLeastNWidgets(1));
+  });
+
+  testWidgets('merchant auxiliary routes render inside merchant shell', (
+    tester,
+  ) async {
+    sessionCubit.signInAs(UserRole.merchant);
+    final router = await pumpRouter(tester);
+    await tester.pumpAndSettle();
+
+    router.go('/merchant/restaurant');
+    await tester.pumpAndSettle();
+    expect(router.state.matchedLocation, '/merchant/restaurant');
+    expect(find.text('Restaurant Console'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    router.go('/merchant/reviews');
+    await tester.pumpAndSettle();
+    expect(router.state.matchedLocation, '/merchant/reviews');
+    expect(find.text('Review Center'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    router.go('/merchant/notifications');
+    await tester.pumpAndSettle();
+    expect(router.state.matchedLocation, '/merchant/notifications');
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }
