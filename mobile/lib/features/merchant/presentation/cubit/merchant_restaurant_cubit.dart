@@ -5,14 +5,19 @@ import '../../../../core/network/api_error_ui_message.dart';
 import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_restaurant_request.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
+import 'merchant_restaurant_selection_cubit.dart';
 import 'merchant_restaurant_state.dart';
 
 class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
-  MerchantRestaurantCubit({required MerchantRestaurantRepository repository})
-    : _repository = repository,
-      super(const MerchantRestaurantState.initial());
+  MerchantRestaurantCubit({
+    required MerchantRestaurantRepository repository,
+    MerchantRestaurantSelectionCubit? selectionCubit,
+  }) : _repository = repository,
+       _selectionCubit = selectionCubit,
+       super(const MerchantRestaurantState.initial());
 
   final MerchantRestaurantRepository _repository;
+  final MerchantRestaurantSelectionCubit? _selectionCubit;
 
   Future<void> loadRestaurants() async {
     if (state.isBusy) {
@@ -27,13 +32,12 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
     );
     try {
       final restaurants = await _repository.listRestaurants();
+      final selected = _resolveSelectedRestaurant(restaurants);
       emit(
         state.copyWith(
           status: MerchantRestaurantStatus.success,
           restaurants: restaurants,
-          restaurant:
-              state.restaurant ??
-              (restaurants.isEmpty ? null : restaurants.first),
+          restaurant: selected,
           clearError: true,
         ),
       );
@@ -43,6 +47,7 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
   }
 
   void selectRestaurant(MerchantRestaurant restaurant) {
+    _selectionCubit?.selectRestaurant(restaurant);
     emit(state.copyWith(restaurant: restaurant, clearError: true));
   }
 
@@ -82,6 +87,7 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
           clearError: true,
         ),
       );
+      _selectionCubit?.selectRestaurant(restaurant);
     } catch (error) {
       _emitFailure(error, 'Unable to create restaurant.');
     }
@@ -119,6 +125,7 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
           clearError: true,
         ),
       );
+      _selectionCubit?.selectRestaurant(restaurant);
     } catch (error) {
       _emitFailure(error, 'Unable to update restaurant.');
     }
@@ -174,5 +181,43 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
       for (var i = 0; i < restaurants.length; i++)
         if (i == index) restaurant else restaurants[i],
     ];
+  }
+
+  MerchantRestaurant? _resolveSelectedRestaurant(
+    List<MerchantRestaurant> restaurants,
+  ) {
+    if (restaurants.isEmpty) {
+      _selectionCubit?.selectRestaurantId(null);
+      return null;
+    }
+    final selectedId = _selectionCubit?.state.restaurantId;
+    if (selectedId != null) {
+      final selected = _findRestaurant(restaurants, selectedId);
+      if (selected != null) {
+        return selected;
+      }
+    }
+    final current = state.restaurant;
+    if (current != null) {
+      final selected = _findRestaurant(restaurants, current.id);
+      if (selected != null) {
+        return selected;
+      }
+    }
+    final selected = restaurants.first;
+    _selectionCubit?.selectRestaurant(selected);
+    return selected;
+  }
+
+  MerchantRestaurant? _findRestaurant(
+    List<MerchantRestaurant> restaurants,
+    String restaurantId,
+  ) {
+    for (final restaurant in restaurants) {
+      if (restaurant.id == restaurantId) {
+        return restaurant;
+      }
+    }
+    return null;
   }
 }

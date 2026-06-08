@@ -10,6 +10,7 @@ import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_res
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_revenue_repository.dart';
 import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_home_cubit.dart';
 import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_home_state.dart';
+import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_restaurant_selection_cubit.dart';
 
 class _FakeMerchantRestaurantRepository
     implements MerchantRestaurantRepository {
@@ -62,6 +63,8 @@ class _FakeMerchantRestaurantRepository
 }
 
 class _FakeMerchantOrderRepository implements MerchantOrderRepository {
+  String? lastRestaurantId;
+
   List<MerchantOrderSummary> orders = const [
     MerchantOrderSummary(
       orderId: 'order-1',
@@ -96,6 +99,7 @@ class _FakeMerchantOrderRepository implements MerchantOrderRepository {
   Future<List<MerchantOrderSummary>> listRestaurantOrders(
     String restaurantId,
   ) async {
+    lastRestaurantId = restaurantId;
     return orders;
   }
 
@@ -150,6 +154,56 @@ void main() {
     expect(cubit.state.activeOrderCount, 2);
     expect(cubit.state.sevenDayRevenue, 1250000);
     expect(cubit.state.averageRating, 4.6);
+  });
+
+  test('MerchantHomeCubit respects shared selected restaurant', () async {
+    final restaurantRepository =
+        _FakeMerchantRestaurantRepository()
+          ..restaurants = const [
+            MerchantRestaurant(
+              id: 'restaurant-1',
+              name: 'Pho House',
+              cuisineType: 'Vietnamese',
+              description: 'Soup',
+              addressLine: '1 Nguyen Hue',
+              latitude: 10.77,
+              longitude: 106.7,
+              avgRating: 4.6,
+              reviewCount: 10,
+              status: 'APPROVED',
+              open: true,
+              maxDeliveryKm: 5,
+            ),
+            MerchantRestaurant(
+              id: 'restaurant-2',
+              name: 'Bun Corner',
+              cuisineType: 'Noodles',
+              description: 'Rice noodles',
+              addressLine: '2 Le Loi',
+              latitude: 10.78,
+              longitude: 106.71,
+              avgRating: 4.2,
+              reviewCount: 6,
+              status: 'APPROVED',
+              open: true,
+              maxDeliveryKm: 4,
+            ),
+          ];
+    final orderRepository = _FakeMerchantOrderRepository();
+    final selectionCubit =
+        MerchantRestaurantSelectionCubit()..selectRestaurantId('restaurant-2');
+    final cubit = MerchantHomeCubit(
+      restaurantRepository: restaurantRepository,
+      orderRepository: orderRepository,
+      revenueRepository: _FakeMerchantRevenueRepository(),
+      selectionCubit: selectionCubit,
+    );
+
+    await cubit.load();
+
+    expect(cubit.state.selectedRestaurant?.name, 'Bun Corner');
+    expect(orderRepository.lastRestaurantId, 'restaurant-2');
+    expect(selectionCubit.state.restaurantId, 'restaurant-2');
   });
 
   test('MerchantHomeCubit handles empty restaurant list', () async {

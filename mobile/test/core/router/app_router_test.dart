@@ -20,6 +20,7 @@ import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_ord
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_restaurant_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_revenue_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_review_repository.dart';
+import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_restaurant_selection_cubit.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
@@ -195,6 +196,9 @@ void main() {
         child: MultiBlocProvider(
           providers: [
             BlocProvider<SessionCubit>.value(value: sessionCubit),
+            BlocProvider<MerchantRestaurantSelectionCubit>(
+              create: (_) => MerchantRestaurantSelectionCubit(),
+            ),
             BlocProvider<LoginCubit>(
               create:
                   (_) => LoginCubit(

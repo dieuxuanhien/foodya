@@ -36,7 +36,7 @@ class MerchantRestaurantState extends Equatable {
   MerchantRestaurantState copyWith({
     MerchantRestaurantStatus? status,
     List<MerchantRestaurant>? restaurants,
-    MerchantRestaurant? restaurant,
+    Object? restaurant = _unset,
     Object? backgroundImageFile = _unset,
     Object? avatarImageFile = _unset,
     String? errorMessage,
@@ -47,7 +47,10 @@ class MerchantRestaurantState extends Equatable {
     return MerchantRestaurantState(
       status: status ?? this.status,
       restaurants: restaurants ?? this.restaurants,
-      restaurant: restaurant ?? this.restaurant,
+      restaurant:
+          restaurant == _unset
+              ? this.restaurant
+              : restaurant as MerchantRestaurant?,
       backgroundImageFile:
           backgroundImageFile == _unset
               ? this.backgroundImageFile

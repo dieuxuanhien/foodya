@@ -7,6 +7,7 @@ import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_restaurant_request.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
 import '../cubit/merchant_restaurant_cubit.dart';
+import '../cubit/merchant_restaurant_selection_cubit.dart';
 import '../cubit/merchant_restaurant_state.dart';
 
 class MerchantRestaurantPage extends StatelessWidget {
@@ -18,6 +19,7 @@ class MerchantRestaurantPage extends StatelessWidget {
       create:
           (context) => MerchantRestaurantCubit(
             repository: context.read<MerchantRestaurantRepository>(),
+            selectionCubit: context.read<MerchantRestaurantSelectionCubit>(),
           )..loadRestaurants(),
       child: const _MerchantRestaurantView(),
     );
@@ -105,166 +107,175 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _RestaurantList(
-                restaurants: state.restaurants,
-                selectedRestaurantId: state.restaurant?.id,
-                isLoading: state.isLoading,
-                onSelected: (restaurant) {
-                  context.read<MerchantRestaurantCubit>().selectRestaurant(
-                    restaurant,
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _restaurantIdController,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Restaurant ID for update',
+              if (state.isLoading && state.restaurant == null)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else ...[
+                if (state.restaurant == null)
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.storefront_outlined),
+                      title: Text('No restaurants yet'),
+                      subtitle: Text('Create your first restaurant below.'),
+                    ),
+                  )
+                else
+                  _ManagedRestaurantCard(restaurant: state.restaurant!),
+                const SizedBox(height: 16),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _restaurantIdController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Restaurant ID for update',
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                      validator: _required,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _cuisineController,
-                      decoration: const InputDecoration(
-                        labelText: 'Cuisine types',
-                        hintText: 'Vietnamese, Noodles',
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(labelText: 'Name'),
+                        validator: _required,
                       ),
-                      validator: _required,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _cuisineController,
+                        decoration: const InputDecoration(
+                          labelText: 'Cuisine types',
+                          hintText: 'Vietnamese, Noodles',
+                        ),
+                        validator: _required,
                       ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(labelText: 'Address'),
-                      validator: _required,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _latitudeController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Latitude',
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _addressController,
+                        decoration: const InputDecoration(labelText: 'Address'),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _latitudeController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Latitude',
+                              ),
+                              validator: _number,
                             ),
-                            validator: _number,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _longitudeController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Longitude',
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _longitudeController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Longitude',
+                              ),
+                              validator: _number,
                             ),
-                            validator: _number,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _maxDeliveryController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Max delivery km',
+                        ],
                       ),
-                      validator: _positiveNumber,
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: _isOpen,
-                      title: const Text('Open for orders'),
-                      onChanged:
-                          state.isBusy
-                              ? null
-                              : (value) => setState(() => _isOpen = value),
-                    ),
-                    const SizedBox(height: 16),
-                    ImagePickerField(
-                      label: 'Background image',
-                      pickedFile: state.backgroundImageFile,
-                      currentUrl: state.restaurant?.backgroundImageUrl,
-                      onChanged:
-                          (file) => context
-                              .read<MerchantRestaurantCubit>()
-                              .setBackgroundImageFile(file),
-                    ),
-                    const SizedBox(height: 12),
-                    ImagePickerField(
-                      label: 'Avatar / logo',
-                      pickedFile: state.avatarImageFile,
-                      currentUrl: state.restaurant?.avatarImageUrl,
-                      onChanged:
-                          (file) => context
-                              .read<MerchantRestaurantCubit>()
-                              .setAvatarImageFile(file),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed:
-                                state.isBusy
-                                    ? null
-                                    : () => _createRestaurant(context),
-                            icon: const Icon(Icons.add_business_outlined),
-                            label: const Text('Create'),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _maxDeliveryController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Max delivery km',
+                        ),
+                        validator: _positiveNumber,
+                      ),
+                      const SizedBox(height: 12),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _isOpen,
+                        title: const Text('Open for orders'),
+                        onChanged:
+                            state.isBusy
+                                ? null
+                                : (value) => setState(() => _isOpen = value),
+                      ),
+                      const SizedBox(height: 16),
+                      ImagePickerField(
+                        label: 'Background image',
+                        pickedFile: state.backgroundImageFile,
+                        currentUrl: state.restaurant?.backgroundImageUrl,
+                        onChanged:
+                            (file) => context
+                                .read<MerchantRestaurantCubit>()
+                                .setBackgroundImageFile(file),
+                      ),
+                      const SizedBox(height: 12),
+                      ImagePickerField(
+                        label: 'Avatar / logo',
+                        pickedFile: state.avatarImageFile,
+                        currentUrl: state.restaurant?.avatarImageUrl,
+                        onChanged:
+                            (file) => context
+                                .read<MerchantRestaurantCubit>()
+                                .setAvatarImageFile(file),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed:
+                                  state.isBusy
+                                      ? null
+                                      : () => _createRestaurant(context),
+                              icon: const Icon(Icons.add_business_outlined),
+                              label: const Text('Create'),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.tonalIcon(
-                            onPressed:
-                                state.isBusy
-                                    ? null
-                                    : () => _updateRestaurant(context),
-                            icon: const Icon(Icons.save_outlined),
-                            label: const Text('Update'),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.tonalIcon(
+                              onPressed:
+                                  state.isBusy
+                                      ? null
+                                      : () => _updateRestaurant(context),
+                              icon: const Icon(Icons.save_outlined),
+                              label: const Text('Update'),
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed:
+                            state.isBusy
+                                ? null
+                                : () => _toggleOpen(context, !_isOpen),
+                        icon: Icon(
+                          _isOpen
+                              ? Icons.storefront_outlined
+                              : Icons.store_outlined,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed:
-                          state.isBusy
-                              ? null
-                              : () => _toggleOpen(context, !_isOpen),
-                      icon: Icon(
-                        _isOpen
-                            ? Icons.storefront_outlined
-                            : Icons.store_outlined,
+                        label: Text(
+                          _isOpen ? 'Close restaurant' : 'Open restaurant',
+                        ),
                       ),
-                      label: Text(
-                        _isOpen ? 'Close restaurant' : 'Open restaurant',
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -365,23 +376,15 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
   }
 }
 
-class _RestaurantSummary extends StatelessWidget {
-  const _RestaurantSummary({
-    required this.restaurant,
-    required this.selected,
-    required this.onTap,
-  });
+class _ManagedRestaurantCard extends StatelessWidget {
+  const _ManagedRestaurantCard({required this.restaurant});
 
   final MerchantRestaurant restaurant;
-  final bool selected;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        selected: selected,
-        onTap: onTap,
         leading: Icon(
           restaurant.open
               ? Icons.storefront_outlined
@@ -391,51 +394,6 @@ class _RestaurantSummary extends StatelessWidget {
         subtitle: Text('${restaurant.status} - ${restaurant.cuisineType}'),
         trailing: Text(restaurant.open ? 'Open' : 'Closed'),
       ),
-    );
-  }
-}
-
-class _RestaurantList extends StatelessWidget {
-  const _RestaurantList({
-    required this.restaurants,
-    required this.selectedRestaurantId,
-    required this.isLoading,
-    required this.onSelected,
-  });
-
-  final List<MerchantRestaurant> restaurants;
-  final String? selectedRestaurantId;
-  final bool isLoading;
-  final ValueChanged<MerchantRestaurant> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading && restaurants.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-    if (restaurants.isEmpty) {
-      return const Card(
-        child: ListTile(
-          leading: Icon(Icons.storefront_outlined),
-          title: Text('No restaurants yet'),
-          subtitle: Text('Create your first restaurant below.'),
-        ),
-      );
-    }
-    return Column(
-      children: [
-        for (final restaurant in restaurants)
-          _RestaurantSummary(
-            restaurant: restaurant,
-            selected: restaurant.id == selectedRestaurantId,
-            onTap: () => onSelected(restaurant),
-          ),
-      ],
     );
   }
 }

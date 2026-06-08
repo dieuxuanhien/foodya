@@ -12,6 +12,7 @@ import '../../domain/repositories/merchant_restaurant_repository.dart';
 import '../../domain/repositories/merchant_revenue_repository.dart';
 import '../cubit/merchant_home_cubit.dart';
 import '../cubit/merchant_home_state.dart';
+import '../cubit/merchant_restaurant_selection_cubit.dart';
 
 enum _MerchantSessionAction { refresh, logoutAll }
 
@@ -26,6 +27,7 @@ class MerchantHomePage extends StatelessWidget {
             restaurantRepository: context.read<MerchantRestaurantRepository>(),
             orderRepository: context.read<MerchantOrderRepository>(),
             revenueRepository: context.read<MerchantRevenueRepository>(),
+            selectionCubit: context.read<MerchantRestaurantSelectionCubit>(),
           )..load(),
       child: const _MerchantHomeView(),
     );
@@ -151,6 +153,17 @@ class _MerchantHomeBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (state.restaurants.length > 1) ...[
+          _RestaurantSwitcher(
+            restaurants: state.restaurants,
+            selectedRestaurant: restaurant,
+            onSelected:
+                (restaurant) => context
+                    .read<MerchantHomeCubit>()
+                    .selectRestaurant(restaurant),
+          ),
+          const SizedBox(height: 12),
+        ],
         _RestaurantHero(restaurant: restaurant),
         const SizedBox(height: 18),
         GridView.count(
@@ -249,6 +262,48 @@ class _MerchantHomeBody extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _RestaurantSwitcher extends StatelessWidget {
+  const _RestaurantSwitcher({
+    required this.restaurants,
+    required this.selectedRestaurant,
+    required this.onSelected,
+  });
+
+  final List<MerchantRestaurant> restaurants;
+  final MerchantRestaurant selectedRestaurant;
+  final ValueChanged<MerchantRestaurant> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: DropdownButtonFormField<String>(
+          value: selectedRestaurant.id,
+          decoration: const InputDecoration(
+            labelText: 'Viewing restaurant',
+            prefixIcon: Icon(Icons.storefront_outlined),
+          ),
+          items: restaurants
+              .map(
+                (restaurant) => DropdownMenuItem(
+                  value: restaurant.id,
+                  child: Text(restaurant.name),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (id) {
+            final matches = restaurants.where((item) => item.id == id);
+            if (matches.isNotEmpty) {
+              onSelected(matches.first);
+            }
+          },
+        ),
+      ),
     );
   }
 }

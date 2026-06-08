@@ -7,17 +7,21 @@ import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/repositories/merchant_order_repository.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
 import 'merchant_orders_state.dart';
+import 'merchant_restaurant_selection_cubit.dart';
 
 class MerchantOrdersCubit extends Cubit<MerchantOrdersState> {
   MerchantOrdersCubit({
     required MerchantOrderRepository orderRepository,
     required MerchantRestaurantRepository restaurantRepository,
+    MerchantRestaurantSelectionCubit? selectionCubit,
   }) : _orderRepository = orderRepository,
        _restaurantRepository = restaurantRepository,
+       _selectionCubit = selectionCubit,
        super(const MerchantOrdersState.initial());
 
   final MerchantOrderRepository _orderRepository;
   final MerchantRestaurantRepository _restaurantRepository;
+  final MerchantRestaurantSelectionCubit? _selectionCubit;
 
   Future<void> load() async {
     if (state.isBusy) {
@@ -32,9 +36,7 @@ class MerchantOrdersCubit extends Cubit<MerchantOrdersState> {
     );
     try {
       final restaurants = await _restaurantRepository.listRestaurants();
-      final selected =
-          state.selectedRestaurant ??
-          (restaurants.isEmpty ? null : restaurants.first);
+      final selected = _resolveSelectedRestaurant(restaurants);
       emit(
         state.copyWith(
           status: MerchantOrdersStatus.success,
@@ -58,6 +60,7 @@ class MerchantOrdersCubit extends Cubit<MerchantOrdersState> {
     if (state.isActing) {
       return;
     }
+    _selectionCubit?.selectRestaurant(restaurant);
     emit(
       state.copyWith(
         status: MerchantOrdersStatus.loading,
@@ -172,5 +175,43 @@ class MerchantOrdersCubit extends Cubit<MerchantOrdersState> {
       for (var i = 0; i < orders.length; i++)
         if (i == index) summary else orders[i],
     ];
+  }
+
+  MerchantRestaurant? _resolveSelectedRestaurant(
+    List<MerchantRestaurant> restaurants,
+  ) {
+    if (restaurants.isEmpty) {
+      _selectionCubit?.selectRestaurantId(null);
+      return null;
+    }
+    final selectedId = _selectionCubit?.state.restaurantId;
+    if (selectedId != null) {
+      final selected = _findRestaurant(restaurants, selectedId);
+      if (selected != null) {
+        return selected;
+      }
+    }
+    final current = state.selectedRestaurant;
+    if (current != null) {
+      final selected = _findRestaurant(restaurants, current.id);
+      if (selected != null) {
+        return selected;
+      }
+    }
+    final selected = restaurants.first;
+    _selectionCubit?.selectRestaurant(selected);
+    return selected;
+  }
+
+  MerchantRestaurant? _findRestaurant(
+    List<MerchantRestaurant> restaurants,
+    String restaurantId,
+  ) {
+    for (final restaurant in restaurants) {
+      if (restaurant.id == restaurantId) {
+        return restaurant;
+      }
+    }
+    return null;
   }
 }

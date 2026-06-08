@@ -10,17 +10,21 @@ import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/repositories/merchant_catalog_repository.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
 import 'merchant_catalog_state.dart';
+import 'merchant_restaurant_selection_cubit.dart';
 
 class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
   MerchantCatalogCubit({
     required MerchantCatalogRepository catalogRepository,
     required MerchantRestaurantRepository restaurantRepository,
+    MerchantRestaurantSelectionCubit? selectionCubit,
   }) : _catalogRepository = catalogRepository,
        _restaurantRepository = restaurantRepository,
+       _selectionCubit = selectionCubit,
        super(const MerchantCatalogState.initial());
 
   final MerchantCatalogRepository _catalogRepository;
   final MerchantRestaurantRepository _restaurantRepository;
+  final MerchantRestaurantSelectionCubit? _selectionCubit;
 
   Future<void> load() async {
     if (state.isBusy) {
@@ -36,9 +40,7 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
     try {
       final restaurants = await _restaurantRepository.listRestaurants();
       final taxonomies = await _catalogRepository.listCategoryTaxonomies();
-      final selected =
-          state.selectedRestaurant ??
-          (restaurants.isEmpty ? null : restaurants.first);
+      final selected = _resolveSelectedRestaurant(restaurants);
       emit(
         state.copyWith(
           status: MerchantCatalogStatus.success,
@@ -63,6 +65,7 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
     if (state.isSaving) {
       return;
     }
+    _selectionCubit?.selectRestaurant(restaurant);
     emit(
       state.copyWith(
         status: MerchantCatalogStatus.loading,
@@ -194,7 +197,9 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
     }
     if (imageFile == null) {
       emit(
-        state.copyWith(errorMessage: 'Please select an image for the menu item.'),
+        state.copyWith(
+          errorMessage: 'Please select an image for the menu item.',
+        ),
       );
       return;
     }
@@ -352,5 +357,43 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
       for (var i = 0; i < items.length; i++)
         if (i == index) item else items[i],
     ];
+  }
+
+  MerchantRestaurant? _resolveSelectedRestaurant(
+    List<MerchantRestaurant> restaurants,
+  ) {
+    if (restaurants.isEmpty) {
+      _selectionCubit?.selectRestaurantId(null);
+      return null;
+    }
+    final selectedId = _selectionCubit?.state.restaurantId;
+    if (selectedId != null) {
+      final selected = _findRestaurant(restaurants, selectedId);
+      if (selected != null) {
+        return selected;
+      }
+    }
+    final current = state.selectedRestaurant;
+    if (current != null) {
+      final selected = _findRestaurant(restaurants, current.id);
+      if (selected != null) {
+        return selected;
+      }
+    }
+    final selected = restaurants.first;
+    _selectionCubit?.selectRestaurant(selected);
+    return selected;
+  }
+
+  MerchantRestaurant? _findRestaurant(
+    List<MerchantRestaurant> restaurants,
+    String restaurantId,
+  ) {
+    for (final restaurant in restaurants) {
+      if (restaurant.id == restaurantId) {
+        return restaurant;
+      }
+    }
+    return null;
   }
 }

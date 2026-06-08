@@ -57,6 +57,7 @@ import 'features/merchant/domain/repositories/merchant_restaurant_repository.dar
 import 'features/merchant/domain/repositories/merchant_review_repository.dart';
 import 'features/merchant/domain/repositories/merchant_revenue_repository.dart';
 import 'features/merchant/domain/repositories/merchant_notification_repository.dart';
+import 'features/merchant/presentation/cubit/merchant_restaurant_selection_cubit.dart';
 import 'core/location/geolocation_service.dart';
 
 Future<void> main() async {
@@ -306,6 +307,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       child: MultiBlocProvider(
         providers: [
           BlocProvider<SessionCubit>.value(value: _sessionCubit),
+          BlocProvider<MerchantRestaurantSelectionCubit>(
+            create: (_) => MerchantRestaurantSelectionCubit(),
+          ),
           BlocProvider<LoginCubit>(
             lazy: false,
             create:

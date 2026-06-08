@@ -10,6 +10,7 @@ import '../../domain/repositories/merchant_order_repository.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
 import '../cubit/merchant_orders_cubit.dart';
 import '../cubit/merchant_orders_state.dart';
+import '../cubit/merchant_restaurant_selection_cubit.dart';
 
 class MerchantOrdersPage extends StatelessWidget {
   const MerchantOrdersPage({super.key});
@@ -21,6 +22,7 @@ class MerchantOrdersPage extends StatelessWidget {
           (context) => MerchantOrdersCubit(
             orderRepository: context.read<MerchantOrderRepository>(),
             restaurantRepository: context.read<MerchantRestaurantRepository>(),
+            selectionCubit: context.read<MerchantRestaurantSelectionCubit>(),
           )..load(),
       child: const _MerchantOrdersView(),
     );
@@ -64,21 +66,6 @@ class _MerchantOrdersView extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _RestaurantPicker(
-                restaurants: state.restaurants,
-                selectedRestaurant: state.selectedRestaurant,
-                isLoading: state.isLoading,
-                onSelected:
-                    state.isBusy
-                        ? null
-                        : (restaurant) => context
-                            .read<MerchantOrdersCubit>()
-                            .loadRestaurantOrders(
-                              restaurant,
-                              clearSelection: true,
-                            ),
-              ),
-              const SizedBox(height: 16),
               if (state.selectedRestaurant == null)
                 const FoodyaEmptyState(
                   illustrationAsset:
@@ -88,6 +75,8 @@ class _MerchantOrdersView extends StatelessWidget {
                   message: 'Create a restaurant profile first.',
                 )
               else ...[
+                _ActiveRestaurantCard(restaurant: state.selectedRestaurant!),
+                const SizedBox(height: 16),
                 _OrderList(
                   orders: state.orders,
                   selectedOrderId: state.selectedOrder?.orderId,
@@ -121,50 +110,20 @@ class _MerchantOrdersView extends StatelessWidget {
   }
 }
 
-class _RestaurantPicker extends StatelessWidget {
-  const _RestaurantPicker({
-    required this.restaurants,
-    required this.selectedRestaurant,
-    required this.isLoading,
-    required this.onSelected,
-  });
+class _ActiveRestaurantCard extends StatelessWidget {
+  const _ActiveRestaurantCard({required this.restaurant});
 
-  final List<MerchantRestaurant> restaurants;
-  final MerchantRestaurant? selectedRestaurant;
-  final bool isLoading;
-  final ValueChanged<MerchantRestaurant>? onSelected;
+  final MerchantRestaurant restaurant;
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading && restaurants.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-    return DropdownButtonFormField<String>(
-      value: selectedRestaurant?.id,
-      decoration: const InputDecoration(labelText: 'Restaurant'),
-      items: restaurants
-          .map(
-            (restaurant) => DropdownMenuItem(
-              value: restaurant.id,
-              child: Text(restaurant.name),
-            ),
-          )
-          .toList(growable: false),
-      onChanged:
-          onSelected == null
-              ? null
-              : (id) {
-                final matches = restaurants.where((item) => item.id == id);
-                final restaurant = matches.isEmpty ? null : matches.first;
-                if (restaurant != null) {
-                  onSelected!(restaurant);
-                }
-              },
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.storefront_outlined),
+        title: Text(restaurant.name),
+        subtitle: Text(restaurant.cuisineType),
+        trailing: FoodyaStatusChip(value: restaurant.status),
+      ),
     );
   }
 }

@@ -19,6 +19,7 @@ import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_ord
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_restaurant_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_revenue_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_review_repository.dart';
+import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_restaurant_selection_cubit.dart';
 
 Future<void> pumpFoodyaApp(
   WidgetTester tester, {
@@ -83,6 +84,9 @@ Future<void> pumpFoodyaApp(
       child: MultiBlocProvider(
         providers: [
           BlocProvider<SessionCubit>.value(value: sessionCubit),
+          BlocProvider<MerchantRestaurantSelectionCubit>(
+            create: (_) => MerchantRestaurantSelectionCubit(),
+          ),
           BlocProvider<LoginCubit>(
             create:
                 (context) => LoginCubit(

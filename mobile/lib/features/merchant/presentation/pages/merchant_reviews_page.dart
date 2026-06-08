@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_review.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
 import '../../domain/repositories/merchant_review_repository.dart';
+import '../cubit/merchant_restaurant_selection_cubit.dart';
 import '../cubit/merchant_reviews_cubit.dart';
 import '../cubit/merchant_reviews_state.dart';
 
@@ -18,6 +18,7 @@ class MerchantReviewsPage extends StatelessWidget {
           (context) => MerchantReviewsCubit(
             reviewRepository: context.read<MerchantReviewRepository>(),
             restaurantRepository: context.read<MerchantRestaurantRepository>(),
+            selectionCubit: context.read<MerchantRestaurantSelectionCubit>(),
           )..load(),
       child: const _MerchantReviewsView(),
     );
@@ -79,101 +80,58 @@ class _MerchantReviewsViewState extends State<_MerchantReviewsView> {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _RestaurantPicker(
-                restaurants: state.restaurants,
-                selectedRestaurant: state.selectedRestaurant,
-                isLoading: state.isLoading,
-                onSelected:
-                    state.isBusy
-                        ? null
-                        : (restaurant) => context
-                            .read<MerchantReviewsCubit>()
-                            .loadRestaurantReviews(
-                              restaurant,
-                              clearSelection: true,
-                            ),
-              ),
-              const SizedBox(height: 16),
-              _ReviewList(
-                reviews: state.reviews,
-                selectedReviewId: state.selectedReview?.reviewId,
-                isLoading: state.isLoading,
-                isBusy: state.isBusy,
-                onSelected:
-                    (review) => context
-                        .read<MerchantReviewsCubit>()
-                        .selectReview(review),
-              ),
-              if (state.selectedReview != null) ...[
-                const SizedBox(height: 16),
-                _ResponseEditor(
-                  review: state.selectedReview!,
-                  controller: _responseController,
-                  isSaving: state.isSaving,
-                  onSubmit: () {
-                    final response = _responseController.text.trim();
-                    if (response.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Response is required.')),
-                      );
-                      return;
-                    }
-                    context.read<MerchantReviewsCubit>().respond(response);
-                  },
+              if (state.selectedRestaurant == null)
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.storefront_outlined),
+                    title: Text('No restaurant selected'),
+                    subtitle: Text('Create a restaurant profile first.'),
+                  ),
+                )
+              else ...[
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.storefront_outlined),
+                    title: Text(state.selectedRestaurant!.name),
+                    subtitle: Text(state.selectedRestaurant!.cuisineType),
+                  ),
                 ),
+                const SizedBox(height: 16),
+                _ReviewList(
+                  reviews: state.reviews,
+                  selectedReviewId: state.selectedReview?.reviewId,
+                  isLoading: state.isLoading,
+                  isBusy: state.isBusy,
+                  onSelected:
+                      (review) => context
+                          .read<MerchantReviewsCubit>()
+                          .selectReview(review),
+                ),
+                if (state.selectedReview != null) ...[
+                  const SizedBox(height: 16),
+                  _ResponseEditor(
+                    review: state.selectedReview!,
+                    controller: _responseController,
+                    isSaving: state.isSaving,
+                    onSubmit: () {
+                      final response = _responseController.text.trim();
+                      if (response.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Response is required.'),
+                          ),
+                        );
+                        return;
+                      }
+                      context.read<MerchantReviewsCubit>().respond(response);
+                    },
+                  ),
+                ],
               ],
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _RestaurantPicker extends StatelessWidget {
-  const _RestaurantPicker({
-    required this.restaurants,
-    required this.selectedRestaurant,
-    required this.isLoading,
-    required this.onSelected,
-  });
-
-  final List<MerchantRestaurant> restaurants;
-  final MerchantRestaurant? selectedRestaurant;
-  final bool isLoading;
-  final ValueChanged<MerchantRestaurant>? onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading && restaurants.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-    return DropdownButtonFormField<String>(
-      value: selectedRestaurant?.id,
-      decoration: const InputDecoration(labelText: 'Restaurant'),
-      items: restaurants
-          .map(
-            (restaurant) => DropdownMenuItem(
-              value: restaurant.id,
-              child: Text(restaurant.name),
-            ),
-          )
-          .toList(growable: false),
-      onChanged:
-          onSelected == null
-              ? null
-              : (id) {
-                final matches = restaurants.where((item) => item.id == id);
-                final restaurant = matches.isEmpty ? null : matches.first;
-                if (restaurant != null) {
-                  onSelected!(restaurant);
-                }
-              },
     );
   }
 }

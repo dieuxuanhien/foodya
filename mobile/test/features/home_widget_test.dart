@@ -21,6 +21,7 @@ import 'package:foodya_mobile/features/merchant/domain/models/merchant_revenue_r
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_order_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_restaurant_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_revenue_repository.dart';
+import 'package:foodya_mobile/features/merchant/presentation/cubit/merchant_restaurant_selection_cubit.dart';
 import 'package:foodya_mobile/features/merchant/presentation/pages/merchant_home_page.dart';
 
 class _FakeGeolocationService implements GeolocationService {
@@ -283,7 +284,10 @@ void main() {
             value: _FakeMerchantRevenueRepository(),
           ),
         ],
-        child: const MaterialApp(home: MerchantHomePage()),
+        child: BlocProvider(
+          create: (_) => MerchantRestaurantSelectionCubit(),
+          child: const MaterialApp(home: MerchantHomePage()),
+        ),
       ),
     );
 
