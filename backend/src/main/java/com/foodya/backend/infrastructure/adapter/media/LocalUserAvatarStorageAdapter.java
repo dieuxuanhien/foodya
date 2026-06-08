@@ -1,17 +1,8 @@
 package com.foodya.backend.infrastructure.adapter.media;
 
-import com.foodya.backend.application.constants.IntegrationKeyCatalog;
 import com.foodya.backend.application.ports.out.UserAvatarStoragePort;
-import com.foodya.backend.infrastructure.config.ApiSecretsProvider;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.net.URI;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -19,10 +10,10 @@ import java.util.UUID;
 @Component
 public class LocalUserAvatarStorageAdapter implements UserAvatarStoragePort {
 
-    private final ApiSecretsProvider apiSecretsProvider;
+    private final SupabaseStorageClient storageClient;
 
-    public LocalUserAvatarStorageAdapter(ApiSecretsProvider apiSecretsProvider) {
-        this.apiSecretsProvider = apiSecretsProvider;
+    public LocalUserAvatarStorageAdapter(SupabaseStorageClient storageClient) {
+        this.storageClient = storageClient;
     }
 
     @Override
@@ -30,37 +21,15 @@ public class LocalUserAvatarStorageAdapter implements UserAvatarStoragePort {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(content, "content");
 
-        String projectUrl = apiSecretsProvider.get(IntegrationKeyCatalog.SUPABASE_PROJECT_URL)
-                .orElseThrow(() -> new IllegalStateException("Missing Supabase project URL"));
-        String bucket = apiSecretsProvider.get(IntegrationKeyCatalog.SUPABASE_STORAGE_BUCKET)
-                .orElseThrow(() -> new IllegalStateException("Missing Supabase storage bucket"));
-        String accessKey = apiSecretsProvider.get(IntegrationKeyCatalog.SUPABASE_S3_ACCESS_KEY_ID)
-                .orElseThrow(() -> new IllegalStateException("Missing Supabase S3 access key"));
-        String secretKey = apiSecretsProvider.get(IntegrationKeyCatalog.SUPABASE_S3_SECRET_ACCESS_KEY)
-                .orElseThrow(() -> new IllegalStateException("Missing Supabase S3 secret key"));
-
         String extension = resolveExtension(originalFileName);
         String objectKey = "user-avatars/" + userId + "/" + UUID.randomUUID() + extension;
 
-        URI endpoint = URI.create(normalizeProjectUrl(projectUrl) + "/storage/v1/s3");
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-        try (S3Client s3Client = S3Client.builder()
-                .endpointOverride(endpoint)
-                .region(Region.US_EAST_1)
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .forcePathStyle(true)
-                .build()) {
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(objectKey)
-                    .contentType(resolveContentType(contentType, extension))
-                    .build();
-            s3Client.putObject(request, RequestBody.fromBytes(content));
-        } catch (Exception ex) {
-            throw new IllegalStateException("failed to upload user avatar to Supabase", ex);
-        }
-
-        return normalizeProjectUrl(projectUrl) + "/storage/v1/object/public/" + bucket + "/" + objectKey;
+        return storageClient.uploadPublicObject(
+                "user avatar",
+                objectKey,
+                resolveContentType(contentType, extension),
+                content
+        );
     }
 
     private static String resolveExtension(String originalFileName) {
@@ -88,9 +57,4 @@ public class LocalUserAvatarStorageAdapter implements UserAvatarStoragePort {
         };
     }
 
-    private static String normalizeProjectUrl(String projectUrl) {
-        return projectUrl.endsWith("/")
-                ? projectUrl.substring(0, projectUrl.length() - 1)
-                : projectUrl;
-    }
 }

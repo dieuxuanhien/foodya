@@ -8,10 +8,6 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,25 +20,22 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
-@SpringBootTest
-@ActiveProfiles("test")
 class SupabaseStorageImageUploadIntegrationTests {
 
-    @Autowired
     private LocalMenuItemImageStorageAdapter localMenuItemImageStorageAdapter;
-
-    @Autowired
     private LocalRestaurantImageStorageAdapter localRestaurantImageStorageAdapter;
-
-    @MockitoBean
+    private LocalUserAvatarStorageAdapter localUserAvatarStorageAdapter;
     private ApiSecretsProvider apiSecretsProvider;
 
     private HttpServer httpServer;
     private int port;
+    private Optional<String> s3Endpoint;
     private final AtomicInteger putRequestCount = new AtomicInteger(0);
     private final List<String> requestPaths = new CopyOnWriteArrayList<>();
 
@@ -50,17 +43,25 @@ class SupabaseStorageImageUploadIntegrationTests {
     void setUp() throws IOException {
         putRequestCount.set(0);
         requestPaths.clear();
+        s3Endpoint = Optional.empty();
 
         httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         port = httpServer.getAddress().getPort();
         httpServer.createContext("/", new PutAcceptingS3LikeHandler());
         httpServer.start();
 
+        apiSecretsProvider = mock(ApiSecretsProvider.class);
+        SupabaseStorageClient storageClient = new SupabaseStorageClient(apiSecretsProvider);
+        localMenuItemImageStorageAdapter = new LocalMenuItemImageStorageAdapter(storageClient);
+        localRestaurantImageStorageAdapter = new LocalRestaurantImageStorageAdapter(storageClient);
+        localUserAvatarStorageAdapter = new LocalUserAvatarStorageAdapter(storageClient);
+
         given(apiSecretsProvider.get(anyString())).willAnswer(invocation -> {
             String key = invocation.getArgument(0);
             return switch (key) {
                 case IntegrationKeyCatalog.SUPABASE_PROJECT_URL -> Optional.of("http://127.0.0.1:" + port);
                 case IntegrationKeyCatalog.SUPABASE_STORAGE_BUCKET -> Optional.of("test-bucket");
+                case IntegrationKeyCatalog.SUPABASE_S3_ENDPOINT -> s3Endpoint;
                 case IntegrationKeyCatalog.SUPABASE_S3_ACCESS_KEY_ID -> Optional.of("access-key");
                 case IntegrationKeyCatalog.SUPABASE_S3_SECRET_ACCESS_KEY -> Optional.of("secret-key");
                 default -> Optional.empty();
@@ -123,6 +124,60 @@ class SupabaseStorageImageUploadIntegrationTests {
                 path.contains("/storage/v1/s3/test-bucket/restaurants/" + restaurantId + "/background/")));
         assertTrue(requestPaths.stream().anyMatch(path ->
                 path.contains("/storage/v1/s3/test-bucket/restaurants/" + restaurantId + "/avatar/")));
+    }
+
+    @Test
+    void userAvatarStore_uploadsToSupabaseS3Endpoint() {
+        UUID userId = UUID.randomUUID();
+
+        String avatarUrl = localUserAvatarStorageAdapter.store(
+                userId,
+                "avatar.jpeg",
+                "image/jpeg",
+                "avatar-bytes".getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertTrue(avatarUrl.startsWith("http://127.0.0.1:" + port + "/storage/v1/object/public/test-bucket/user-avatars/" + userId + "/"));
+        assertTrue(avatarUrl.endsWith(".jpg"));
+
+        assertTrue(putRequestCount.get() >= 1);
+        assertTrue(requestPaths.stream().anyMatch(path ->
+                path.contains("/storage/v1/s3/test-bucket/user-avatars/" + userId + "/")));
+    }
+
+    @Test
+    void store_usesExplicitS3EndpointWhenConfigured() {
+        UUID userId = UUID.randomUUID();
+        s3Endpoint = Optional.of("http://127.0.0.1:" + port + "/storage/v1/s3");
+
+        localUserAvatarStorageAdapter.store(
+                userId,
+                "avatar.png",
+                "image/png",
+                "avatar-bytes".getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertTrue(requestPaths.stream().anyMatch(path ->
+                path.contains("/storage/v1/s3/test-bucket/user-avatars/" + userId + "/")));
+    }
+
+    @Test
+    void store_reportsUnresolvableStorageEndpointHost() {
+        UUID userId = UUID.randomUUID();
+        s3Endpoint = Optional.of("https://unresolvable.invalid/storage/v1/s3");
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> localUserAvatarStorageAdapter.store(
+                        userId,
+                        "avatar.png",
+                        "image/png",
+                        "avatar-bytes".getBytes(StandardCharsets.UTF_8)
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("Supabase storage endpoint host cannot be resolved"));
+        assertTrue(exception.getMessage().contains(IntegrationKeyCatalog.SUPABASE_S3_ENDPOINT));
     }
 
     private class PutAcceptingS3LikeHandler implements HttpHandler {
