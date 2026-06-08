@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/repositories/customer_cart_repository.dart';
 import '../../domain/models/restaurant_menu_item.dart';
@@ -323,10 +324,12 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                     const SizedBox(height: 14),
                     if (state.status == RestaurantDetailStatus.empty)
                       const FoodyaEmptyState(
-                        illustrationAsset: 'assets/illustrations/empty_menu.png',
+                        illustrationAsset:
+                            'assets/illustrations/empty_menu.png',
                         icon: Icons.restaurant_menu_outlined,
                         title: 'No menu items found',
-                        message: 'Try a different keyword or clear your filters.',
+                        message:
+                            'Try a different keyword or clear your filters.',
                       )
                     else
                       SizedBox(
@@ -496,7 +499,7 @@ class _MenuItemCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '${item.price.toStringAsFixed(0)} VND',
+                    formatVndCurrency(item.price),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall,

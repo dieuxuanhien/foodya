@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../../auth/presentation/cubit/login_cubit.dart';
 import '../../domain/models/merchant_order_summary.dart';
@@ -174,7 +175,7 @@ class _MerchantHomeBody extends StatelessWidget {
             ),
             FoodyaMetricTile(
               label: '7-day revenue',
-              value: _money(state.sevenDayRevenue),
+              value: formatVndCurrency(state.sevenDayRevenue),
               icon: Icons.payments_outlined,
               accentColor: const Color(0xFFEA580C),
             ),
@@ -319,7 +320,7 @@ class _RecentOrderList extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    '${order.customerName} · ${_money(order.totalAmount)}',
+                    '${order.customerName} · ${formatVndCurrency(order.totalAmount)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -331,16 +332,4 @@ class _RecentOrderList extends StatelessWidget {
           .toList(growable: false),
     );
   }
-}
-
-String _money(double value) {
-  if (value >= 1000000) {
-    final compact = value / 1000000;
-    return '${compact.toStringAsFixed(compact >= 10 ? 0 : 1)}M';
-  }
-  if (value >= 1000) {
-    final compact = value / 1000;
-    return '${compact.toStringAsFixed(compact >= 10 ? 0 : 1)}K';
-  }
-  return value.toStringAsFixed(0);
 }

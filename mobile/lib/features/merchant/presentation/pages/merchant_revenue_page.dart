@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_revenue_report.dart';
@@ -90,7 +91,8 @@ class _MerchantRevenueView extends StatelessWidget {
                   )
                 else if (state.errorMessage != null && report == null)
                   FoodyaEmptyState(
-                    illustrationAsset: 'assets/illustrations/empty_connection.png',
+                    illustrationAsset:
+                        'assets/illustrations/empty_connection.png',
                     icon: Icons.error_outline,
                     title: 'Report unavailable',
                     message: state.errorMessage!,
@@ -128,13 +130,13 @@ class _MerchantRevenueView extends StatelessWidget {
     final summary = [
       'Foodya Merchant Revenue Report',
       'Period: ${_date(report.fromDate)} - ${_date(report.toDate)}',
-      'Revenue: ${_money(report.revenue)}',
-      'Platform profit: ${_money(report.platformProfit)}',
+      'Revenue: ${formatVndCurrency(report.revenue)}',
+      'Platform profit: ${formatVndCurrency(report.platformProfit)}',
       'Orders: ${report.orderCount}',
-      'Average order: ${_money(report.avgOrderValue)}',
+      'Average order: ${formatVndCurrency(report.avgOrderValue)}',
       if (report.topSellingItems.isNotEmpty) 'Top items:',
       for (final item in report.topSellingItems)
-        '- ${item.itemName}: ${item.quantitySold} sold, ${_money(item.revenue)}',
+        '- ${item.itemName}: ${item.quantitySold} sold, ${formatVndCurrency(item.revenue)}',
     ].join('\n');
     await Clipboard.setData(ClipboardData(text: summary));
     if (context.mounted) {
@@ -314,13 +316,13 @@ class _MetricGrid extends StatelessWidget {
       children: [
         FoodyaMetricTile(
           label: 'Revenue',
-          value: _money(report.revenue),
+          value: formatVndCurrency(report.revenue),
           icon: Icons.payments_outlined,
           accentColor: const Color(0xFFEA580C),
         ),
         FoodyaMetricTile(
           label: 'Profit',
-          value: _money(report.platformProfit),
+          value: formatVndCurrency(report.platformProfit),
           icon: Icons.savings_outlined,
           accentColor: const Color(0xFF16A34A),
         ),
@@ -332,7 +334,7 @@ class _MetricGrid extends StatelessWidget {
         ),
         FoodyaMetricTile(
           label: 'Avg order',
-          value: _money(report.avgOrderValue),
+          value: formatVndCurrency(report.avgOrderValue),
           icon: Icons.calculate_outlined,
           accentColor: const Color(0xFFF59E0B),
         ),
@@ -410,7 +412,7 @@ class _ChartBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message:
-          '${_date(bucket.period)}\n${_money(bucket.revenue)}\n${bucket.orderCount} orders',
+          '${_date(bucket.period)}\n${formatVndCurrency(bucket.revenue)}\n${bucket.orderCount} orders',
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -468,9 +470,9 @@ class _RevenueSeries extends StatelessWidget {
               leading: const Icon(Icons.show_chart_outlined),
               title: Text(_date(bucket.period)),
               subtitle: Text(
-                '${bucket.orderCount} orders | Avg ${_money(bucket.avgOrderValue)}',
+                '${bucket.orderCount} orders | Avg ${formatVndCurrency(bucket.avgOrderValue)}',
               ),
-              trailing: Text(_money(bucket.revenue)),
+              trailing: Text(formatVndCurrency(bucket.revenue)),
             ),
           ),
       ],
@@ -506,15 +508,13 @@ class _TopSellingItems extends StatelessWidget {
               leading: const Icon(Icons.fastfood_outlined),
               title: Text(item.itemName),
               subtitle: Text('${item.quantitySold} sold'),
-              trailing: Text(_money(item.revenue)),
+              trailing: Text(formatVndCurrency(item.revenue)),
             ),
           ),
       ],
     );
   }
 }
-
-String _money(double value) => '${value.toStringAsFixed(0)} VND';
 
 String _date(DateTime value) {
   return value.toIso8601String().substring(0, 10);

@@ -1,3 +1,5 @@
+import { formatVndCurrency } from '../utils/currency';
+
 export function Spinner() {
   return <span className="spinner" />;
 }
@@ -98,8 +100,8 @@ export function ConfirmModal({
   );
 }
 
-export function formatCurrency(amount: number, code = 'VND') {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(amount);
+export function formatCurrency(amount: number, _code = 'VND') {
+  return formatVndCurrency(amount);
 }
 
 export function formatDate(dt?: string) {

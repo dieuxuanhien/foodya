@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_order_detail.dart';
 import '../../domain/models/merchant_order_summary.dart';
@@ -80,7 +81,8 @@ class _MerchantOrdersView extends StatelessWidget {
               const SizedBox(height: 16),
               if (state.selectedRestaurant == null)
                 const FoodyaEmptyState(
-                  illustrationAsset: 'assets/illustrations/empty_storefront.png',
+                  illustrationAsset:
+                      'assets/illustrations/empty_storefront.png',
                   icon: Icons.storefront_outlined,
                   title: 'No restaurant selected',
                   message: 'Create a restaurant profile first.',
@@ -217,7 +219,7 @@ class _OrderList extends StatelessWidget {
               ),
               title: Text(order.orderCode),
               subtitle: Text(
-                '${order.customerName} · ${order.totalAmount.toStringAsFixed(0)}',
+                '${order.customerName} · ${formatVndCurrency(order.totalAmount)}',
               ),
               trailing: FoodyaStatusChip(value: order.status),
             ),
@@ -270,15 +272,15 @@ class _OrderDetailCard extends StatelessWidget {
             ),
             _InfoRow(
               label: 'Subtotal',
-              value: order.subtotalAmount.toStringAsFixed(0),
+              value: formatVndCurrency(order.subtotalAmount),
             ),
             _InfoRow(
               label: 'Delivery',
-              value: order.deliveryFee.toStringAsFixed(0),
+              value: formatVndCurrency(order.deliveryFee),
             ),
             _InfoRow(
               label: 'Total',
-              value: order.totalAmount.toStringAsFixed(0),
+              value: formatVndCurrency(order.totalAmount),
             ),
             _InfoRow(label: 'Address', value: order.deliveryAddress),
             const SizedBox(height: 16),
@@ -326,9 +328,7 @@ class _InfoRow extends StatelessWidget {
             width: 92,
             child: Text(label, style: Theme.of(context).textTheme.labelMedium),
           ),
-          Expanded(
-            child: valueWidget ?? Text(value.isEmpty ? '-' : value),
-          ),
+          Expanded(child: valueWidget ?? Text(value.isEmpty ? '-' : value)),
         ],
       ),
     );

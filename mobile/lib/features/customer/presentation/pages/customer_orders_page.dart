@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/repositories/customer_order_repository.dart';
 import '../cubit/order_list_cubit.dart';
@@ -93,7 +94,7 @@ class _CustomerOrdersView extends StatelessWidget {
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: Text(
-                                    '${order.totalAmount.toStringAsFixed(0)} VND',
+                                    formatVndCurrency(order.totalAmount),
                                     style:
                                         Theme.of(context).textTheme.titleSmall,
                                   ),

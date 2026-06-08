@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../domain/models/ai_chat.dart';
 import '../../domain/repositories/customer_ai_repository.dart';
 import '../cubit/ai_chat_cubit.dart';
@@ -135,7 +136,7 @@ class _AiResponseCard extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 title: Text(item.menuItemName),
                 subtitle: Text('${item.restaurantName}\n${item.reason}'),
-                trailing: Text('${item.price.toStringAsFixed(0)} VND'),
+                trailing: Text(formatVndCurrency(item.price)),
               ),
             ),
           ],

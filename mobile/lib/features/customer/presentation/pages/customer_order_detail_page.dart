@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/semantics.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../../../core/realtime/order_tracking_realtime_service.dart';
 import '../../domain/models/order_detail.dart';
@@ -214,13 +215,13 @@ class _CustomerOrderDetailViewState extends State<_CustomerOrderDetailView> {
                                             Text(order.deliveryAddress),
                                             const SizedBox(height: 8),
                                             Text(
-                                              'Subtotal ${order.subtotalAmount.toStringAsFixed(0)} VND',
+                                              'Subtotal ${formatVndCurrency(order.subtotalAmount)}',
                                             ),
                                             Text(
-                                              'Delivery fee ${order.deliveryFee.toStringAsFixed(0)} VND',
+                                              'Delivery fee ${formatVndCurrency(order.deliveryFee)}',
                                             ),
                                             Text(
-                                              'Total ${order.totalAmount.toStringAsFixed(0)} VND',
+                                              'Total ${formatVndCurrency(order.totalAmount)}',
                                               style:
                                                   Theme.of(
                                                     context,
@@ -536,12 +537,13 @@ class _TrackingMapSurfaceState extends State<_TrackingMapSurface> {
                         ),
                         child: const SizedBox.expand(),
                       ),
-                      builder: (context, child) => Transform(
-                        key: const ValueKey('tracking-map-transform'),
-                        transform: _controller.value,
-                        alignment: Alignment.topLeft,
-                        child: child,
-                      ),
+                      builder:
+                          (context, child) => Transform(
+                            key: const ValueKey('tracking-map-transform'),
+                            transform: _controller.value,
+                            alignment: Alignment.topLeft,
+                            child: child,
+                          ),
                     ),
                   ),
                 ),

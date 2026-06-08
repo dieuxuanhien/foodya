@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_menu_category.dart';
 import '../../domain/models/merchant_menu_category_request.dart';
@@ -123,7 +124,8 @@ class _MerchantCatalogViewState extends State<_MerchantCatalogView> {
               const SizedBox(height: 16),
               if (state.selectedRestaurant == null)
                 const FoodyaEmptyState(
-                  illustrationAsset: 'assets/illustrations/empty_storefront.png',
+                  illustrationAsset:
+                      'assets/illustrations/empty_storefront.png',
                   icon: Icons.storefront_outlined,
                   title: 'No restaurant selected',
                   message: 'Create a restaurant profile first.',
@@ -186,9 +188,9 @@ class _MerchantCatalogViewState extends State<_MerchantCatalogView> {
                   onClear: () {
                     _clearItem();
                     context.read<MerchantCatalogCubit>().clearItemSelection();
-                    context
-                        .read<MerchantCatalogCubit>()
-                        .setMenuItemImageFile(null);
+                    context.read<MerchantCatalogCubit>().setMenuItemImageFile(
+                      null,
+                    );
                   },
                   onSelect:
                       (item) =>
@@ -718,8 +720,7 @@ class _ItemSection extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed:
-                          isBusy ||
-                                  (selectedItem == null && imageFile == null)
+                          isBusy || (selectedItem == null && imageFile == null)
                               ? null
                               : onSubmit,
                       icon: Icon(
@@ -858,7 +859,7 @@ class _MenuCatalogTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    Text('${item.price.toStringAsFixed(0)} VND'),
+                    Text(formatVndCurrency(item.price)),
                   ],
                 ),
               ),

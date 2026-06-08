@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../domain/repositories/customer_cart_repository.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
@@ -215,7 +216,7 @@ class _CartItemCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '${unitPrice.toStringAsFixed(0)} VND',
+                  formatVndCurrency(unitPrice),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const Spacer(),
@@ -237,7 +238,7 @@ class _CartItemCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'Line total: ${lineTotal.toStringAsFixed(0)} VND',
+                'Line total: ${formatVndCurrency(lineTotal)}',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
             ),
@@ -282,7 +283,7 @@ class _CartSummary extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  'Subtotal: ${subtotal.toStringAsFixed(0)} VND',
+                  'Subtotal: ${formatVndCurrency(subtotal)}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],

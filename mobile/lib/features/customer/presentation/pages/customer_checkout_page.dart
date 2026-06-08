@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/location/geolocation_service.dart';
 import '../../domain/models/active_cart.dart';
 import '../../domain/models/order_cost_review.dart';
@@ -272,7 +273,7 @@ class _CartItemsSummary extends StatelessWidget {
                   Expanded(child: Text(item.menuItemName)),
                   Text('x${item.quantity}'),
                   const SizedBox(width: 12),
-                  Text('${item.lineTotal.toStringAsFixed(0)} VND'),
+                  Text(formatVndCurrency(item.lineTotal)),
                 ],
               ),
             ),
@@ -281,7 +282,7 @@ class _CartItemsSummary extends StatelessWidget {
               children: [
                 const Text('Subtotal'),
                 const Spacer(),
-                Text('${cart.subtotal.toStringAsFixed(0)} VND'),
+                Text(formatVndCurrency(cart.subtotal)),
               ],
             ),
           ],
@@ -354,7 +355,7 @@ class _CostRow extends StatelessWidget {
         children: [
           Text(label, style: style),
           const Spacer(),
-          Text('${value.toStringAsFixed(0)} VND', style: style),
+          Text(formatVndCurrency(value), style: style),
         ],
       ),
     );
