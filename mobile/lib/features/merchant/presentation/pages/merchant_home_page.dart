@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../../../core/ui/foodya_ui.dart';
-import '../../../auth/presentation/cubit/login_cubit.dart';
 import '../../domain/models/merchant_order_summary.dart';
 import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/repositories/merchant_order_repository.dart';
@@ -13,8 +12,6 @@ import '../../domain/repositories/merchant_revenue_repository.dart';
 import '../cubit/merchant_home_cubit.dart';
 import '../cubit/merchant_home_state.dart';
 import '../cubit/merchant_restaurant_selection_cubit.dart';
-
-enum _MerchantSessionAction { refresh, logoutAll }
 
 class MerchantHomePage extends StatelessWidget {
   const MerchantHomePage({super.key});
@@ -49,41 +46,6 @@ class _MerchantHomeView extends StatelessWidget {
                 onPressed: () => context.go('/merchant/notifications'),
                 icon: const Icon(Icons.notifications_outlined),
                 tooltip: 'Alerts',
-              ),
-              PopupMenuButton<_MerchantSessionAction>(
-                onSelected: (action) async {
-                  final cubit = context.read<LoginCubit>();
-                  switch (action) {
-                    case _MerchantSessionAction.refresh:
-                      await cubit.refreshToken();
-                      break;
-                    case _MerchantSessionAction.logoutAll:
-                      await cubit.logoutAll();
-                      break;
-                  }
-
-                  final loginState = cubit.state;
-                  final message =
-                      loginState.errorMessage ?? loginState.infoMessage;
-                  if (message != null && context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(message)));
-                    cubit.clearFeedback();
-                  }
-                },
-                itemBuilder:
-                    (context) => const [
-                      PopupMenuItem(
-                        value: _MerchantSessionAction.refresh,
-                        child: Text('Refresh Token'),
-                      ),
-                      PopupMenuItem(
-                        value: _MerchantSessionAction.logoutAll,
-                        child: Text('Logout All Sessions'),
-                      ),
-                    ],
-                icon: const Icon(Icons.more_vert),
               ),
             ],
           ),

@@ -4,14 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/location/geolocation_service.dart';
 import '../../../../core/ui/foodya_ui.dart';
-import '../../../auth/presentation/cubit/login_cubit.dart';
 import '../../domain/models/restaurant_search_item.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
 import '../cubit/customer_home_cubit.dart';
 import '../cubit/customer_home_state.dart';
 import '../widgets/manual_location_sheet.dart';
-
-enum _CustomerSessionAction { refresh, logoutAll }
 
 class CustomerHomePage extends StatelessWidget {
   const CustomerHomePage({super.key});
@@ -58,40 +55,6 @@ class _CustomerHomeView extends StatelessWidget {
                 onPressed: () => context.push('/customer/notifications'),
                 icon: const Icon(Icons.notifications_outlined),
                 tooltip: 'Notifications',
-              ),
-              PopupMenuButton<_CustomerSessionAction>(
-                onSelected: (action) async {
-                  final cubit = context.read<LoginCubit>();
-                  switch (action) {
-                    case _CustomerSessionAction.refresh:
-                      await cubit.refreshToken();
-                      break;
-                    case _CustomerSessionAction.logoutAll:
-                      await cubit.logoutAll();
-                      break;
-                  }
-
-                  final state = cubit.state;
-                  final message = state.errorMessage ?? state.infoMessage;
-                  if (message != null && context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(message)));
-                    cubit.clearFeedback();
-                  }
-                },
-                itemBuilder:
-                    (context) => const [
-                      PopupMenuItem(
-                        value: _CustomerSessionAction.refresh,
-                        child: Text('Refresh Token'),
-                      ),
-                      PopupMenuItem(
-                        value: _CustomerSessionAction.logoutAll,
-                        child: Text('Logout All Sessions'),
-                      ),
-                    ],
-                icon: const Icon(Icons.more_vert),
               ),
             ],
           ),
