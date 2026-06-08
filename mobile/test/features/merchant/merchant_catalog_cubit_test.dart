@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_category_taxonomy.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_menu_category.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_menu_category_request.dart';
@@ -35,8 +36,10 @@ class _FakeMerchantRestaurantRepository
 
   @override
   Future<MerchantRestaurant> createRestaurant(
-    MerchantRestaurantRequest request,
-  ) {
+    MerchantRestaurantRequest request, {
+    XFile? backgroundFile,
+    XFile? avatarFile,
+  }) {
     throw UnimplementedError();
   }
 
@@ -44,6 +47,8 @@ class _FakeMerchantRestaurantRepository
   Future<MerchantRestaurant> updateRestaurant({
     required String restaurantId,
     required MerchantRestaurantRequest request,
+    XFile? backgroundFile,
+    XFile? avatarFile,
   }) {
     throw UnimplementedError();
   }
@@ -147,6 +152,7 @@ class _FakeMerchantCatalogRepository implements MerchantCatalogRepository {
   Future<MerchantMenuItem> createMenuItem({
     required String restaurantId,
     required MerchantMenuItemRequest request,
+    required XFile imageFile,
   }) {
     throw UnimplementedError();
   }
@@ -230,8 +236,10 @@ class _EmptyMerchantRestaurantRepository
 
   @override
   Future<MerchantRestaurant> createRestaurant(
-    MerchantRestaurantRequest request,
-  ) {
+    MerchantRestaurantRequest request, {
+    XFile? backgroundFile,
+    XFile? avatarFile,
+  }) {
     throw UnimplementedError();
   }
 
@@ -239,6 +247,8 @@ class _EmptyMerchantRestaurantRepository
   Future<MerchantRestaurant> updateRestaurant({
     required String restaurantId,
     required MerchantRestaurantRequest request,
+    XFile? backgroundFile,
+    XFile? avatarFile,
   }) {
     throw UnimplementedError();
   }

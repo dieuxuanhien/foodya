@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../models/user_profile.dart';
 
 abstract class CustomerProfileRepository {
@@ -9,6 +11,8 @@ abstract class CustomerProfileRepository {
     required String phoneNumber,
     String? avatarUrl,
   });
+
+  Future<UserProfile> uploadAvatar(XFile file);
 
   Future<void> changePassword({
     required String currentPassword,

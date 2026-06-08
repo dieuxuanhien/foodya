@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../domain/models/user_profile.dart';
 
@@ -11,10 +12,13 @@ enum ProfileStatus {
   failure,
 }
 
+const Object _unset = Object();
+
 class ProfileState extends Equatable {
   const ProfileState({
     required this.status,
     this.profile,
+    this.avatarImageFile,
     this.errorMessage,
     this.infoMessage,
   });
@@ -23,6 +27,7 @@ class ProfileState extends Equatable {
 
   final ProfileStatus status;
   final UserProfile? profile;
+  final XFile? avatarImageFile;
   final String? errorMessage;
   final String? infoMessage;
 
@@ -34,6 +39,7 @@ class ProfileState extends Equatable {
   ProfileState copyWith({
     ProfileStatus? status,
     UserProfile? profile,
+    Object? avatarImageFile = _unset,
     String? errorMessage,
     String? infoMessage,
     bool clearError = false,
@@ -42,11 +48,21 @@ class ProfileState extends Equatable {
     return ProfileState(
       status: status ?? this.status,
       profile: profile ?? this.profile,
+      avatarImageFile:
+          avatarImageFile == _unset
+              ? this.avatarImageFile
+              : avatarImageFile as XFile?,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       infoMessage: clearInfo ? null : (infoMessage ?? this.infoMessage),
     );
   }
 
   @override
-  List<Object?> get props => [status, profile, errorMessage, infoMessage];
+  List<Object?> get props => [
+    status,
+    profile,
+    avatarImageFile?.path,
+    errorMessage,
+    infoMessage,
+  ];
 }

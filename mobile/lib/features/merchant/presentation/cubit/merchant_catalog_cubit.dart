@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
 import '../../domain/models/merchant_menu_category.dart';
@@ -106,6 +107,10 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
     emit(state.copyWith(selectedItem: null, clearError: true));
   }
 
+  void setMenuItemImageFile(XFile? file) {
+    emit(state.copyWith(menuItemImageFile: file));
+  }
+
   Future<void> createCategory(MerchantMenuCategoryRequest request) async {
     final restaurant = state.selectedRestaurant;
     if (restaurant == null || state.isSaving) {
@@ -183,7 +188,14 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
 
   Future<void> createItem(MerchantMenuItemRequest request) async {
     final restaurant = state.selectedRestaurant;
+    final imageFile = state.menuItemImageFile;
     if (restaurant == null || state.isSaving) {
+      return;
+    }
+    if (imageFile == null) {
+      emit(
+        state.copyWith(errorMessage: 'Please select an image for the menu item.'),
+      );
       return;
     }
     emit(_saving());
@@ -191,12 +203,14 @@ class MerchantCatalogCubit extends Cubit<MerchantCatalogState> {
       final item = await _catalogRepository.createMenuItem(
         restaurantId: restaurant.id,
         request: request,
+        imageFile: imageFile,
       );
       emit(
         state.copyWith(
           status: MerchantCatalogStatus.success,
           items: _upsertItem(state.items, item),
           selectedItem: item,
+          menuItemImageFile: null,
           infoMessage: 'Menu item created.',
           clearError: true,
         ),

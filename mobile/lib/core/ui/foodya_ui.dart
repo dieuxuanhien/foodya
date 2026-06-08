@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class FoodyaSectionHeader extends StatelessWidget {
   const FoodyaSectionHeader({
@@ -417,4 +420,184 @@ Color statusTextColor(ColorScheme colors, String value) {
     'DELIVERING' || 'ASSIGNED' => const Color(0xFF1E40AF),
     _ => const Color(0xFF9A3412),
   };
+}
+
+class ImagePickerField extends StatefulWidget {
+  const ImagePickerField({
+    super.key,
+    required this.label,
+    required this.onChanged,
+    this.isRequired = false,
+    this.pickedFile,
+    this.currentUrl,
+  });
+
+  final String label;
+  final bool isRequired;
+  final XFile? pickedFile;
+  final String? currentUrl;
+  final ValueChanged<XFile?> onChanged;
+
+  @override
+  State<ImagePickerField> createState() => _ImagePickerFieldState();
+}
+
+class _ImagePickerFieldState extends State<ImagePickerField> {
+  Uint8List? _cachedBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBytes();
+  }
+
+  @override
+  void didUpdateWidget(ImagePickerField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pickedFile?.path != widget.pickedFile?.path) {
+      _loadBytes();
+    }
+  }
+
+  Future<void> _loadBytes() async {
+    final file = widget.pickedFile;
+    if (file == null) {
+      if (mounted) setState(() => _cachedBytes = null);
+      return;
+    }
+    final bytes = await file.readAsBytes();
+    if (mounted && widget.pickedFile?.path == file.path) {
+      setState(() => _cachedBytes = bytes);
+    }
+  }
+
+  Future<void> _showSourceSheet() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Choose from gallery'),
+                  onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Take a photo'),
+                  onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (source == null) return;
+    final file = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 85,
+    );
+    if (file != null) widget.onChanged(file);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasFile = _cachedBytes != null;
+    final hasUrl =
+        widget.currentUrl != null && widget.currentUrl!.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(widget.label, style: theme.textTheme.labelLarge),
+            if (widget.isRequired)
+              Text(
+                ' *',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _showSourceSheet,
+          child: Stack(
+            alignment: Alignment.topRight,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child:
+                    hasFile
+                        ? Image.memory(
+                          _cachedBytes!,
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                        : hasUrl
+                        ? Image.network(
+                          widget.currentUrl!.trim(),
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _buildPlaceholder(theme),
+                        )
+                        : _buildPlaceholder(theme),
+              ),
+              if (hasFile)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Material(
+                    color: theme.colorScheme.surface.withValues(alpha: 0.88),
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      icon: const Icon(Icons.close),
+                      iconSize: 18,
+                      constraints:
+                          const BoxConstraints.tightFor(width: 32, height: 32),
+                      onPressed: () => widget.onChanged(null),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholder(ThemeData theme) {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.add_photo_alternate_outlined,
+            size: 36,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap to select image',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

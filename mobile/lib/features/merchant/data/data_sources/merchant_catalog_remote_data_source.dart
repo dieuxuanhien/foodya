@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/merchant_category_taxonomy.dart';
@@ -21,6 +24,7 @@ class MerchantCatalogRemoteDataSource {
   final http.Client _client;
 
   static const Duration _requestTimeout = Duration(seconds: 12);
+  static const Duration _uploadTimeout = Duration(seconds: 60);
 
   Future<List<MerchantCategoryTaxonomy>> listCategoryTaxonomies() async {
     final json = await _send(
@@ -117,18 +121,68 @@ class MerchantCatalogRemoteDataSource {
     required String accessToken,
     required String restaurantId,
     required MerchantMenuItemRequest request,
+    required XFile imageFile,
   }) async {
-    final json = await _send(
-      () => _client.post(
-        Uri.parse(
-          '$_baseUrl/api/v1/merchant/restaurants/$restaurantId/menu-items',
-        ),
-        headers: _headers(accessToken),
-        body: jsonEncode(request.toJson()),
+    final bytes = await imageFile.readAsBytes();
+    final mimeType =
+        imageFile.mimeType ??
+        lookupMimeType(imageFile.name) ??
+        'application/octet-stream';
+    final multipart = http.MultipartRequest(
+      'POST',
+      Uri.parse(
+        '$_baseUrl/api/v1/merchant/restaurants/$restaurantId/menu-items',
       ),
-      'Menu item request failed with status',
+    )
+      ..headers['Authorization'] = 'Bearer $accessToken'
+      ..files.add(
+        http.MultipartFile.fromString(
+          'payload',
+          jsonEncode(request.toJson()),
+          contentType: MediaType('application', 'json'),
+        ),
+      )
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: imageFile.name,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
+    late final http.Response response;
+    try {
+      final streamed = await multipart.send().timeout(_uploadTimeout);
+      response = await http.Response.fromStream(streamed);
+    } on TimeoutException catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        code: 'NETWORK_TIMEOUT',
+        message: 'Request timed out. Check your connection and try again.',
+        details: error.toString(),
+      );
+    } catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        code: 'NETWORK_ERROR',
+        message: 'Cannot reach Foodya backend. Check API base URL and network.',
+        details: error.toString(),
+      );
+    }
+
+    final body = _tryDecodeMap(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return MerchantMenuItem.fromJson(_extractDataMap(body ?? const {}));
+    }
+    throw ApiException(
+      statusCode: response.statusCode,
+      code: body?['code']?.toString(),
+      message:
+          body?['message']?.toString() ??
+          'Menu item request failed with status ${response.statusCode}.',
+      details: body?['details'],
     );
-    return MerchantMenuItem.fromJson(_extractDataMap(json));
   }
 
   Future<MerchantMenuItem> updateMenuItem({

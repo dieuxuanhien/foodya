@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_restaurant_request.dart';
 import '../../domain/repositories/merchant_restaurant_repository.dart';
@@ -199,6 +200,26 @@ class _MerchantRestaurantViewState extends State<_MerchantRestaurantView> {
                           state.isBusy
                               ? null
                               : (value) => setState(() => _isOpen = value),
+                    ),
+                    const SizedBox(height: 16),
+                    ImagePickerField(
+                      label: 'Background image',
+                      pickedFile: state.backgroundImageFile,
+                      currentUrl: state.restaurant?.backgroundImageUrl,
+                      onChanged:
+                          (file) => context
+                              .read<MerchantRestaurantCubit>()
+                              .setBackgroundImageFile(file),
+                    ),
+                    const SizedBox(height: 12),
+                    ImagePickerField(
+                      label: 'Avatar / logo',
+                      pickedFile: state.avatarImageFile,
+                      currentUrl: state.restaurant?.avatarImageUrl,
+                      onChanged:
+                          (file) => context
+                              .read<MerchantRestaurantCubit>()
+                              .setAvatarImageFile(file),
                     ),
                     const SizedBox(height: 16),
                     Row(

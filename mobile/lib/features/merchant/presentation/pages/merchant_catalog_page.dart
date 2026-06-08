@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_menu_category.dart';
 import '../../domain/models/merchant_menu_category_request.dart';
 import '../../domain/models/merchant_menu_item.dart';
@@ -170,6 +172,11 @@ class _MerchantCatalogViewState extends State<_MerchantCatalogView> {
                   taxonomyHints:
                       state.taxonomies.map((item) => item.code).toList(),
                   isBusy: state.isBusy,
+                  imageFile: state.menuItemImageFile,
+                  onImageChanged:
+                      (file) => context
+                          .read<MerchantCatalogCubit>()
+                          .setMenuItemImageFile(file),
                   onCategoryChanged:
                       (value) => setState(() => _itemCategoryId = value),
                   onActiveChanged:
@@ -180,6 +187,9 @@ class _MerchantCatalogViewState extends State<_MerchantCatalogView> {
                   onClear: () {
                     _clearItem();
                     context.read<MerchantCatalogCubit>().clearItemSelection();
+                    context
+                        .read<MerchantCatalogCubit>()
+                        .setMenuItemImageFile(null);
                   },
                   onSelect:
                       (item) =>
@@ -546,6 +556,8 @@ class _ItemSection extends StatelessWidget {
     required this.items,
     required this.taxonomyHints,
     required this.isBusy,
+    required this.imageFile,
+    required this.onImageChanged,
     required this.onCategoryChanged,
     required this.onActiveChanged,
     required this.onAvailableChanged,
@@ -569,6 +581,8 @@ class _ItemSection extends StatelessWidget {
   final List<MerchantMenuItem> items;
   final List<String> taxonomyHints;
   final bool isBusy;
+  final XFile? imageFile;
+  final ValueChanged<XFile?> onImageChanged;
   final ValueChanged<String?> onCategoryChanged;
   final ValueChanged<bool> onActiveChanged;
   final ValueChanged<bool> onAvailableChanged;
@@ -693,11 +707,24 @@ class _ItemSection extends StatelessWidget {
                 title: const Text('Available'),
                 onChanged: isBusy ? null : onAvailableChanged,
               ),
+              if (selectedItem == null) ...[
+                const SizedBox(height: 12),
+                ImagePickerField(
+                  label: 'Item image',
+                  isRequired: true,
+                  pickedFile: imageFile,
+                  onChanged: onImageChanged,
+                ),
+              ],
               Row(
                 children: [
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: isBusy ? null : onSubmit,
+                      onPressed:
+                          isBusy ||
+                                  (selectedItem == null && imageFile == null)
+                              ? null
+                              : onSubmit,
                       icon: Icon(
                         selectedItem == null
                             ? Icons.add_outlined

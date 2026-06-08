@@ -12,5 +12,7 @@ public interface ProfileUseCase {
 
     UserAccountData update(UUID userId, UpdateProfileRequest request);
 
+    UserAccountData uploadAvatar(UUID userId, String originalFileName, String contentType, byte[] content);
+
     void changePassword(UUID userId, ChangePasswordRequest request);
 }

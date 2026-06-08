@@ -40,8 +40,9 @@ public class AppConfig {
 	public ProfileService profileService(
 			UserAccountPort userAccountPort,
 			PasswordHashPort passwordHashPort,
-			AuditLogService auditLogService) {
-		return new ProfileService(userAccountPort, passwordHashPort, auditLogService);
+			AuditLogService auditLogService,
+			UserAvatarStoragePort userAvatarStoragePort) {
+		return new ProfileService(userAccountPort, passwordHashPort, auditLogService, userAvatarStoragePort);
 	}
 
 	@Bean

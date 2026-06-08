@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../domain/models/merchant_category_taxonomy.dart';
 import '../../domain/models/merchant_menu_category.dart';
@@ -19,6 +20,7 @@ class MerchantCatalogState extends Equatable {
     this.selectedRestaurant,
     this.selectedCategory,
     this.selectedItem,
+    this.menuItemImageFile,
     this.errorMessage,
     this.infoMessage,
   });
@@ -34,6 +36,7 @@ class MerchantCatalogState extends Equatable {
   final MerchantRestaurant? selectedRestaurant;
   final MerchantMenuCategory? selectedCategory;
   final MerchantMenuItem? selectedItem;
+  final XFile? menuItemImageFile;
   final String? errorMessage;
   final String? infoMessage;
 
@@ -50,6 +53,7 @@ class MerchantCatalogState extends Equatable {
     Object? selectedRestaurant = _unset,
     Object? selectedCategory = _unset,
     Object? selectedItem = _unset,
+    Object? menuItemImageFile = _unset,
     String? errorMessage,
     String? infoMessage,
     bool clearError = false,
@@ -73,6 +77,10 @@ class MerchantCatalogState extends Equatable {
           selectedItem == _unset
               ? this.selectedItem
               : selectedItem as MerchantMenuItem?,
+      menuItemImageFile:
+          menuItemImageFile == _unset
+              ? this.menuItemImageFile
+              : menuItemImageFile as XFile?,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       infoMessage: clearInfo ? null : (infoMessage ?? this.infoMessage),
     );
@@ -88,6 +96,7 @@ class MerchantCatalogState extends Equatable {
     selectedRestaurant,
     selectedCategory,
     selectedItem,
+    menuItemImageFile?.path,
     errorMessage,
     infoMessage,
   ];

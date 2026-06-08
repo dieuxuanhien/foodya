@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../models/merchant_category_taxonomy.dart';
 import '../models/merchant_menu_category.dart';
 import '../models/merchant_menu_category_request.dart';
@@ -26,6 +28,7 @@ abstract class MerchantCatalogRepository {
   Future<MerchantMenuItem> createMenuItem({
     required String restaurantId,
     required MerchantMenuItemRequest request,
+    required XFile imageFile,
   });
 
   Future<MerchantMenuItem> updateMenuItem({

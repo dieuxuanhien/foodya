@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../../../../core/auth/auth_session_recovery.dart';
 import '../../domain/models/merchant_category_taxonomy.dart';
 import '../../domain/models/merchant_menu_category.dart';
@@ -84,12 +86,14 @@ class HttpMerchantCatalogRepository implements MerchantCatalogRepository {
   Future<MerchantMenuItem> createMenuItem({
     required String restaurantId,
     required MerchantMenuItemRequest request,
+    required XFile imageFile,
   }) {
     return _sessionRecovery.runAuthorized((accessToken) {
       return _remoteDataSource.createMenuItem(
         accessToken: accessToken,
         restaurantId: restaurantId,
         request: request,
+        imageFile: imageFile,
       );
     });
   }

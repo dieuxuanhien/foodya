@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
 import '../../domain/repositories/customer_profile_repository.dart';
@@ -81,6 +82,42 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(
         state.copyWith(
           status: ProfileStatus.failure,
+          errorMessage: presentation.message,
+        ),
+      );
+    }
+  }
+
+  Future<void> uploadAvatar(XFile file) async {
+    if (state.isBusy) return;
+    emit(
+      state.copyWith(
+        status: ProfileStatus.saving,
+        avatarImageFile: file,
+        clearError: true,
+        clearInfo: true,
+      ),
+    );
+    try {
+      final profile = await _repository.uploadAvatar(file);
+      emit(
+        state.copyWith(
+          status: ProfileStatus.success,
+          profile: profile,
+          avatarImageFile: null,
+          infoMessage: 'Profile photo updated.',
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to upload avatar.',
+      );
+      emit(
+        state.copyWith(
+          status: ProfileStatus.failure,
+          avatarImageFile: null,
           errorMessage: presentation.message,
         ),
       );

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
 import '../../domain/models/merchant_restaurant.dart';
@@ -45,6 +46,14 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
     emit(state.copyWith(restaurant: restaurant, clearError: true));
   }
 
+  void setBackgroundImageFile(XFile? file) {
+    emit(state.copyWith(backgroundImageFile: file));
+  }
+
+  void setAvatarImageFile(XFile? file) {
+    emit(state.copyWith(avatarImageFile: file));
+  }
+
   Future<void> create(MerchantRestaurantRequest request) async {
     if (state.isSaving) {
       return;
@@ -57,12 +66,18 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
       ),
     );
     try {
-      final restaurant = await _repository.createRestaurant(request);
+      final restaurant = await _repository.createRestaurant(
+        request,
+        backgroundFile: state.backgroundImageFile,
+        avatarFile: state.avatarImageFile,
+      );
       emit(
         state.copyWith(
           status: MerchantRestaurantStatus.success,
           restaurants: _upsertRestaurant(state.restaurants, restaurant),
           restaurant: restaurant,
+          backgroundImageFile: null,
+          avatarImageFile: null,
           infoMessage: 'Restaurant created.',
           clearError: true,
         ),
@@ -90,12 +105,16 @@ class MerchantRestaurantCubit extends Cubit<MerchantRestaurantState> {
       final restaurant = await _repository.updateRestaurant(
         restaurantId: restaurantId,
         request: request,
+        backgroundFile: state.backgroundImageFile,
+        avatarFile: state.avatarImageFile,
       );
       emit(
         state.copyWith(
           status: MerchantRestaurantStatus.success,
           restaurants: _upsertRestaurant(state.restaurants, restaurant),
           restaurant: restaurant,
+          backgroundImageFile: null,
+          avatarImageFile: null,
           infoMessage: 'Restaurant updated.',
           clearError: true,
         ),

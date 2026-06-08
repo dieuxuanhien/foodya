@@ -21,18 +21,23 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/me")
@@ -93,6 +98,26 @@ public class ProfileController {
                 request.avatarUrl()
         );
         UserAccountData user = profileService.update(CurrentUser.userId(authentication), command);
+        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toProfileResponse(user), RequestTrace.from(httpServletRequest)));
+    }
+
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload profile avatar")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Avatar uploaded"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "422", description = "Validation failed")
+    })
+    public ResponseEntity<ApiSuccessResponse<ProfileResponse>> uploadAvatar(Authentication authentication,
+                                                                            @RequestPart("file") MultipartFile file,
+                                                                            HttpServletRequest httpServletRequest) throws java.io.IOException {
+        UUID userId = CurrentUser.userId(authentication);
+        UserAccountData user = profileService.uploadAvatar(
+                userId,
+                file.getOriginalFilename(),
+                file.getContentType(),
+                file.getBytes()
+        );
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toProfileResponse(user), RequestTrace.from(httpServletRequest)));
     }
 

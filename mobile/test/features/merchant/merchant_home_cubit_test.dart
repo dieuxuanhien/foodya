@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_order_detail.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_order_summary.dart';
 import 'package:foodya_mobile/features/merchant/domain/models/merchant_restaurant.dart';
@@ -42,8 +43,10 @@ class _FakeMerchantRestaurantRepository
 
   @override
   Future<MerchantRestaurant> createRestaurant(
-    MerchantRestaurantRequest request,
-  ) {
+    MerchantRestaurantRequest request, {
+    XFile? backgroundFile,
+    XFile? avatarFile,
+  }) {
     throw UnimplementedError();
   }
 
@@ -51,6 +54,8 @@ class _FakeMerchantRestaurantRepository
   Future<MerchantRestaurant> updateRestaurant({
     required String restaurantId,
     required MerchantRestaurantRequest request,
+    XFile? backgroundFile,
+    XFile? avatarFile,
   }) {
     throw UnimplementedError();
   }

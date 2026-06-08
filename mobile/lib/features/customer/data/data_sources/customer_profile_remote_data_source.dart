@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/user_profile.dart';
@@ -17,6 +20,7 @@ class CustomerProfileRemoteDataSource {
   final http.Client _client;
 
   static const Duration _requestTimeout = Duration(seconds: 12);
+  static const Duration _uploadTimeout = Duration(seconds: 60);
 
   Future<UserProfile> me({required String accessToken}) async {
     final json = await _get('/api/v1/me', headers: _authHeaders(accessToken));
@@ -57,6 +61,64 @@ class CustomerProfileRemoteDataSource {
         'newPassword': newPassword,
         'confirmPassword': confirmPassword,
       },
+    );
+  }
+
+  Future<UserProfile> uploadAvatar({
+    required String accessToken,
+    required XFile file,
+  }) async {
+    final bytes = await file.readAsBytes();
+    final mimeType =
+        file.mimeType ??
+        lookupMimeType(file.name) ??
+        'application/octet-stream';
+    final multipart =
+        http.MultipartRequest(
+          'POST',
+          Uri.parse('$_baseUrl/api/v1/me/avatar'),
+        )
+          ..headers['Authorization'] = 'Bearer $accessToken'
+          ..files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              bytes,
+              filename: file.name,
+              contentType: MediaType.parse(mimeType),
+            ),
+          );
+
+    late final http.Response response;
+    try {
+      final streamed = await multipart.send().timeout(_uploadTimeout);
+      response = await http.Response.fromStream(streamed);
+    } on TimeoutException catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        code: 'NETWORK_TIMEOUT',
+        message: 'Request timed out. Check your connection and try again.',
+        details: error.toString(),
+      );
+    } catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        code: 'NETWORK_ERROR',
+        message: 'Cannot reach Foodya backend. Check API base URL and network.',
+        details: error.toString(),
+      );
+    }
+
+    final body = _tryDecodeMap(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return UserProfile.fromJson(_extractDataMap(body ?? const {}));
+    }
+    throw ApiException(
+      statusCode: response.statusCode,
+      code: body?['code']?.toString(),
+      message:
+          body?['message']?.toString() ??
+          'Avatar upload failed with status ${response.statusCode}.',
+      details: body?['details'],
     );
   }
 

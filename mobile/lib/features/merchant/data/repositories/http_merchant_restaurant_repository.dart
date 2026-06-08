@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../../../../core/auth/auth_session_recovery.dart';
 import '../../domain/models/merchant_restaurant.dart';
 import '../../domain/models/merchant_restaurant_request.dart';
@@ -23,12 +25,16 @@ class HttpMerchantRestaurantRepository implements MerchantRestaurantRepository {
 
   @override
   Future<MerchantRestaurant> createRestaurant(
-    MerchantRestaurantRequest request,
-  ) {
+    MerchantRestaurantRequest request, {
+    XFile? backgroundFile,
+    XFile? avatarFile,
+  }) {
     return _sessionRecovery.runAuthorized((accessToken) {
       return _remoteDataSource.createRestaurant(
         accessToken: accessToken,
         request: request,
+        backgroundFile: backgroundFile,
+        avatarFile: avatarFile,
       );
     });
   }
@@ -37,12 +43,16 @@ class HttpMerchantRestaurantRepository implements MerchantRestaurantRepository {
   Future<MerchantRestaurant> updateRestaurant({
     required String restaurantId,
     required MerchantRestaurantRequest request,
+    XFile? backgroundFile,
+    XFile? avatarFile,
   }) {
     return _sessionRecovery.runAuthorized((accessToken) {
       return _remoteDataSource.updateRestaurant(
         accessToken: accessToken,
         restaurantId: restaurantId,
         request: request,
+        backgroundFile: backgroundFile,
+        avatarFile: avatarFile,
       );
     });
   }

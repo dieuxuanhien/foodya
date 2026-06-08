@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../../../../core/auth/auth_session_recovery.dart';
 import '../../domain/models/user_profile.dart';
 import '../../domain/repositories/customer_profile_repository.dart';
@@ -35,6 +37,13 @@ class HttpCustomerProfileRepository implements CustomerProfileRepository {
         phoneNumber: phoneNumber,
         avatarUrl: avatarUrl,
       );
+    });
+  }
+
+  @override
+  Future<UserProfile> uploadAvatar(XFile file) {
+    return _sessionRecovery.runAuthorized((accessToken) {
+      return _remoteDataSource.uploadAvatar(accessToken: accessToken, file: file);
     });
   }
 
