@@ -3,6 +3,8 @@ package com.foodya.backend.infrastructure.adapter;
 import com.foodya.backend.application.dto.AiCatalogChunkDocument;
 import com.foodya.backend.application.dto.AiCatalogVectorHit;
 import com.foodya.backend.application.ports.out.AiCatalogVectorPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -10,11 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class AiCatalogVectorAdapter implements AiCatalogVectorPort {
+
+    private static final Logger log = LoggerFactory.getLogger(AiCatalogVectorAdapter.class);
 
     private static final String TABLE_NAME = "ai_catalog_chunks";
 
@@ -52,26 +60,58 @@ public class AiCatalogVectorAdapter implements AiCatalogVectorPort {
     }
 
     @Override
-    @Transactional
-    public void replaceSnapshot(List<AiCatalogChunkDocument> chunks) {
+    public Map<UUID, String> findStoredContentHashes() {
         if (!isReady()) {
+            return Map.of();
+        }
+
+        try {
+            List<Object[]> rows = jdbcTemplate.query(
+                    "SELECT menu_item_id, content_hash FROM ai_catalog_chunks",
+                    (rs, rowNum) -> new Object[]{
+                            UUID.fromString(rs.getString("menu_item_id")),
+                            rs.getString("content_hash")
+                    }
+            );
+            Map<UUID, String> hashesByMenuItem = new HashMap<>();
+            for (Object[] row : rows) {
+                hashesByMenuItem.put((UUID) row[0], (String) row[1]);
+            }
+            return hashesByMenuItem;
+        } catch (DataAccessException ex) {
+            log.warn("Failed to read stored AI catalog content hashes; treating catalog as fully dirty this cycle", ex);
+            return Map.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void upsertChunks(List<AiCatalogChunkDocument> chunks) {
+        if (!isReady() || chunks == null || chunks.isEmpty()) {
             return;
         }
 
         try {
-            jdbcTemplate.update("DELETE FROM ai_catalog_chunks");
             for (AiCatalogChunkDocument chunk : chunks) {
                 jdbcTemplate.update(
                         """
-                        INSERT INTO ai_catalog_chunks (id, menu_item_id, restaurant_id, chunk_text, chunk_metadata, embedding_text)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        INSERT INTO ai_catalog_chunks (id, menu_item_id, restaurant_id, chunk_text, chunk_metadata, embedding_text, content_hash)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT (menu_item_id) DO UPDATE
+                        SET restaurant_id = EXCLUDED.restaurant_id,
+                            chunk_text = EXCLUDED.chunk_text,
+                            chunk_metadata = EXCLUDED.chunk_metadata,
+                            embedding_text = EXCLUDED.embedding_text,
+                            content_hash = EXCLUDED.content_hash,
+                            updated_at = CURRENT_TIMESTAMP
                         """,
                         UUID.randomUUID(),
                         chunk.menuItemId(),
                         chunk.restaurantId(),
                         chunk.chunkText(),
                         chunk.metadataJson(),
-                        toVectorLiteral(chunk.embedding())
+                        toVectorLiteral(chunk.embedding()),
+                        chunk.contentHash()
                 );
             }
 
@@ -81,16 +121,33 @@ public class AiCatalogVectorAdapter implements AiCatalogVectorPort {
                             """
                             UPDATE ai_catalog_chunks
                             SET embedding = CAST(? AS vector), updated_at = CURRENT_TIMESTAMP
-                            WHERE menu_item_id = ? AND restaurant_id = ?
+                            WHERE menu_item_id = ?
                             """,
                             toVectorLiteral(chunk.embedding()),
-                            chunk.menuItemId(),
-                            chunk.restaurantId()
+                            chunk.menuItemId()
                     );
                 }
             }
         } catch (DataAccessException ex) {
-            // Keep AI chat flow resilient; fallback logic in service will continue without vector retrieval.
+            log.warn("Failed to upsert {} AI catalog chunk(s); they will be retried next sync cycle", chunks.size(), ex);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteChunksForMenuItems(Set<UUID> menuItemIds) {
+        if (!isReady() || menuItemIds == null || menuItemIds.isEmpty()) {
+            return;
+        }
+
+        try {
+            String placeholders = menuItemIds.stream().map(id -> "?").collect(Collectors.joining(","));
+            jdbcTemplate.update(
+                    "DELETE FROM ai_catalog_chunks WHERE menu_item_id IN (" + placeholders + ")",
+                    menuItemIds.toArray()
+            );
+        } catch (DataAccessException ex) {
+            log.warn("Failed to delete {} stale AI catalog chunk(s)", menuItemIds.size(), ex);
         }
     }
 

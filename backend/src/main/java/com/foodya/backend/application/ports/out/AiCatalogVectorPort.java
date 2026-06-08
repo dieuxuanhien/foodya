@@ -4,6 +4,9 @@ import com.foodya.backend.application.dto.AiCatalogChunkDocument;
 import com.foodya.backend.application.dto.AiCatalogVectorHit;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public interface AiCatalogVectorPort {
 
@@ -11,7 +14,11 @@ public interface AiCatalogVectorPort {
 
     long countChunks();
 
-    void replaceSnapshot(List<AiCatalogChunkDocument> chunks);
+    Map<UUID, String> findStoredContentHashes();
+
+    void upsertChunks(List<AiCatalogChunkDocument> chunks);
+
+    void deleteChunksForMenuItems(Set<UUID> menuItemIds);
 
     List<AiCatalogVectorHit> searchByEmbedding(List<Double> queryEmbedding, int topK);
 }

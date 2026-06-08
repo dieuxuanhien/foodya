@@ -8,6 +8,7 @@ public record AiCatalogChunkDocument(
         UUID restaurantId,
         String chunkText,
         String metadataJson,
+        String contentHash,
         List<Double> embedding
 ) {
 }

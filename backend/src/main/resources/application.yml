@@ -3,6 +3,10 @@ spring:
     import: optional:file:.env[.properties]
   application:
     name: foodya-backend
+  task:
+    scheduling:
+      pool:
+        size: ${FOODYA_SCHEDULING_POOL_SIZE:3}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/postgres}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}

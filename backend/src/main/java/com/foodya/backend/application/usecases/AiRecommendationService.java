@@ -30,6 +30,9 @@ import com.uber.h3core.H3Core;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -46,13 +49,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class AiRecommendationService implements AiRecommendationUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(AiRecommendationService.class);
 
     private static final int H3_WEATHER_RES = 8;
     private static final int TOP_K_RECOMMENDATIONS = 5;
     private static final int WEATHER_CACHE_SECONDS = 600;
     private static final int RAG_TOP_K = 40;
-    private static final int RAG_REFRESH_SECONDS = 900;
     private static final int DEFAULT_MAX_SHIPPING_KM = 15;
     private static final int MODEL_INTRO_MAX_CHARS = 180;
     private static final int RESPONSE_SUMMARY_MAX_CHARS = 400;
@@ -99,7 +106,6 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private final H3Core h3Core;
     private final ObjectMapper objectMapper;
     private final Map<String, CachedWeather> weatherCache = new ConcurrentHashMap<>();
-    private volatile Instant lastRagSnapshotAt;
 
     public AiRecommendationService(AiEmbeddingPort aiEmbeddingPort,
                                    AiCatalogVectorPort aiCatalogVectorPort,
@@ -506,42 +512,91 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         }
         Map<UUID, Restaurant> activeRestaurants = activeRestaurantsById();
         Map<UUID, MenuItem> activeMenuItemsById = activeMenuItemsById(activeRestaurants.keySet());
-        ensureRagSnapshot(activeRestaurants, activeMenuItemsById);
+        syncCatalogSnapshot(activeRestaurants, activeMenuItemsById);
     }
 
-    private void ensureRagSnapshot(Map<UUID, Restaurant> activeRestaurants,
-                                   Map<UUID, MenuItem> activeMenuItemsById) {
-        Instant now = Instant.now();
-        long chunkCount = aiCatalogVectorPort.countChunks();
-        if (chunkCount == activeMenuItemsById.size()
-                && lastRagSnapshotAt != null
-                && now.isBefore(lastRagSnapshotAt.plusSeconds(RAG_REFRESH_SECONDS))) {
-            return;
-        }
-
-        List<AiCatalogChunkDocument> chunks = new ArrayList<>();
+    private void syncCatalogSnapshot(Map<UUID, Restaurant> activeRestaurants,
+                                     Map<UUID, MenuItem> activeMenuItemsById) {
+        Map<UUID, String> freshChunkTextByMenuItem = new LinkedHashMap<>();
+        Map<UUID, String> freshHashByMenuItem = new LinkedHashMap<>();
         for (MenuItem item : activeMenuItemsById.values()) {
             Restaurant restaurant = activeRestaurants.get(item.getRestaurantId());
             if (restaurant == null) {
                 continue;
             }
             String chunkText = buildCatalogChunk(item, restaurant);
-            List<Double> embedding = aiEmbeddingPort.embedText(chunkText);
+            freshChunkTextByMenuItem.put(item.getId(), chunkText);
+            freshHashByMenuItem.put(item.getId(), sha256Hex(chunkText));
+        }
+
+        Map<UUID, String> storedHashByMenuItem = aiCatalogVectorPort.findStoredContentHashes();
+
+        List<UUID> dirtyMenuItemIds = new ArrayList<>();
+        for (Map.Entry<UUID, String> entry : freshHashByMenuItem.entrySet()) {
+            if (!entry.getValue().equals(storedHashByMenuItem.get(entry.getKey()))) {
+                dirtyMenuItemIds.add(entry.getKey());
+            }
+        }
+
+        Set<UUID> staleMenuItemIds = new HashSet<>(storedHashByMenuItem.keySet());
+        staleMenuItemIds.removeAll(activeMenuItemsById.keySet());
+        if (!staleMenuItemIds.isEmpty()) {
+            aiCatalogVectorPort.deleteChunksForMenuItems(staleMenuItemIds);
+            log.info("AI catalog sync: removed {} stale chunk(s)", staleMenuItemIds.size());
+        }
+
+        if (dirtyMenuItemIds.isEmpty()) {
+            log.info("AI catalog sync: catalog already up to date ({} active item(s), {} stored chunk(s))",
+                    activeMenuItemsById.size(), storedHashByMenuItem.size());
+            return;
+        }
+
+        log.info("AI catalog sync: embedding {} new/changed item(s) out of {} active item(s)",
+                dirtyMenuItemIds.size(), activeMenuItemsById.size());
+
+        int embedded = 0;
+        for (UUID menuItemId : dirtyMenuItemIds) {
+            MenuItem item = activeMenuItemsById.get(menuItemId);
+            String chunkText = freshChunkTextByMenuItem.get(menuItemId);
+            String freshHash = freshHashByMenuItem.get(menuItemId);
+            List<Double> embedding;
+            try {
+                embedding = aiEmbeddingPort.embedText(chunkText);
+            } catch (Exception ex) {
+                log.warn("Skipping catalog embedding for menu item {} this cycle (will retry next cycle)", menuItemId, ex);
+                continue;
+            }
             if (embedding.isEmpty()) {
                 continue;
             }
-            chunks.add(new AiCatalogChunkDocument(
-                    item.getId(),
+            aiCatalogVectorPort.upsertChunks(List.of(new AiCatalogChunkDocument(
+                    menuItemId,
                     item.getRestaurantId(),
                     chunkText,
                     EMPTY_JSON,
+                    freshHash,
                     embedding
-            ));
+            )));
+            embedded++;
+            if (embedded % 25 == 0 || embedded == dirtyMenuItemIds.size()) {
+                log.info("AI catalog sync progress: embedded {}/{} item(s)", embedded, dirtyMenuItemIds.size());
+            }
         }
 
-        if (!chunks.isEmpty()) {
-            aiCatalogVectorPort.replaceSnapshot(chunks);
-            lastRagSnapshotAt = now;
+        log.info("AI catalog sync completed: embedded {}/{} dirty item(s)", embedded, dirtyMenuItemIds.size());
+    }
+
+    private static String sha256Hex(String text) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            return Integer.toHexString(text.hashCode());
         }
     }
 
@@ -550,9 +605,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                 + " | description=" + safe(item.getDescription())
                 + " | price=" + item.getPrice()
                 + " | restaurant=" + safe(restaurant.getName())
-                + " | cuisine=" + safe(restaurant.getCuisineType())
-                + " | rating=" + safeDecimal(restaurant.getAvgRating())
-                + " | open=" + restaurant.isOpen();
+                + " | cuisine=" + safe(restaurant.getCuisineType());
     }
 
     private Map<UUID, BigDecimal> computeDistanceByRestaurant(Map<UUID, Restaurant> activeRestaurants,

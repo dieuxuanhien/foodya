@@ -10,7 +10,14 @@
       "Bash(mvn -q -Dtest=CustomerAiChatIntegrationTests test)",
       "Bash(ls -la /tmp/AiCatalogSnapshotScheduler.java.bak 2>&1; find \"f:\\\\DOAN1\\\\foodya\" -iname \"AiCatalogSnapshotScheduler*\" 2>/dev/null)",
       "Read(//tmp/**)",
-      "Bash(mvn -q compile)"
+      "Bash(mvn -q compile)",
+      "Bash(cd /f/DOAN1/foodya && grep -n \"ensureRagSnapshot\\\\|refreshCatalogSnapshot\\\\|retrieveVectorSimilarity\\\\|RAG_REFRESH_SECONDS\\\\|lastRagSnapshotAt\\\\|buildCatalogChunk\\\\|replaceSnapshot\" backend/src/main/java/com/foodya/backend/application/usecases/AiRecommendationService.java)",
+      "Read(//f/f/DOAN1/foodya/backend/src/main/java/com/foodya/backend/application/usecases/**)",
+      "Bash(mvn -q test -Dtest=AiRecommendation* -pl .)",
+      "Bash(mvn test *)",
+      "mcp__gitnexus__context",
+      "Bash(cd /f/DOAN1/foodya/backend && grep -rn \"GOOGLE_AI_STUDIO_API_KEY\\\\|GoogleAiStudio\\\\|google.*api.*key\" src/main/java/com/foodya/backend/application/constants/IntegrationKeyCatalog.java src/main/java/com/foodya/backend/infrastructure/config/*.java 2>/dev/null | head -20)",
+      "Read(//f/f/DOAN1/foodya/backend/src/main/java/com/foodya/backend/application/constants/**)"
     ]
   }
 }
