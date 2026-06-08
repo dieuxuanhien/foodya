@@ -103,6 +103,10 @@ class _CustomerHomeView extends StatelessWidget {
                 title: homeState.locationLabel,
                 subtitle: 'Hot meals nearby, ready when you are.',
                 icon: Icons.restaurant,
+                backgroundImageUrl:
+                    homeState.nearbyRestaurants.isEmpty
+                        ? null
+                        : homeState.nearbyRestaurants.first.backgroundImageUrl,
                 primaryAction: FilledButton.icon(
                   onPressed: () => context.push('/customer/restaurants'),
                   icon: const Icon(Icons.search),
@@ -128,9 +132,35 @@ class _CustomerHomeView extends StatelessWidget {
                   label: const Text('Location'),
                 ),
               ),
+              if (homeState.categories.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const FoodyaSectionHeader(
+                  title: 'Craving something?',
+                  subtitle: 'Tap a category to explore',
+                  leadingIcon: Icons.local_fire_department_outlined,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 100,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: homeState.categories.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 6),
+                    itemBuilder: (context, index) {
+                      final category = homeState.categories[index];
+                      return FoodyaCategoryChip(
+                        label: category.displayName,
+                        icon: categoryIcon(category.code),
+                        onTap: () => context.push('/customer/restaurants'),
+                      );
+                    },
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               FoodyaSectionHeader(
                 title: 'Near you',
+                leadingIcon: Icons.near_me_outlined,
                 action: TextButton.icon(
                   onPressed: () => context.push('/customer/restaurants'),
                   icon: const Icon(Icons.search),
@@ -140,7 +170,10 @@ class _CustomerHomeView extends StatelessWidget {
               const SizedBox(height: 12),
               _NearbyRestaurantsRow(state: homeState),
               const SizedBox(height: 20),
-              const FoodyaSectionHeader(title: 'Quick actions'),
+              const FoodyaSectionHeader(
+                title: 'Quick actions',
+                leadingIcon: Icons.bolt_outlined,
+              ),
               const SizedBox(height: 12),
               GridView.count(
                 crossAxisCount: 2,
@@ -158,16 +191,22 @@ class _CustomerHomeView extends StatelessWidget {
                   FoodyaQuickActionTile(
                     label: 'Orders',
                     icon: Icons.delivery_dining_outlined,
+                    iconBackgroundColor: const Color(0xFFFED7AA),
+                    iconColor: const Color(0xFF9A3412),
                     onTap: () => context.push('/customer/orders'),
                   ),
                   FoodyaQuickActionTile(
                     label: 'AI picks',
                     icon: Icons.auto_awesome_outlined,
+                    iconBackgroundColor: const Color(0xFFFEF3C7),
+                    iconColor: const Color(0xFFB45309),
                     onTap: () => context.push('/customer/ai'),
                   ),
                   FoodyaQuickActionTile(
                     label: 'Updates',
                     icon: Icons.notifications_outlined,
+                    iconBackgroundColor: const Color(0xFFDCFCE7),
+                    iconColor: const Color(0xFF166534),
                     onTap: () => context.push('/customer/notifications'),
                   ),
                 ],
@@ -244,23 +283,20 @@ class _NearbyRestaurantsRow extends StatelessWidget {
     }
 
     if (state.nearbyRestaurants.isEmpty) {
-      return Container(
-        height: 120,
-        padding: const EdgeInsets.all(12),
-        alignment: Alignment.centerLeft,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          state.nearbyMessage ?? 'No nearby restaurants found.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return FoodyaEmptyState(
+        illustrationAsset: 'assets/illustrations/empty_nearby.png',
+        icon: Icons.travel_explore_outlined,
+        title: 'No nearby restaurants yet',
+        message:
+            state.nearbyMessage ??
+            'We could not spot restaurants close to you right now.',
+        actionLabel: 'Browse all restaurants',
+        onAction: () => context.push('/customer/restaurants'),
       );
     }
 
     return SizedBox(
-      height: 285,
+      height: 320,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: state.nearbyRestaurants.length,
@@ -298,7 +334,7 @@ class _NearbyRestaurantCard extends StatelessWidget {
                 FoodyaImageSurface(
                   imageUrl: restaurant.backgroundImageUrl,
                   icon: Icons.restaurant,
-                  height: 104,
+                  height: 140,
                   width: double.infinity,
                 ),
                 const SizedBox(height: 10),

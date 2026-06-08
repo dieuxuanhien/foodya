@@ -3,23 +3,39 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../theme/app_theme.dart';
+
 class FoodyaSectionHeader extends StatelessWidget {
   const FoodyaSectionHeader({
     super.key,
     required this.title,
     this.subtitle,
     this.action,
+    this.leadingIcon,
+    this.leadingIconBackground,
   });
 
   final String title;
   final String? subtitle;
   final Widget? action;
+  final IconData? leadingIcon;
+  final Color? leadingIconBackground;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (leadingIcon != null) ...[
+          CircleAvatar(
+            radius: 19,
+            backgroundColor: leadingIconBackground ?? const Color(0xFFFFEDD5),
+            foregroundColor: theme.colorScheme.primary,
+            child: Icon(leadingIcon, size: 20),
+          ),
+          const SizedBox(width: 12),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,6 +129,7 @@ class FoodyaHomeHero extends StatelessWidget {
     this.secondaryAction,
     this.trailing,
     this.titleMaxLines = 2,
+    this.backgroundImageUrl,
   });
 
   final String eyebrow;
@@ -123,85 +140,114 @@ class FoodyaHomeHero extends StatelessWidget {
   final Widget? secondaryAction;
   final Widget? trailing;
   final int titleMaxLines;
+  final String? backgroundImageUrl;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF431407),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final normalizedImageUrl = backgroundImageUrl?.trim();
+    final hasImage = normalizedImageUrl != null && normalizedImageUrl.isNotEmpty;
+    const gradientBackdrop = DecoratedBox(
+      decoration: BoxDecoration(gradient: AppTheme.heroGradient),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.white.withValues(alpha: 0.14),
-                foregroundColor: Colors.white,
-                child: Icon(icon),
+          Positioned.fill(
+            child:
+                hasImage
+                    ? Image.network(
+                      normalizedImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => gradientBackdrop,
+                    )
+                    : gradientBackdrop,
+          ),
+          if (hasImage)
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: AppTheme.cardOverlayGradient),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+            ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      eyebrow,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFFFED7AA),
-                        fontWeight: FontWeight.w700,
+                    CircleAvatar(
+                      backgroundColor: Colors.white.withValues(alpha: 0.14),
+                      foregroundColor: Colors.white,
+                      child: Icon(icon),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            eyebrow,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: const Color(0xFFFED7AA),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            title,
+                            maxLines: titleMaxLines,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      maxLines: titleMaxLines,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    if (trailing != null) ...[
+                      const SizedBox(width: 12),
+                      trailing!,
+                    ],
                   ],
                 ),
-              ),
-              if (trailing != null) ...[const SizedBox(width: 12), trailing!],
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFFFFEDD5),
+                const SizedBox(height: 10),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFFFEDD5),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isTight = constraints.maxWidth < 360;
+                    final actions = [
+                      Expanded(child: primaryAction),
+                      if (secondaryAction != null) ...[
+                        const SizedBox(width: 10),
+                        Expanded(child: secondaryAction!),
+                      ],
+                    ];
+                    if (!isTight || secondaryAction == null) {
+                      return Row(children: actions);
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        primaryAction,
+                        const SizedBox(height: 10),
+                        secondaryAction!,
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isTight = constraints.maxWidth < 360;
-              final actions = [
-                Expanded(child: primaryAction),
-                if (secondaryAction != null) ...[
-                  const SizedBox(width: 10),
-                  Expanded(child: secondaryAction!),
-                ],
-              ];
-              if (!isTight || secondaryAction == null) {
-                return Row(children: actions);
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  primaryAction,
-                  const SizedBox(height: 10),
-                  secondaryAction!,
-                ],
-              );
-            },
           ),
         ],
       ),
@@ -216,12 +262,16 @@ class FoodyaQuickActionTile extends StatelessWidget {
     required this.icon,
     this.value,
     this.onTap,
+    this.iconBackgroundColor,
+    this.iconColor,
   });
 
   final String label;
   final IconData icon;
   final String? value;
   final VoidCallback? onTap;
+  final Color? iconBackgroundColor;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -236,8 +286,8 @@ class FoodyaQuickActionTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 19,
-                backgroundColor: const Color(0xFFFFEDD5),
-                foregroundColor: theme.colorScheme.primary,
+                backgroundColor: iconBackgroundColor ?? const Color(0xFFFFEDD5),
+                foregroundColor: iconColor ?? theme.colorScheme.primary,
                 child: Icon(icon, size: 21),
               ),
               const SizedBox(width: 12),
@@ -321,6 +371,8 @@ class FoodyaImageSurface extends StatelessWidget {
     this.height,
     this.width,
     this.borderRadius = 12,
+    this.showGradientOverlay = false,
+    this.overlayChild,
   });
 
   final String? imageUrl;
@@ -328,11 +380,14 @@ class FoodyaImageSurface extends StatelessWidget {
   final double? height;
   final double? width;
   final double borderRadius;
+  final bool showGradientOverlay;
+  final Widget? overlayChild;
 
   @override
   Widget build(BuildContext context) {
     final normalizedUrl = imageUrl?.trim();
     final radius = BorderRadius.circular(borderRadius);
+    final hasUrl = normalizedUrl != null && normalizedUrl.isNotEmpty;
     final fallback = Container(
       height: height,
       width: width,
@@ -343,21 +398,223 @@ class FoodyaImageSurface extends StatelessWidget {
       child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 30),
     );
 
-    if (normalizedUrl == null || normalizedUrl.isEmpty) {
-      return fallback;
+    if (!showGradientOverlay) {
+      if (!hasUrl) {
+        return fallback;
+      }
+      return ClipRRect(
+        borderRadius: radius,
+        child: Image.network(
+          normalizedUrl,
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallback,
+        ),
+      );
     }
+
+    final image =
+        hasUrl
+            ? Image.network(
+              normalizedUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => fallback,
+            )
+            : fallback;
 
     return ClipRRect(
       borderRadius: radius,
-      child: Image.network(
-        normalizedUrl,
+      child: SizedBox(
         height: height,
         width: width,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => fallback,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            image,
+            const DecoratedBox(
+              decoration: BoxDecoration(gradient: AppTheme.cardOverlayGradient),
+            ),
+            if (overlayChild != null)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: overlayChild,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class FoodyaCategoryChip extends StatelessWidget {
+  const FoodyaCategoryChip({
+    super.key,
+    required this.label,
+    required this.icon,
+    this.selected = false,
+    this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor:
+                  selected
+                      ? const Color(0xFFFED7AA)
+                      : const Color(0xFFFFEDD5),
+              foregroundColor: theme.colorScheme.primary,
+              child: Icon(icon, size: 26),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: 72,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  color:
+                      selected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FoodyaEmptyState extends StatelessWidget {
+  const FoodyaEmptyState({
+    super.key,
+    required this.title,
+    required this.message,
+    this.illustrationAsset,
+    this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String title;
+  final String message;
+  final String? illustrationAsset;
+  final IconData? icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final asset = illustrationAsset;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          asset == null
+              ? _FoodyaEmptyStateBadge(icon: icon)
+              : Image.asset(
+                asset,
+                height: 120,
+                errorBuilder: (_, _, _) => _FoodyaEmptyStateBadge(icon: icon),
+              ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FoodyaEmptyStateBadge extends StatelessWidget {
+  const _FoodyaEmptyStateBadge({this.icon});
+
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return CircleAvatar(
+      radius: 36,
+      backgroundColor: const Color(0xFFFFEDD5),
+      foregroundColor: theme.colorScheme.primary,
+      child: Icon(icon ?? Icons.restaurant_outlined, size: 32),
+    );
+  }
+}
+
+/// Maps a category-taxonomy code to a representative Material icon so the
+/// food-category strip stays visually consistent without bespoke art.
+IconData categoryIcon(String taxonomyCode) {
+  return switch (taxonomyCode.toUpperCase()) {
+    'PIZZA' => Icons.local_pizza_outlined,
+    'BURGER' || 'FASTFOOD' || 'FAST_FOOD' => Icons.lunch_dining_outlined,
+    'SUSHI' || 'JAPANESE' => Icons.set_meal_outlined,
+    'NOODLES' || 'PHO' || 'RAMEN' || 'ASIAN' => Icons.ramen_dining_outlined,
+    'COFFEE' || 'DRINKS' || 'BEVERAGE' || 'TEA' => Icons.local_cafe_outlined,
+    'DESSERT' || 'BAKERY' || 'CAKE' || 'ICE_CREAM' => Icons.icecream_outlined,
+    'CHICKEN' => Icons.kebab_dining_outlined,
+    'VEGETARIAN' || 'VEGAN' || 'SALAD' || 'HEALTHY' => Icons.eco_outlined,
+    'SEAFOOD' => Icons.set_meal_outlined,
+    'BBQ' || 'GRILL' => Icons.outdoor_grill_outlined,
+    'BREAKFAST' => Icons.free_breakfast_outlined,
+    _ => Icons.restaurant_outlined,
+  };
+}
+
+/// Maps an order status to a representative Material icon for queue rows.
+IconData orderStatusIcon(String status) {
+  return switch (status.toUpperCase()) {
+    'PENDING' => Icons.hourglass_top_outlined,
+    'ACCEPTED' => Icons.task_alt_outlined,
+    'PREPARING' => Icons.local_fire_department_outlined,
+    'ASSIGNED' || 'DELIVERING' => Icons.delivery_dining_outlined,
+    'SUCCESS' => Icons.check_circle_outline,
+    'CANCELLED' || 'FAILED' => Icons.cancel_outlined,
+    _ => Icons.receipt_long_outlined,
+  };
 }
 
 class FoodyaStatusChip extends StatelessWidget {

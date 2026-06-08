@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../domain/models/category_taxonomy.dart';
 import '../../domain/models/restaurant_search_item.dart';
 
 enum CustomerHomeStatus { initial, loading, success, failure }
@@ -15,6 +16,7 @@ class CustomerHomeState extends Equatable {
     this.locationMessage,
     this.nearbyMessage,
     this.friendlyAddress,
+    this.categories = const [],
   });
 
   const CustomerHomeState.initial()
@@ -28,6 +30,7 @@ class CustomerHomeState extends Equatable {
         locationMessage: null,
         nearbyMessage: null,
         friendlyAddress: null,
+        categories: const [],
       );
 
   final CustomerHomeStatus status;
@@ -39,6 +42,7 @@ class CustomerHomeState extends Equatable {
   final String? locationMessage;
   final String? nearbyMessage;
   final String? friendlyAddress;
+  final List<CategoryTaxonomy> categories;
 
   String get locationLabel {
     if (friendlyAddress != null && friendlyAddress!.trim().isNotEmpty) {
@@ -62,6 +66,7 @@ class CustomerHomeState extends Equatable {
     String? locationMessage,
     String? nearbyMessage,
     String? friendlyAddress,
+    List<CategoryTaxonomy>? categories,
     bool clearLocationMessage = false,
     bool clearNearbyMessage = false,
     bool clearCoordinates = false,
@@ -84,6 +89,7 @@ class CustomerHomeState extends Equatable {
           clearFriendlyAddress
               ? null
               : (friendlyAddress ?? this.friendlyAddress),
+      categories: categories ?? this.categories,
     );
   }
 
@@ -98,5 +104,6 @@ class CustomerHomeState extends Equatable {
     locationMessage,
     nearbyMessage,
     friendlyAddress,
+    categories,
   ];
 }

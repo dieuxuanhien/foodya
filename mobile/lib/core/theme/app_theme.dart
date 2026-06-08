@@ -1,6 +1,27 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  /// Warm brown-to-amber backdrop for hero banners without a photo.
+  static const heroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF7C2D12), Color(0xFF431407)],
+  );
+
+  /// Dark scrim layered over photos so light text stays legible.
+  static const cardOverlayGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x99431407), Color(0xE6431407)],
+  );
+
+  /// Orange-to-amber accent for charts and highlight surfaces.
+  static const accentGradient = LinearGradient(
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+    colors: [Color(0xFFEA580C), Color(0xFFF59E0B)],
+  );
+
   static ThemeData light() {
     const primary = Color(0xFFEA580C);
     const surface = Color(0xFFFFF8F1);

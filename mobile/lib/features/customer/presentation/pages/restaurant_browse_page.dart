@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/models/restaurant_search_item.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
 import '../../../../core/location/geolocation_service.dart';
+import '../../../../core/ui/foodya_ui.dart';
 import '../cubit/restaurant_browse_cubit.dart';
 import '../cubit/restaurant_browse_state.dart';
 import '../widgets/manual_location_sheet.dart';
@@ -120,27 +121,33 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                   ],
                 ),
                 if (state.taxonomies.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Categories',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  const SizedBox(height: 16),
+                  const FoodyaSectionHeader(
+                    title: 'Categories',
+                    leadingIcon: Icons.local_fire_department_outlined,
                   ),
                   const SizedBox(height: 8),
-                  _HorizontalChipList(
-                    children: state.taxonomies
-                        .map(
-                          (taxonomy) => FilterChip(
-                            label: Text(taxonomy.displayName),
-                            selected: state.selectedTaxonomyCodes.contains(
-                              taxonomy.code,
-                            ),
-                            onSelected:
-                                (_) => context
-                                    .read<RestaurantBrowseCubit>()
-                                    .toggleTaxonomy(taxonomy.code),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: state.taxonomies.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 6),
+                      itemBuilder: (context, index) {
+                        final taxonomy = state.taxonomies[index];
+                        return FoodyaCategoryChip(
+                          label: taxonomy.displayName,
+                          icon: categoryIcon(taxonomy.code),
+                          selected: state.selectedTaxonomyCodes.contains(
+                            taxonomy.code,
                           ),
-                        )
-                        .toList(growable: false),
+                          onTap:
+                              () => context
+                                  .read<RestaurantBrowseCubit>()
+                                  .toggleTaxonomy(taxonomy.code),
+                        );
+                      },
+                    ),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -311,22 +318,28 @@ class _ResultSection extends StatelessWidget {
     }
 
     if (state.status == RestaurantBrowseStatus.failure) {
-      return _EmptyState(
+      return FoodyaEmptyState(
+        illustrationAsset: 'assets/illustrations/empty_connection.png',
+        icon: Icons.wifi_off_outlined,
         title: 'Unable to load restaurants',
-        subtitle:
+        message:
             state.errorMessage ?? 'Please check your network and try again.',
+        actionLabel: 'Retry',
+        onAction: () => context.read<RestaurantBrowseCubit>().refresh(),
       );
     }
 
     if (state.status == RestaurantBrowseStatus.empty) {
-      return const _EmptyState(
+      return const FoodyaEmptyState(
+        illustrationAsset: 'assets/illustrations/empty_search.png',
+        icon: Icons.search_off_outlined,
         title: 'No restaurants found',
-        subtitle: 'Try adjusting keyword or filters.',
+        message: 'Try adjusting keyword or filters.',
       );
     }
 
     return SizedBox(
-      height: 224,
+      height: 256,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount:
@@ -379,74 +392,89 @@ class _RestaurantCard extends StatelessWidget {
             () => context.push(
               '/customer/restaurants/${restaurant.restaurantId}',
             ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FoodyaImageSurface(
+              imageUrl: restaurant.backgroundImageUrl,
+              icon: Icons.restaurant,
+              height: 112,
+              width: double.infinity,
+              borderRadius: 0,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    backgroundImage:
-                        restaurant.avatarImageUrl == null
-                            ? null
-                            : NetworkImage(restaurant.avatarImageUrl!),
-                    child:
-                        restaurant.avatarImageUrl == null
-                            ? const Icon(Icons.storefront_outlined)
-                            : null,
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundImage:
+                            restaurant.avatarImageUrl == null
+                                ? null
+                                : NetworkImage(restaurant.avatarImageUrl!),
+                        child:
+                            restaurant.avatarImageUrl == null
+                                ? const Icon(Icons.storefront_outlined)
+                                : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              restaurant.restaurantName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              restaurant.cuisine,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Chip(
+                        label: Text(
+                          restaurant.openStatus ? 'Open' : 'Closed',
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          restaurant.restaurantName,
-                          style: Theme.of(context).textTheme.titleMedium,
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _InfoTag(
+                        icon: Icons.star,
+                        text: restaurant.rating.toStringAsFixed(1),
+                      ),
+                      _InfoTag(
+                        icon: Icons.delivery_dining,
+                        text:
+                            'Up to ${restaurant.maxDeliveryKm.toStringAsFixed(1)} km',
+                      ),
+                      if (restaurant.distanceKm != null)
+                        _InfoTag(
+                          icon: Icons.near_me_outlined,
+                          text:
+                              '${restaurant.distanceKm!.toStringAsFixed(1)} km',
                         ),
-                        Text(
-                          restaurant.cuisine,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                    ],
+                  ),
+                  if (matchedNames.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Matched items: ${matchedNames.join(', ')}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  ),
-                  Chip(
-                    label: Text(restaurant.openStatus ? 'Open' : 'Closed'),
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  _InfoTag(
-                    icon: Icons.star,
-                    text: restaurant.rating.toStringAsFixed(1),
-                  ),
-                  _InfoTag(
-                    icon: Icons.delivery_dining,
-                    text:
-                        'Up to ${restaurant.maxDeliveryKm.toStringAsFixed(1)} km',
-                  ),
-                  if (restaurant.distanceKm != null)
-                    _InfoTag(
-                      icon: Icons.near_me_outlined,
-                      text: '${restaurant.distanceKm!.toStringAsFixed(1)} km',
-                    ),
-                ],
-              ),
-              if (matchedNames.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Matched items: ${matchedNames.join(', ')}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -486,36 +514,6 @@ class _InfoTag extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       avatar: Icon(icon, size: 16),
       label: Text(text),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.search_off_outlined, size: 36),
-            const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

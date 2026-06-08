@@ -122,12 +122,11 @@ class _MerchantCatalogViewState extends State<_MerchantCatalogView> {
               ),
               const SizedBox(height: 16),
               if (state.selectedRestaurant == null)
-                const Card(
-                  child: ListTile(
-                    leading: Icon(Icons.storefront_outlined),
-                    title: Text('No restaurant selected'),
-                    subtitle: Text('Create a restaurant profile first.'),
-                  ),
+                const FoodyaEmptyState(
+                  illustrationAsset: 'assets/illustrations/empty_storefront.png',
+                  icon: Icons.storefront_outlined,
+                  title: 'No restaurant selected',
+                  message: 'Create a restaurant profile first.',
                 )
               else ...[
                 _CategorySection(
@@ -447,12 +446,10 @@ class _CategorySection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (categories.isEmpty)
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.folder_open_outlined),
-              title: Text('No categories yet'),
-              subtitle: Text('Create one before adding menu items.'),
-            ),
+          const FoodyaEmptyState(
+            icon: Icons.folder_open_outlined,
+            title: 'No categories yet',
+            message: 'Create one before adding menu items.',
           )
         else
           SizedBox(
@@ -746,12 +743,10 @@ class _ItemSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (items.isEmpty)
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.fastfood_outlined),
-              title: Text('No menu items yet'),
-              subtitle: Text('Create the first item for this restaurant.'),
-            ),
+          const FoodyaEmptyState(
+            icon: Icons.fastfood_outlined,
+            title: 'No menu items yet',
+            message: 'Create the first item for this restaurant.',
           )
         else
           SizedBox(
@@ -806,48 +801,67 @@ class _MenuCatalogTile extends StatelessWidget {
         onTap: isBusy ? null : () => onSelect(item),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    item.available
-                        ? Icons.check_circle_outline
-                        : Icons.pause_circle_outline,
-                    color:
-                        selected ? theme.colorScheme.onPrimaryContainer : null,
-                  ),
-                  const Spacer(),
-                  Switch(
-                    value: item.available,
-                    onChanged:
-                        isBusy
-                            ? null
-                            : (value) => onAvailabilityChanged(item, value),
-                  ),
-                  IconButton(
-                    onPressed: isBusy ? null : () => onDelete(item),
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Delete',
-                  ),
-                ],
+              FoodyaImageSurface(
+                imageUrl: item.imageUrl,
+                icon: Icons.fastfood_outlined,
+                height: 84,
+                width: 84,
+                borderRadius: 12,
               ),
-              const Spacer(),
-              Text(
-                item.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          item.available
+                              ? Icons.check_circle_outline
+                              : Icons.pause_circle_outline,
+                          size: 18,
+                          color:
+                              selected
+                                  ? theme.colorScheme.onPrimaryContainer
+                                  : null,
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: item.available,
+                          onChanged:
+                              isBusy
+                                  ? null
+                                  : (value) =>
+                                      onAvailabilityChanged(item, value),
+                        ),
+                        IconButton(
+                          onPressed: isBusy ? null : () => onDelete(item),
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: 'Delete',
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.categoryName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text('${item.price.toStringAsFixed(0)} VND'),
+                  ],
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                item.categoryName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text('${item.price.toStringAsFixed(0)} VND'),
             ],
           ),
         ),

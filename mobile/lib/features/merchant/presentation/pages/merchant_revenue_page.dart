@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/models/merchant_revenue_report.dart';
 import '../../domain/repositories/merchant_revenue_repository.dart';
 import '../cubit/merchant_revenue_cubit.dart';
@@ -87,12 +89,18 @@ class _MerchantRevenueView extends StatelessWidget {
                     ),
                   )
                 else if (state.errorMessage != null && report == null)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.error_outline),
-                      title: const Text('Report unavailable'),
-                      subtitle: Text(state.errorMessage!),
-                    ),
+                  FoodyaEmptyState(
+                    illustrationAsset: 'assets/illustrations/empty_connection.png',
+                    icon: Icons.error_outline,
+                    title: 'Report unavailable',
+                    message: state.errorMessage!,
+                    actionLabel: 'Retry',
+                    onAction:
+                        () => context.read<MerchantRevenueCubit>().load(
+                          from: state.from,
+                          to: state.to,
+                          topItems: state.topItems,
+                        ),
                   )
                 else if (report != null) ...[
                   _ReportPeriod(report: report),
@@ -304,41 +312,31 @@ class _MetricGrid extends StatelessWidget {
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       children: [
-        _MetricCard(label: 'Revenue', value: _money(report.revenue)),
-        _MetricCard(label: 'Profit', value: _money(report.platformProfit)),
-        _MetricCard(label: 'Orders', value: report.orderCount.toString()),
-        _MetricCard(label: 'Avg order', value: _money(report.avgOrderValue)),
-      ],
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
+        FoodyaMetricTile(
+          label: 'Revenue',
+          value: _money(report.revenue),
+          icon: Icons.payments_outlined,
+          accentColor: const Color(0xFFEA580C),
         ),
-      ),
+        FoodyaMetricTile(
+          label: 'Profit',
+          value: _money(report.platformProfit),
+          icon: Icons.savings_outlined,
+          accentColor: const Color(0xFF16A34A),
+        ),
+        FoodyaMetricTile(
+          label: 'Orders',
+          value: report.orderCount.toString(),
+          icon: Icons.receipt_long_outlined,
+          accentColor: const Color(0xFFD97706),
+        ),
+        FoodyaMetricTile(
+          label: 'Avg order',
+          value: _money(report.avgOrderValue),
+          icon: Icons.calculate_outlined,
+          accentColor: const Color(0xFFF59E0B),
+        ),
+      ],
     );
   }
 }
@@ -351,11 +349,10 @@ class _RevenueChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (series.isEmpty) {
-      return const Card(
-        child: ListTile(
-          leading: Icon(Icons.bar_chart_outlined),
-          title: Text('No chart data'),
-        ),
+      return const FoodyaEmptyState(
+        icon: Icons.bar_chart_outlined,
+        title: 'No chart data',
+        message: 'Revenue trends will appear here once orders come in.',
       );
     }
 
@@ -411,7 +408,6 @@ class _ChartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
     return Tooltip(
       message:
           '${_date(bucket.period)}\n${_money(bucket.revenue)}\n${bucket.orderCount} orders',
@@ -426,7 +422,7 @@ class _ChartBar extends StatelessWidget {
                 widthFactor: 1,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: color,
+                    gradient: AppTheme.accentGradient,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -455,11 +451,10 @@ class _RevenueSeries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (series.isEmpty) {
-      return const Card(
-        child: ListTile(
-          leading: Icon(Icons.show_chart_outlined),
-          title: Text('No revenue series'),
-        ),
+      return const FoodyaEmptyState(
+        icon: Icons.show_chart_outlined,
+        title: 'No revenue series',
+        message: 'Daily revenue breakdowns will show up here once available.',
       );
     }
     return Column(
@@ -491,11 +486,10 @@ class _TopSellingItems extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Card(
-        child: ListTile(
-          leading: Icon(Icons.leaderboard_outlined),
-          title: Text('No top-selling items'),
-        ),
+      return const FoodyaEmptyState(
+        icon: Icons.leaderboard_outlined,
+        title: 'No top-selling items',
+        message: 'Best sellers will be ranked here once orders roll in.',
       );
     }
     return Column(

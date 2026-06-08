@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/ui/foodya_ui.dart';
 import '../../domain/repositories/customer_cart_repository.dart';
 import '../../domain/models/restaurant_menu_item.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
@@ -148,24 +149,48 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    if (restaurant.backgroundImageUrl != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          restaurant.backgroundImageUrl!,
-                          height: 160,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (_, _, _) => Container(
-                                height: 160,
-                                color: Colors.black12,
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.image_not_supported_outlined,
+                    FoodyaImageSurface(
+                      imageUrl: restaurant.backgroundImageUrl,
+                      icon: Icons.storefront,
+                      height: 200,
+                      width: double.infinity,
+                      borderRadius: 16,
+                      showGradientOverlay: true,
+                      overlayChild: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            restaurant.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.headlineSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              FoodyaStatusChip(
+                                value: restaurant.open ? 'OPEN' : 'CLOSED',
+                              ),
+                              Chip(
+                                visualDensity: VisualDensity.compact,
+                                avatar: const Icon(Icons.star, size: 16),
+                                label: Text(
+                                  restaurant.avgRating.toStringAsFixed(1),
                                 ),
                               ),
-                        ),
+                            ],
+                          ),
+                        ],
                       ),
+                    ),
                     const SizedBox(height: 12),
                     if (state.errorMessage != null)
                       Card(
@@ -207,20 +232,14 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                       ),
                     if (state.errorMessage != null) const SizedBox(height: 12),
                     Text(
-                      restaurant.name,
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      restaurant.cuisineType,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(restaurant.cuisineType),
                     const SizedBox(height: 8),
                     _HorizontalChipList(
                       children: [
-                        Chip(label: Text(restaurant.open ? 'Open' : 'Closed')),
-                        Chip(
-                          label: Text(
-                            'Rating ${restaurant.avgRating.toStringAsFixed(1)}',
-                          ),
-                        ),
                         Chip(label: Text('${restaurant.reviewCount} reviews')),
                         Chip(
                           label: Text(
@@ -303,7 +322,12 @@ class _RestaurantDetailViewState extends State<_RestaurantDetailView> {
                     ],
                     const SizedBox(height: 14),
                     if (state.status == RestaurantDetailStatus.empty)
-                      const _EmptyMenuState()
+                      const FoodyaEmptyState(
+                        illustrationAsset: 'assets/illustrations/empty_menu.png',
+                        icon: Icons.restaurant_menu_outlined,
+                        title: 'No menu items found',
+                        message: 'Try a different keyword or clear your filters.',
+                      )
                     else
                       SizedBox(
                         height: 238,
@@ -437,25 +461,13 @@ class _MenuItemCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                item.imageUrl == null
-                    ? const CircleAvatar(
-                      radius: 28,
-                      child: Icon(Icons.fastfood_outlined),
-                    )
-                    : ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        item.imageUrl!,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorBuilder:
-                            (_, _, _) => const CircleAvatar(
-                              radius: 28,
-                              child: Icon(Icons.fastfood_outlined),
-                            ),
-                      ),
-                    ),
+                FoodyaImageSurface(
+                  imageUrl: item.imageUrl,
+                  icon: Icons.fastfood_outlined,
+                  height: 92,
+                  width: 92,
+                  borderRadius: 14,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -539,18 +551,6 @@ class _HorizontalChipList extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _EmptyMenuState extends StatelessWidget {
-  const _EmptyMenuState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 24),
-      child: Center(child: Text('No menu items match the current filters.')),
     );
   }
 }

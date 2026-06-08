@@ -79,12 +79,11 @@ class _MerchantOrdersView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (state.selectedRestaurant == null)
-                const Card(
-                  child: ListTile(
-                    leading: Icon(Icons.storefront_outlined),
-                    title: Text('No restaurant selected'),
-                    subtitle: Text('Create a restaurant profile first.'),
-                  ),
+                const FoodyaEmptyState(
+                  illustrationAsset: 'assets/illustrations/empty_storefront.png',
+                  icon: Icons.storefront_outlined,
+                  title: 'No restaurant selected',
+                  message: 'Create a restaurant profile first.',
                 )
               else ...[
                 _OrderList(
@@ -194,12 +193,11 @@ class _OrderList extends StatelessWidget {
       );
     }
     if (orders.isEmpty) {
-      return const Card(
-        child: ListTile(
-          leading: Icon(Icons.receipt_long_outlined),
-          title: Text('No orders yet'),
-          subtitle: Text('Incoming orders will appear here.'),
-        ),
+      return const FoodyaEmptyState(
+        illustrationAsset: 'assets/illustrations/empty_orders.png',
+        icon: Icons.receipt_long_outlined,
+        title: 'No orders yet',
+        message: 'Incoming orders will appear here.',
       );
     }
     return Column(
@@ -212,12 +210,16 @@ class _OrderList extends StatelessWidget {
             child: ListTile(
               selected: selectedOrderId == order.orderId,
               onTap: isBusy ? null : () => onSelected(order),
-              leading: const Icon(Icons.receipt_long_outlined),
+              leading: CircleAvatar(
+                backgroundColor: const Color(0xFFFFEDD5),
+                foregroundColor: const Color(0xFFEA580C),
+                child: Icon(orderStatusIcon(order.status)),
+              ),
               title: Text(order.orderCode),
               subtitle: Text(
-                '${order.customerName} - ${friendlyStatusLabel(order.status)}',
+                '${order.customerName} · ${order.totalAmount.toStringAsFixed(0)}',
               ),
-              trailing: Text(order.totalAmount.toStringAsFixed(0)),
+              trailing: FoodyaStatusChip(value: order.status),
             ),
           ),
       ],
@@ -255,7 +257,13 @@ class _OrderDetailCard extends StatelessWidget {
             const SizedBox(height: 8),
             _InfoRow(label: 'Customer', value: order.customerName),
             _InfoRow(label: 'Restaurant', value: order.restaurantName),
-            _InfoRow(label: 'Status', value: friendlyStatusLabel(order.status)),
+            _InfoRow(
+              label: 'Status',
+              valueWidget: Align(
+                alignment: Alignment.centerLeft,
+                child: FoodyaStatusChip(value: order.status),
+              ),
+            ),
             _InfoRow(
               label: 'Payment',
               value: _paymentStatusLabel(order.paymentStatus),
@@ -301,10 +309,11 @@ class _OrderDetailCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, this.value = '', this.valueWidget});
 
   final String label;
   final String value;
+  final Widget? valueWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +326,9 @@ class _InfoRow extends StatelessWidget {
             width: 92,
             child: Text(label, style: Theme.of(context).textTheme.labelMedium),
           ),
-          Expanded(child: Text(value.isEmpty ? '-' : value)),
+          Expanded(
+            child: valueWidget ?? Text(value.isEmpty ? '-' : value),
+          ),
         ],
       ),
     );

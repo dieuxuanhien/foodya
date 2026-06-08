@@ -30,6 +30,9 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
           clearNearbyMessage: true,
         ),
       );
+      if (state.categories.isEmpty) {
+        await _loadCategories();
+      }
       return;
     }
 
@@ -41,7 +44,18 @@ class CustomerHomeCubit extends Cubit<CustomerHomeState> {
       ),
     );
 
-    await refreshLocation();
+    await Future.wait([refreshLocation(), _loadCategories()]);
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _catalogRepository.listCategoryTaxonomies();
+      emit(state.copyWith(categories: categories));
+      _cacheCurrentState();
+    } catch (_) {
+      // The category strip is a presentational nicety — a failure here must
+      // never block location or nearby-restaurant loading.
+    }
   }
 
   Future<void> refreshLocation() async {

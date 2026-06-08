@@ -118,7 +118,8 @@ class _MerchantHomeBody extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _DashboardEmptyState(
+          FoodyaEmptyState(
+            illustrationAsset: 'assets/illustrations/empty_connection.png',
             icon: Icons.wifi_off_outlined,
             title: 'Dashboard unavailable',
             message: state.errorMessage ?? 'Unable to load merchant dashboard.',
@@ -134,7 +135,8 @@ class _MerchantHomeBody extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _DashboardEmptyState(
+          FoodyaEmptyState(
+            illustrationAsset: 'assets/illustrations/empty_storefront.png',
             icon: Icons.storefront_outlined,
             title: 'Create your restaurant',
             message: 'Set up a restaurant before taking orders.',
@@ -162,6 +164,7 @@ class _MerchantHomeBody extends StatelessWidget {
               label: 'Pending',
               value: state.pendingOrderCount.toString(),
               icon: Icons.pending_actions_outlined,
+              accentColor: const Color(0xFFD97706),
             ),
             FoodyaMetricTile(
               label: 'Active',
@@ -173,6 +176,7 @@ class _MerchantHomeBody extends StatelessWidget {
               label: '7-day revenue',
               value: _money(state.sevenDayRevenue),
               icon: Icons.payments_outlined,
+              accentColor: const Color(0xFFEA580C),
             ),
             FoodyaMetricTile(
               label: 'Rating',
@@ -185,6 +189,7 @@ class _MerchantHomeBody extends StatelessWidget {
         const SizedBox(height: 20),
         FoodyaSectionHeader(
           title: 'Order queue',
+          leadingIcon: Icons.receipt_long_outlined,
           action: TextButton.icon(
             onPressed: () => context.push('/merchant/orders'),
             icon: const Icon(Icons.receipt_long_outlined),
@@ -194,7 +199,10 @@ class _MerchantHomeBody extends StatelessWidget {
         const SizedBox(height: 10),
         _RecentOrderList(orders: state.orders.take(4).toList(growable: false)),
         const SizedBox(height: 20),
-        const FoodyaSectionHeader(title: 'Quick actions'),
+        const FoodyaSectionHeader(
+          title: 'Quick actions',
+          leadingIcon: Icons.bolt_outlined,
+        ),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
@@ -212,21 +220,29 @@ class _MerchantHomeBody extends StatelessWidget {
             FoodyaQuickActionTile(
               label: 'Orders',
               icon: Icons.receipt_long_outlined,
+              iconBackgroundColor: const Color(0xFFFED7AA),
+              iconColor: const Color(0xFF9A3412),
               onTap: () => context.push('/merchant/orders'),
             ),
             FoodyaQuickActionTile(
               label: 'Insights',
               icon: Icons.bar_chart_outlined,
+              iconBackgroundColor: const Color(0xFFFEF3C7),
+              iconColor: const Color(0xFFB45309),
               onTap: () => context.push('/merchant/revenue'),
             ),
             FoodyaQuickActionTile(
               label: 'Reviews',
               icon: Icons.rate_review_outlined,
+              iconBackgroundColor: const Color(0xFFDCFCE7),
+              iconColor: const Color(0xFF166534),
               onTap: () => context.push('/merchant/reviews'),
             ),
             FoodyaQuickActionTile(
               label: 'Alerts',
               icon: Icons.notifications_active_outlined,
+              iconBackgroundColor: const Color(0xFFFFE4D6),
+              iconColor: const Color(0xFFC2410C),
               onTap: () => context.push('/merchant/notifications'),
             ),
           ],
@@ -248,6 +264,7 @@ class _RestaurantHero extends StatelessWidget {
       title: restaurant.name,
       subtitle: '${restaurant.cuisineType} · ${restaurant.addressLine}',
       icon: Icons.storefront,
+      backgroundImageUrl: restaurant.backgroundImageUrl,
       trailing: FoodyaStatusChip(value: restaurant.status),
       primaryAction: FilledButton.icon(
         onPressed: () => context.push('/merchant/orders'),
@@ -291,10 +308,10 @@ class _RecentOrderList extends StatelessWidget {
               child: Card(
                 child: ListTile(
                   onTap: () => context.push('/merchant/orders'),
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFFFEDD5),
-                    foregroundColor: Color(0xFFEA580C),
-                    child: Icon(Icons.receipt_long_outlined),
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFFFEDD5),
+                    foregroundColor: const Color(0xFFEA580C),
+                    child: Icon(orderStatusIcon(order.status)),
                   ),
                   title: Text(
                     order.orderCode,
@@ -312,49 +329,6 @@ class _RecentOrderList extends StatelessWidget {
             ),
           )
           .toList(growable: false),
-    );
-  }
-}
-
-class _DashboardEmptyState extends StatelessWidget {
-  const _DashboardEmptyState({
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.actionLabel,
-    required this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: theme.colorScheme.primary, size: 32),
-            const SizedBox(height: 12),
-            Text(title, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 6),
-            Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onAction, child: Text(actionLabel)),
-          ],
-        ),
-      ),
     );
   }
 }
