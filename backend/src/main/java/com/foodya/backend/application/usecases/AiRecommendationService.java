@@ -54,7 +54,12 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private static final int RAG_TOP_K = 40;
     private static final int RAG_REFRESH_SECONDS = 900;
     private static final int DEFAULT_MAX_SHIPPING_KM = 15;
+    private static final int MODEL_INTRO_MAX_CHARS = 180;
+    private static final int RESPONSE_SUMMARY_MAX_CHARS = 400;
     private static final Pattern TOKEN_SPLITTER = Pattern.compile("[^\\p{L}\\p{Nd}]+");
+    private static final Pattern DIGIT_PATTERN = Pattern.compile("\\d");
+    private static final Pattern MODEL_ENTITY_SUGGESTION_PATTERN =
+            Pattern.compile("(?i)\\b(try|order|choose|pick|go for|recommend|suggest)\\b.+");
 
     private static final Set<String> NEARBY_HINTS = Set.of("near", "nearby", "gan", "quanhday", "nhahanggan", "restaurantnear");
     private static final Set<String> SPICY_HINTS = Set.of("cay", "spicy", "hot", "chili", "ot", "sate");
@@ -178,7 +183,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             intent,
             maxShippingDistanceKm,
             conversationContext);
-        String responseSummary = buildSummary(aiDraft, recommendations, intent);
+        String responseSummary = buildSafeResponseSummary(aiDraft, recommendations, intent);
 
         AiChatHistoryData history = new AiChatHistoryData();
         history.setUserId(customerUserId);
@@ -464,12 +469,11 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                                                        String conversationContext,
                                                        Map<UUID, Restaurant> activeRestaurants,
                                                        Map<UUID, MenuItem> activeMenuItemsById) {
-        if (!aiCatalogVectorPort.isReady()) {
+        if (!aiCatalogVectorPort.isReady() || aiCatalogVectorPort.countChunks() == 0) {
             return Map.of();
         }
 
         try {
-            ensureRagSnapshot(activeRestaurants, activeMenuItemsById);
             String queryText = prompt + "\nConversation: " + conversationContext;
             List<Double> queryEmbedding = aiEmbeddingPort.embedText(queryText);
             if (queryEmbedding.isEmpty()) {
@@ -488,6 +492,15 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         } catch (Exception ex) {
             return Map.of();
         }
+    }
+
+    public void refreshCatalogSnapshot() {
+        if (!aiCatalogVectorPort.isReady()) {
+            return;
+        }
+        Map<UUID, Restaurant> activeRestaurants = activeRestaurantsById();
+        Map<UUID, MenuItem> activeMenuItemsById = activeMenuItemsById(activeRestaurants.keySet());
+        ensureRagSnapshot(activeRestaurants, activeMenuItemsById);
     }
 
     private void ensureRagSnapshot(Map<UUID, Restaurant> activeRestaurants,
@@ -592,21 +605,18 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                                    RecommendationIntent intent,
                                    BigDecimal maxShippingDistanceKm,
                                    String conversationContext) {
-        String candidateText = recommendations.stream()
-                .map(item -> item.menuItemName() + " @ " + item.restaurantName()
-                        + " (distanceKm=" + safeDecimal(item.distanceKm())
-                        + ", rating=" + safeDecimal(item.restaurantRating()) + ")")
-                .reduce((a, b) -> a + ", " + b)
-                .orElse("none");
+        if (recommendations.isEmpty()) {
+            return null;
+        }
 
-        String weatherText = weather.summary();
-        String composedPrompt = "User request: " + prompt
-            + "\nRecent chat context: " + conversationContext
-                + "\nWeather context: " + weatherText
-                + "\nIntent hints: " + intent
-                + "\nMax shipping distance km: " + maxShippingDistanceKm
-                + "\nCatalog candidates: " + candidateText
-                + "\nReturn plain text only, concise summary, internal catalog only.";
+        String composedPrompt = buildRecommendationPrompt(
+                prompt,
+                weather,
+                recommendations,
+                intent,
+                maxShippingDistanceKm,
+                conversationContext
+        );
 
         try {
             return aiDraftPort.generateRecommendationDraft(composedPrompt);
@@ -615,7 +625,54 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         }
     }
 
-    private String buildSummary(String aiDraft, List<AiRecommendationItemView> recommendations, RecommendationIntent intent) {
+    private String buildRecommendationPrompt(String prompt,
+                                             WeatherContext weather,
+                                             List<AiRecommendationItemView> recommendations,
+                                             RecommendationIntent intent,
+                                             BigDecimal maxShippingDistanceKm,
+                                             String conversationContext) {
+        return """
+                You are Foodya's food recommendation assistant.
+                Goal: write a warm one-sentence intro before Foodya displays verified recommendation cards.
+                Rules:
+                - Match the customer's language when clear; otherwise use friendly Vietnamese.
+                - Use only the Foodya catalog candidates listed below as context.
+                - Do not invent or mention menu item names, restaurant names, prices, ratings, distances, promotions, nutrition facts, delivery times, or delivery guarantees.
+                - Do not say you can order or reserve for the user.
+                - If the request is outside food recommendations, gently steer back to Foodya food suggestions.
+                - Return plain text only.
+                - One sentence, maximum 180 characters.
+                User request: %s
+                Recent chat context: %s
+                Weather context: %s
+                Intent hints: %s
+                Max shipping distance km: %s
+                Foodya catalog candidates:
+                %s
+                """.formatted(
+                prompt,
+                conversationContext,
+                weather.summary(),
+                intent,
+                maxShippingDistanceKm,
+                buildCandidateText(recommendations)
+        );
+    }
+
+    private String buildCandidateText(List<AiRecommendationItemView> recommendations) {
+        return recommendations.stream()
+                .map(item -> "- menuItem=\"" + item.menuItemName()
+                        + "\" restaurant=\"" + item.restaurantName()
+                        + "\" distanceKm=" + safeDecimal(item.distanceKm())
+                        + " rating=" + safeDecimal(item.restaurantRating())
+                        + " reason=\"" + item.reason() + "\"")
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse("none");
+    }
+
+    private String buildSafeResponseSummary(String aiDraft,
+                                            List<AiRecommendationItemView> recommendations,
+                                            RecommendationIntent intent) {
         if (intent.nearbyRestaurantQuery() && !recommendations.isEmpty()) {
             String nearby = recommendations.stream()
                     .map(item -> item.restaurantName() + " (" + safeDecimal(item.distanceKm()) + " km)")
@@ -623,22 +680,83 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                     .limit(3)
                     .reduce((a, b) -> a + ", " + b)
                     .orElse("none");
-            return truncate("Nearby restaurants within delivery range: " + nearby, 400);
-        }
-
-        String draftText = extractModelText(aiDraft);
-        if (draftText != null && !draftText.isBlank()) {
-            return truncate(draftText.replaceAll("\\s+", " ").trim(), 400);
+            return truncate("Nearby restaurants within delivery range: " + nearby
+                    + ". Pick a Foodya card below to view the menu.", RESPONSE_SUMMARY_MAX_CHARS);
         }
 
         if (recommendations.isEmpty()) {
-            return "No matching menu items were found within active restaurants and shipping distance.";
+            return "I couldn't find a matching Foodya option right now. Try a broader keyword, lower rating or budget filters, or another location.";
         }
-        String joined = recommendations.stream()
-                .map(item -> item.menuItemName() + " @ " + item.restaurantName())
-                .reduce((a, b) -> a + ", " + b)
-                .orElse("items");
-        return truncate("Recommended from active internal catalog: " + joined, 400);
+
+        String deterministicSummary = "I found Foodya options that match your request. Pick a card below to view details.";
+        String safeIntro = sanitizeModelIntro(aiDraft, recommendations);
+        if (safeIntro == null) {
+            return deterministicSummary;
+        }
+        return truncate(safeIntro + " " + deterministicSummary, RESPONSE_SUMMARY_MAX_CHARS);
+    }
+
+    private String sanitizeModelIntro(String aiDraftRaw, List<AiRecommendationItemView> recommendations) {
+        String draftText = extractModelText(aiDraftRaw);
+        if (draftText == null || draftText.isBlank()) {
+            return null;
+        }
+
+        String normalized = draftText
+                .replaceAll("[\\r\\n]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        normalized = stripWrappingQuotes(normalized);
+        if (normalized.isBlank() || normalized.length() > MODEL_INTRO_MAX_CHARS) {
+            return null;
+        }
+        if (DIGIT_PATTERN.matcher(normalized).find()
+                || normalized.contains("@")
+                || MODEL_ENTITY_SUGGESTION_PATTERN.matcher(normalized).matches()
+                || mentionsCatalogEntity(normalized, recommendations)
+                || containsUnsupportedClaim(normalized)) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static boolean mentionsCatalogEntity(String text, List<AiRecommendationItemView> recommendations) {
+        String normalizedText = normalizeForSearch(text);
+        for (AiRecommendationItemView recommendation : recommendations) {
+            if (containsNamedEntity(normalizedText, recommendation.menuItemName())
+                    || containsNamedEntity(normalizedText, recommendation.restaurantName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsNamedEntity(String normalizedText, String entityName) {
+        String normalizedEntity = normalizeForSearch(entityName);
+        return normalizedEntity.length() >= 4 && normalizedText.contains(normalizedEntity);
+    }
+
+    private static boolean containsUnsupportedClaim(String text) {
+        String normalized = normalizeForSearch(text);
+        return normalized.contains("promotion")
+                || normalized.contains("promo")
+                || normalized.contains("discount")
+                || normalized.contains("voucher")
+                || normalized.contains("nutrition")
+                || normalized.contains("calorie")
+                || normalized.contains("deliverytime")
+                || normalized.contains("guarantee")
+                || normalized.contains("reservation");
+    }
+
+    private static String stripWrappingQuotes(String text) {
+        String result = text;
+        while (result.length() >= 2
+                && ((result.startsWith("\"") && result.endsWith("\""))
+                || (result.startsWith("'") && result.endsWith("'")))) {
+            result = result.substring(1, result.length() - 1).trim();
+        }
+        return result;
     }
 
     private List<String> tokenize(String prompt) {

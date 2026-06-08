@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/formatters/vnd_currency_formatter.dart';
 import '../../domain/models/ai_chat.dart';
@@ -137,6 +138,12 @@ class _AiResponseCard extends StatelessWidget {
                 title: Text(item.menuItemName),
                 subtitle: Text('${item.restaurantName}\n${item.reason}'),
                 trailing: Text(formatVndCurrency(item.price)),
+                onTap:
+                    item.restaurantId.isEmpty
+                        ? null
+                        : () => context.push(
+                          '/customer/restaurants/${item.restaurantId}',
+                        ),
               ),
             ),
           ],

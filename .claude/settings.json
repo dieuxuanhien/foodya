@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -rn \"customer/restaurants/\\\\$\" lib/features/)",
+      "Bash(grep -rn \"restaurants/\\\\${\\\\|restaurants/\\\\$\" lib/features/)",
+      "Bash(mvn -v)",
+      "Bash(mvn -q -Dtest=AiRecommendationServiceTest test)",
+      "Bash(mvn -q -Dtest=CustomerAiChatIntegrationTests,ArchitectureRulesTests test)",
+      "Bash(git -C .. stash push -- backend/src/main/java/com/foodya/backend/application/ports/in/AiRecommendationUseCase.java backend/src/main/java/com/foodya/backend/application/usecases/AiRecommendationService.java backend/src/main/java/com/foodya/backend/infrastructure/scheduling/AiCatalogSnapshotScheduler.java)",
+      "Bash(mvn -q -Dtest=CustomerAiChatIntegrationTests test)",
+      "Bash(ls -la /tmp/AiCatalogSnapshotScheduler.java.bak 2>&1; find \"f:\\\\DOAN1\\\\foodya\" -iname \"AiCatalogSnapshotScheduler*\" 2>/dev/null)",
+      "Read(//tmp/**)",
+      "Bash(mvn -q compile)"
+    ]
+  }
+}

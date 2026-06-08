@@ -16,7 +16,7 @@ class CustomerAiRemoteDataSource {
   final String _baseUrl;
   final http.Client _client;
 
-  static const Duration _requestTimeout = Duration(seconds: 20);
+  static const Duration _requestTimeout = Duration(seconds: 45);
 
   Future<List<AiChatHistoryItem>> history({required String accessToken}) async {
     final json = await _get(

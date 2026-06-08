@@ -12,4 +12,6 @@ public interface AiRecommendationUseCase {
     AiChatResponseView createChat(UUID customerUserId, CreateAiChatRequest request);
 
     List<AiChatHistoryView> history(UUID customerUserId);
+
+    void refreshCatalogSnapshot();
 }
