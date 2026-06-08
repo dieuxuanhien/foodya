@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
 import 'app.dart';
@@ -93,6 +94,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final MerchantRevenueRepository _merchantRevenueRepository;
   late final MerchantNotificationRepository _merchantNotificationRepository;
   late final GeolocationService _geolocationService;
+  late final GoRouter _router;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
   late final FcmNotificationService _fcmNotificationService;
@@ -103,6 +105,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   void initState() {
     super.initState();
     _sessionCubit = SessionCubit();
+    _router = AppRouter(_sessionCubit).router;
 
     _authRemoteDataSource = AuthRemoteDataSource(
       baseUrl: AppConfig.apiBaseUrl,
@@ -245,6 +248,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   @override
   void dispose() {
     _sessionSubscription?.cancel();
+    _router.dispose();
     _sessionCubit.close();
     unawaited(_orderTrackingRealtimeService.dispose());
     widget._httpClient.close();
@@ -312,7 +316,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
                 )..restoreSession(),
           ),
         ],
-        child: FoodyaMobileApp(router: AppRouter(_sessionCubit).router),
+        child: FoodyaMobileApp(router: _router),
       ),
     );
   }

@@ -101,10 +101,12 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
       _show(error);
       return;
     }
+    final repository = context.read<AuthRepository>();
     await _run(() async {
-      final result = await context.read<AuthRepository>().forgotPassword(
-        _emailController.text,
-      );
+      final result = await repository.forgotPassword(_emailController.text);
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _challengeToken = result.challengeToken;
         _deliveryHint = result.deliveryHint;
@@ -113,34 +115,46 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
   }
 
   Future<void> _verifyOtp() async {
+    final repository = context.read<AuthRepository>();
     await _run(() async {
-      final result = await context.read<AuthRepository>().verifyOtp(
+      final result = await repository.verifyOtp(
         challengeToken: _challengeToken!,
         otp: _otpController.text,
       );
+      if (!mounted) {
+        return;
+      }
       setState(() => _resetToken = result.resetToken);
     });
   }
 
   Future<void> _resetPassword() async {
+    final repository = context.read<AuthRepository>();
     await _run(() async {
-      await context.read<AuthRepository>().resetPassword(
+      await repository.resetPassword(
         resetToken: _resetToken!,
         newPassword: _passwordController.text,
         confirmPassword: _confirmController.text,
       );
-      if (mounted) {
-        _show('Password reset. Sign in with your new password.');
-        context.go('/login');
+      if (!mounted) {
+        return;
       }
+      _show('Password reset. Sign in with your new password.');
+      context.go('/login');
     });
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    if (!mounted) {
+      return;
+    }
     setState(() => _busy = true);
     try {
       await action();
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
         fallback: 'Password recovery failed.',
@@ -154,6 +168,9 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
   }
 
   void _show(String message) {
+    if (!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

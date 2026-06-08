@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +10,11 @@ import 'package:foodya_mobile/core/auth/user_role.dart';
 import 'package:foodya_mobile/core/router/app_router.dart';
 import 'package:foodya_mobile/core/ui/foodya_shell.dart';
 import 'package:foodya_mobile/features/auth/data/repositories/mock_auth_repository.dart';
+import 'package:foodya_mobile/features/auth/domain/models/password_recovery.dart';
 import 'package:foodya_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:foodya_mobile/features/auth/presentation/cubit/login_cubit.dart';
+import 'package:foodya_mobile/features/auth/presentation/pages/password_recovery_page.dart';
+import 'package:mocktail/mocktail.dart';
 
 void main() {
   testWidgets('shows login and register auth forms', (
@@ -81,6 +86,38 @@ void main() {
     expect(find.text('Password is required.'), findsOneWidget);
   });
 
+  testWidgets('password recovery ignores OTP result after route is disposed', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = _SlowAuthRepository();
+    final request = Completer<ForgotPasswordResult>();
+    when(
+      () => authRepository.forgotPassword(any()),
+    ).thenAnswer((_) => request.future);
+
+    await tester.pumpWidget(
+      RepositoryProvider<AuthRepository>.value(
+        value: authRepository,
+        child: const MaterialApp(home: PasswordRecoveryPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'user@example.com');
+    await tester.tap(find.text('Send OTP'));
+    await tester.pump();
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    request.complete(
+      const ForgotPasswordResult(
+        challengeToken: 'challenge-token',
+        deliveryHint: 'user@example.com',
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('customer shell shows customer bottom navigation', (
     WidgetTester tester,
   ) async {
@@ -121,3 +158,5 @@ void main() {
     expect(find.text('Account'), findsOneWidget);
   });
 }
+
+class _SlowAuthRepository extends Mock implements AuthRepository {}
