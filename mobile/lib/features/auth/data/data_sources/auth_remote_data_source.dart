@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/auth/auth_tokens.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/login_request.dart';
+import '../../domain/models/password_recovery.dart';
 import '../../domain/models/register_request.dart';
 
 class AuthRemoteDataSource {
@@ -44,6 +45,40 @@ class AuthRemoteDataSource {
     await _post(
       '/api/v1/auth/logout-all',
       headers: {'Authorization': 'Bearer $accessToken'},
+    );
+  }
+
+  Future<ForgotPasswordResult> forgotPassword(String email) async {
+    final data = await _postExpectData(
+      '/api/v1/auth/forgot-password',
+      body: {'email': email},
+    );
+    return ForgotPasswordResult.fromJson(data);
+  }
+
+  Future<VerifyOtpResult> verifyOtp({
+    required String challengeToken,
+    required String otp,
+  }) async {
+    final data = await _postExpectData(
+      '/api/v1/auth/forgot-password/verify-otp',
+      body: {'challengeToken': challengeToken, 'otp': otp},
+    );
+    return VerifyOtpResult.fromJson(data);
+  }
+
+  Future<void> resetPassword({
+    required String resetToken,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    await _post(
+      '/api/v1/auth/reset-password',
+      body: {
+        'resetToken': resetToken,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      },
     );
   }
 

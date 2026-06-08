@@ -1,15 +1,23 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_error_ui_message.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../../../core/location/geolocation_service.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
 import 'restaurant_browse_state.dart';
 
 class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
-  RestaurantBrowseCubit({required CustomerCatalogRepository repository})
-    : _repository = repository,
-      super(const RestaurantBrowseState.initial());
+  static const int restaurantPageSize = 10;
+
+  RestaurantBrowseCubit({
+    required CustomerCatalogRepository repository,
+    GeolocationService? geolocationService,
+  }) : _repository = repository,
+       _geolocationService = geolocationService,
+       super(const RestaurantBrowseState.initial());
 
   final CustomerCatalogRepository _repository;
+  final GeolocationService? _geolocationService;
 
   Future<void> initialize() async {
     emit(
@@ -48,6 +56,67 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
     await refresh();
   }
 
+  Future<void> toggleNearby(bool enabled) async {
+    if (!enabled) {
+      emit(
+        state.copyWith(
+          isNearby: false,
+          clearCoordinates: true,
+          sort: state.sort == 'distance_asc' ? 'relevance' : state.sort,
+        ),
+      );
+      await refresh();
+      return;
+    }
+
+    if (_geolocationService == null) {
+      emit(state.copyWith(errorMessage: 'Location services not available.'));
+      return;
+    }
+
+    try {
+      final permission = await _geolocationService.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        emit(state.copyWith(errorMessage: 'Location permission denied.'));
+        return;
+      }
+
+      final pos = await _geolocationService.getCurrentPosition();
+      emit(
+        state.copyWith(
+          isNearby: true,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+        ),
+      );
+
+      await refresh();
+    } catch (error) {
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to access location. Please try again.',
+      );
+      emit(state.copyWith(errorMessage: presentation.message));
+    }
+  }
+
+  Future<void> useManualNearbyLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    emit(
+      state.copyWith(
+        isNearby: true,
+        latitude: latitude,
+        longitude: longitude,
+        sort: state.sort == 'relevance' ? 'distance_asc' : state.sort,
+        clearError: true,
+      ),
+    );
+    await refresh();
+  }
+
   Future<void> toggleOpenNow(bool enabled) async {
     emit(state.copyWith(openNow: enabled ? true : null));
     await refresh();
@@ -83,52 +152,75 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
   }
 
   Future<void> refresh() async {
-    await _fetchPage(reset: true);
+    await _fetchPage(pageIndex: 0);
   }
 
-  Future<void> loadMore() async {
-    if (!state.hasMore || state.status == RestaurantBrowseStatus.loadingMore) {
+  Future<void> nextPage() async {
+    if (!state.hasMore || state.isBusy) {
       return;
     }
 
-    await _fetchPage(reset: false);
+    await goToPage(state.page + 1);
   }
 
-  Future<void> _fetchPage({required bool reset}) async {
-    final nextPage = reset ? 0 : state.page + 1;
+  Future<void> previousPage() async {
+    if (state.page == 0 || state.isBusy) {
+      return;
+    }
 
+    await goToPage(state.page - 1);
+  }
+
+  Future<void> goToPage(int pageIndex) async {
+    if (pageIndex < 0 || state.isBusy) {
+      return;
+    }
+
+    if (state.totalPages > 0 && pageIndex >= state.totalPages) {
+      return;
+    }
+
+    await _fetchPage(pageIndex: pageIndex);
+  }
+
+  Future<void> _fetchPage({required int pageIndex}) async {
     emit(
-      state.copyWith(
-        status:
-            reset
-                ? RestaurantBrowseStatus.loading
-                : RestaurantBrowseStatus.loadingMore,
-        clearError: true,
-      ),
+      state.copyWith(status: RestaurantBrowseStatus.loading, clearError: true),
     );
 
     try {
-      final page = await _repository.searchRestaurants(
-        keyword: state.keyword.trim().isEmpty ? null : state.keyword.trim(),
-        minRating: state.minRating,
-        openNow: state.openNow,
-        sort: state.sort,
-        taxonomyCodes: state.selectedTaxonomyCodes,
-        page: nextPage,
-        size: 10,
-      );
-
-      final merged = reset ? page.items : [...state.restaurants, ...page.items];
+      final result =
+          state.isNearby && state.latitude != null && state.longitude != null
+              ? await _repository.nearbyRestaurants(
+                lat: state.latitude!,
+                lng: state.longitude!,
+                radiusKm: state.radiusKm,
+                sort: state.sort,
+                page: pageIndex,
+                size: restaurantPageSize,
+              )
+              : await _repository.searchRestaurants(
+                keyword:
+                    state.keyword.trim().isEmpty ? null : state.keyword.trim(),
+                minRating: state.minRating,
+                openNow: state.openNow,
+                sort: state.sort,
+                taxonomyCodes: state.selectedTaxonomyCodes,
+                page: pageIndex,
+                size: restaurantPageSize,
+              );
 
       emit(
         state.copyWith(
           status:
-              merged.isEmpty
+              result.items.isEmpty
                   ? RestaurantBrowseStatus.empty
                   : RestaurantBrowseStatus.success,
-          restaurants: merged,
-          page: page.page,
-          hasMore: page.hasNextPage,
+          restaurants: result.items,
+          page: result.page,
+          totalPages: result.totalPages,
+          totalElements: result.totalElements,
+          hasMore: result.hasNextPage,
           clearError: true,
         ),
       );
@@ -138,7 +230,7 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
         fallback: 'Unable to load restaurants.',
       );
 
-      if (!reset && state.restaurants.isNotEmpty) {
+      if (state.restaurants.isNotEmpty) {
         emit(
           state.copyWith(
             status: RestaurantBrowseStatus.success,

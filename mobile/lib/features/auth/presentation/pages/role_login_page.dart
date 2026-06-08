@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/auth/auth_form_validators.dart';
 import '../../../../core/auth/user_role.dart';
@@ -84,14 +85,16 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Foodya',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displaySmall,
+                      Center(
+                        child: Image.asset(
+                          'assets/branding/img_logo_full.webp',
+                          height: 88,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Customer and Merchant access',
+                        'Order food or manage your restaurant in one place.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
@@ -165,7 +168,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 forceErrorText: state.fieldErrors['usernameOrEmail'],
                 decoration: const InputDecoration(
                   labelText: 'Username or Email',
-                  hintText: 'api_customer or api_customer@foodya.local',
+                  hintText: 'name@example.com',
                 ),
                 validator: AuthFormValidators.loginIdentity,
               ),
@@ -177,7 +180,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                 forceErrorText: state.fieldErrors['password'],
                 decoration: const InputDecoration(
                   labelText: 'Password',
-                  hintText: 'Strong@123',
+                  hintText: 'Enter your password',
                 ),
                 validator: AuthFormValidators.loginPassword,
               ),
@@ -203,6 +206,12 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                         },
                 icon: const Icon(Icons.login),
                 label: const Text('Sign In'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed:
+                    isBusy ? null : () => context.push('/forgot-password'),
+                child: const Text('Forgot password?'),
               ),
             ],
           ),

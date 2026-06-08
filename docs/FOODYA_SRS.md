@@ -167,7 +167,7 @@ This SRS is intended for:
 | FR07  | List restaurants                | Customer                     | Keyword search must match restaurant name or menu item name, then return restaurant-grouped results with matched menu items under each restaurant. Supports filter, sort, pagination. |
 | FR08  | Restaurant detail               | Customer                     | View restaurant profile, availability, rating, delivery constraints.                                                                                                                  |
 | FR09  | Menu browse/search              | Customer                     | View/search menu by keyword, category, popularity.                                                                                                                                    |
-| FR10  | Create order                    | Customer                     | Build order with items, address, note, and delivery fee calculated from Goong Maps route distance using platform-configured shipping parameters.                                      |
+| FR10  | Create order                    | Customer                     | Create order from active cart with delivery address/note; delivery fee is calculated from Goong Maps route distance using platform shipping parameters.                               |
 | FR11  | My orders management            | Customer                     | View active/history orders, cancel eligible orders.                                                                                                                                   |
 | FR12  | Order review                    | Customer                     | Rate successful order with stars and comment.                                                                                                                                         |
 | FR13  | Merchant restaurant management  | Merchant                     | Create/update own restaurant, open/close status.                                                                                                                                      |
@@ -203,7 +203,7 @@ This SRS is intended for:
 | BR07  | New password must differ from old password.                                                                                                                                                                                                                                                                                                         |
 | BR08  | Profile read/update only for owner account (except admin actions).                                                                                                                                                                                                                                                                                  |
 | BR09  | Changing email/phone must pass uniqueness validation before commit.                                                                                                                                                                                                                                                                                 |
-| BR10  | Order creation requires `restaurantId`, non-empty `items`, valid `deliveryAddress`.                                                                                                                                                                                                                                                                 |
+| BR10  | Order creation requires one active cart with non-empty items from one restaurant and valid `deliveryAddress`.                                                                                                                                                                                                                                       |
 | BR11  | Each order item requires valid `menuItemId` and `quantity > 0`.                                                                                                                                                                                                                                                                                     |
 | BR12  | All order items belong to a single restaurant.                                                                                                                                                                                                                                                                                                      |
 | BR13  | Only active and available menu items are orderable.                                                                                                                                                                                                                                                                                                 |
@@ -236,14 +236,14 @@ This SRS is intended for:
 | BR40  | Delivery fee formula uses platform parameters: if `distanceKm <= shipping.base_distance_km` then `deliveryFee = shipping.base_delivery_fee`; else `deliveryFee = shipping.base_delivery_fee + (distanceKm - shipping.base_distance_km) * shipping.fee_per_km`.                                                                                      |
 | BR41  | Global system parameters are stored as typed key-value records (`NUMBER`, `BOOLEAN`, `STRING`, `JSON`) with validation constraints.                                                                                                                                                                                                                 |
 | BR42  | Only `ADMIN` can update system parameters, and every change must be written to audit logs with previous and new values.                                                                                                                                                                                                                             |
-| BR43  | Parameters marked as runtime-applicable are effective without redeploy; non-runtime parameters require controlled restart/redeploy.                                                                                                                                                                                                                 |
+| BR43  | Parameters marked as runtime-applicable are effective without redeploy; non-runtime parameters are rejected by runtime API update endpoints and must be changed via controlled restart/redeploy process.                                                                                                                                            |
 | BR44  | Shipping policy is platform-owned: delivery fee and max distance are sourced from global `system_parameters` only (no restaurant-level override).                                                                                                                                                                                                   |
 | BR45  | Straight-line distance for nearby search must use Haversine formula on WGS84 coordinates and be returned as kilometers rounded to 3 decimal places.                                                                                                                                                                                                 |
 | BR46  | Pagination defaults are `page=0`, `size=search.default_page_size`; max `size` is `search.max_page_size`; invalid pagination values return `422`.                                                                                                                                                                                                    |
 | BR47  | Monetary fields are computed and persisted using configured currency policy keys (`currency.code`, `currency.minor_unit`, `currency.rounding_mode`).                                                                                                                                                                                                |
 | BR48  | Data retention and DR targets are mandatory system parameters and must be enforced by scheduled jobs (`retention.*`, `ops.backup.rpo_minutes`, `ops.backup.rto_minutes`).                                                                                                                                                                           |
-| BR49  | `orders.payment_status` is the canonical payment state; `order_payments.payment_status` is an event/audit mirror and must match the canonical value at commit.                                                                                                                                                                                      |
-| BR50  | All foreign keys must declare explicit `ON DELETE`/`ON UPDATE` actions as defined in the Physical DDL Contract section; implicit DB defaults are not allowed.                                                                                                                                                                                       |
+| BR49  | `orders.payment_status` is the canonical payment state; `order_payments.payment_status` is an audit mirror and must be initialized and maintained to match the canonical value in payment state transitions.                                                                                                                                        |
+| BR50  | All newly added foreign keys must declare explicit `ON DELETE`/`ON UPDATE` actions as defined in the Physical DDL Contract section; legacy constraints are to be normalized through follow-up migrations.                                                                                                                                           |
 
 ## Use Case Description
 
@@ -408,13 +408,13 @@ stop
 ```plantuml
 @startuml
 start
-:Submit order payload;
-:Validate restaurant, items, address;
+:Submit checkout request with `Idempotency-Key`;
+:Validate active cart, single-restaurant scope, and delivery address;
 if (All items orderable?) then (yes)
   :Call Goong Maps API to get route distanceKm;
   :Compute delivery fee with base_distance_km and fee_per_km;
   :Compute subtotal and total;
-  :Persist order and order_items;
+  :Persist order, order_items, and order_payment;
   :Set status PENDING;
   :Emit order-created event;
   :Notify merchant/customer;
@@ -427,12 +427,12 @@ stop
 
 #### Business Rules
 
-| Activity                     | BR Code          | Description                                          |
-| :--------------------------- | :--------------- | :--------------------------------------------------- |
-| Order payload                | BR10, BR11, BR12 | Required structure and single-restaurant constraint. |
-| Orderability and totals      | BR13, BR14, BR21 | Item availability and pricing formula enforced.      |
-| Delivery fee distance source | BR39             | Delivery distance comes from Goong route API.        |
-| Delivery fee formula         | BR40             | Delivery fee uses base fee plus extra km pricing.    |
+| Activity                     | BR Code          | Description                                                    |
+| :--------------------------- | :--------------- | :------------------------------------------------------------- |
+| Checkout input               | BR10, BR11, BR12 | Active cart + delivery input and single-restaurant constraint. |
+| Orderability and totals      | BR13, BR14, BR21 | Item availability and pricing formula enforced.                |
+| Delivery fee distance source | BR39             | Delivery distance comes from Goong route API.                  |
+| Delivery fee formula         | BR40             | Delivery fee uses base fee plus extra km pricing.              |
 
 ### UC6: Track and cancel order
 
@@ -973,14 +973,14 @@ start
 :Choose parameter key and input new value;
 :Validate by type/range schema;
 if (Valid?) then (yes)
-  :Persist new value and increment version;
-  :Write audit log with old/new value;
   if (runtime-applicable?) then (yes)
+    :Persist new value and increment version;
+    :Write audit log with old/new value;
     :Apply immediately;
+    :Return success;
   else (no)
-    :Mark pending restart/redeploy;
+    :Reject update and require controlled restart/redeploy path;
   endif
-  :Return success;
 else (no)
   :Return validation error;
 endif
@@ -990,12 +990,12 @@ stop
 
 #### Business Rules
 
-| Activity                | BR Code | Description                                                                    |
-| :---------------------- | :------ | :----------------------------------------------------------------------------- |
-| Parameter schema        | BR41    | Parameter key/value must satisfy typed schema and constraints.                 |
-| Authorization and audit | BR42    | Only admin updates, with full audit history.                                   |
-| Runtime application     | BR43    | Runtime parameters apply immediately, others staged for restart.               |
-| Shipping ownership      | BR44    | Shipping policy is platform-level and read only from global system parameters. |
+| Activity                | BR Code | Description                                                                                      |
+| :---------------------- | :------ | :----------------------------------------------------------------------------------------------- |
+| Parameter schema        | BR41    | Parameter key/value must satisfy typed schema and constraints.                                   |
+| Authorization and audit | BR42    | Only admin updates, with full audit history.                                                     |
+| Runtime application     | BR43    | Runtime parameters apply immediately; non-runtime updates are rejected by runtime API endpoints. |
+| Shipping ownership      | BR44    | Shipping policy is platform-level and read only from global system parameters.                   |
 
 # List Description
 
@@ -1552,15 +1552,18 @@ users ||--o{ system_parameters
 | API-PROF-01 | `/api/v1/me`                                        |  GET   | Authenticated   | `200 OK`         |
 | API-PROF-02 | `/api/v1/me`                                        | PATCH  | Authenticated   | `200 OK`         |
 | API-PROF-03 | `/api/v1/me/password`                               |  PUT   | Authenticated   | `200 OK`         |
+| API-PROF-04 | `/api/v1/me/location-address`                       |  GET   | Authenticated   | `200 OK`         |
 | API-CAT-01  | `/api/v1/restaurants`                               |  GET   | Public/Customer | `200 OK`         |
 | API-CAT-02  | `/api/v1/restaurants/{id}`                          |  GET   | Public/Customer | `200 OK`         |
 | API-CAT-03  | `/api/v1/restaurants/{id}/menu-items`               |  GET   | Public/Customer | `200 OK`         |
 | API-CAT-04  | `/api/v1/restaurants/nearby`                        |  GET   | Public/Customer | `200 OK`         |
+| API-CAT-05  | `/api/v1/restaurants/category-taxonomies`           |  GET   | Public/Customer | `200 OK`         |
 | API-CART-01 | `/api/v1/customer/carts/active`                     |  GET   | Customer        | `200 OK`         |
-| API-CART-02 | `/api/v1/customer/carts/items`                      |  POST  | Customer        | `200 OK`         |
-| API-CART-03 | `/api/v1/customer/carts/items/{id}`                 | PATCH  | Customer        | `200 OK`         |
-| API-CART-04 | `/api/v1/customer/carts/items/{id}`                 | DELETE | Customer        | `204 No Content` |
-| API-CART-05 | `/api/v1/customer/carts/active/clear`               |  POST  | Customer        | `200 OK`         |
+| API-CART-02 | `/api/v1/customer/carts/active/items`               |  POST  | Customer        | `200 OK`         |
+| API-CART-03 | `/api/v1/customer/carts/active/items/{menuItemId}`  | PATCH  | Customer        | `200 OK`         |
+| API-CART-04 | `/api/v1/customer/carts/active/items/{menuItemId}`  | DELETE | Customer        | `200 OK`         |
+| API-CART-05 | `/api/v1/customer/carts/active/items`               | DELETE | Customer        | `200 OK`         |
+| API-ORD-00  | `/api/v1/customer/orders/review`                    |  POST  | Customer        | `200 OK`         |
 | API-ORD-01  | `/api/v1/customer/orders`                           |  POST  | Customer        | `201 Created`    |
 | API-ORD-02  | `/api/v1/customer/orders`                           |  GET   | Customer        | `200 OK`         |
 | API-ORD-03  | `/api/v1/customer/orders/{id}`                      |  GET   | Customer        | `200 OK`         |
@@ -1581,21 +1584,34 @@ users ||--o{ system_parameters
 | API-MER-11  | `/api/v1/merchant/menu-items/{id}`                  | PATCH  | Merchant        | `200 OK`         |
 | API-MER-12  | `/api/v1/merchant/menu-items/{id}`                  | DELETE | Merchant        | `204 No Content` |
 | API-MER-13  | `/api/v1/merchant/menu-items/{id}/availability`     | PATCH  | Merchant        | `200 OK`         |
+| API-MER-16  | `/api/v1/merchant/reviews/{id}/response`            | PATCH  | Merchant        | `200 OK`         |
 | API-MER-14  | `/api/v1/merchant/reviews/{id}/replies`             |  POST  | Merchant        | `201 Created`    |
 | API-MER-15  | `/api/v1/merchant/review-replies/{id}`              | PATCH  | Merchant        | `200 OK`         |
 | API-DEL-01  | `/api/v1/delivery/orders/assigned`                  |  GET   | Delivery        | `200 OK`         |
 | API-DEL-02  | `/api/v1/delivery/orders/{id}/accept`               |  POST  | Delivery        | `200 OK`         |
 | API-DEL-03  | `/api/v1/delivery/orders/{id}/status`               | PATCH  | Delivery        | `200 OK`         |
 | API-DEL-04  | `/api/v1/delivery/orders/{id}/locations`            |  POST  | Delivery        | `202 Accepted`   |
-| API-AI-01   | `/api/v1/customer/ai/recommendations`               |  POST  | Customer        | `200 OK`         |
-| API-AI-02   | `/api/v1/customer/ai/suggestions/today`             |  GET   | Customer        | `200 OK`         |
-| API-AI-03   | `/api/v1/customer/ai/chats`                         |  GET   | Customer        | `200 OK`         |
+| API-DEL-05  | `/api/v1/delivery/orders/{id}/tracking-points`      |  POST  | Delivery        | `200 OK`         |
+| API-AI-01   | `/api/v1/customer/ai/chats`                         |  POST  | Customer        | `200 OK`         |
+| API-AI-02   | `/api/v1/customer/ai/chats`                         |  GET   | Customer        | `200 OK`         |
 | API-NTF-01  | `/api/v1/notifications`                             |  GET   | Authenticated   | `200 OK`         |
 | API-NTF-02  | `/api/v1/admin/notifications`                       |  GET   | Admin           | `200 OK`         |
 | API-NTF-03  | `/api/v1/notifications/{id}/read`                   | PATCH  | Authenticated   | `200 OK`         |
 | API-ADM-01  | `/api/v1/admin/users`                               |  GET   | Admin           | `200 OK`         |
+| API-ADM-15  | `/api/v1/admin/users`                               |  POST  | Admin           | `200 OK`         |
+| API-ADM-16  | `/api/v1/admin/users/{id}`                          |  GET   | Admin           | `200 OK`         |
+| API-ADM-17  | `/api/v1/admin/users/{id}`                          |  PUT   | Admin           | `200 OK`         |
+| API-ADM-18  | `/api/v1/admin/users/{id}/reset-password`           |  POST  | Admin           | `204 No Content` |
+| API-ADM-19  | `/api/v1/admin/users/{id}/approve`                  |  POST  | Admin           | `200 OK`         |
 | API-ADM-02  | `/api/v1/admin/users/{id}/lock`                     |  POST  | Admin           | `200 OK`         |
 | API-ADM-03  | `/api/v1/admin/restaurants`                         |  GET   | Admin           | `200 OK`         |
+| API-ADM-20  | `/api/v1/admin/restaurants`                         |  POST  | Admin           | `200 OK`         |
+| API-ADM-21  | `/api/v1/admin/restaurants/{id}`                    |  GET   | Admin           | `200 OK`         |
+| API-ADM-22  | `/api/v1/admin/restaurants/{id}`                    |  PUT   | Admin           | `200 OK`         |
+| API-ADM-23  | `/api/v1/admin/restaurants/{id}/menu-categories`    |  GET   | Admin           | `200 OK`         |
+| API-ADM-24  | `/api/v1/admin/menu-items`                          |  GET   | Admin           | `200 OK`         |
+| API-ADM-25  | `/api/v1/admin/restaurants/{id}/menu-items`         |  POST  | Admin           | `201 Created`    |
+| API-ADM-26  | `/api/v1/admin/menu-items/{id}`                     |  PUT   | Admin           | `200 OK`         |
 | API-ADM-04  | `/api/v1/admin/orders`                              |  GET   | Admin           | `200 OK`         |
 | API-ADM-05  | `/api/v1/admin/system-parameters`                   |  GET   | Admin           | `200 OK`         |
 | API-ADM-06  | `/api/v1/admin/system-parameters/{key}`             |  PUT   | Admin           | `200 OK`         |
@@ -1607,8 +1623,21 @@ users ||--o{ system_parameters
 | API-ADM-12  | `/api/v1/admin/restaurants/{id}`                    | DELETE | Admin           | `204 No Content` |
 | API-ADM-13  | `/api/v1/admin/orders/{id}/status`                  | PATCH  | Admin           | `200 OK`         |
 | API-ADM-14  | `/api/v1/admin/orders/{id}`                         | DELETE | Admin           | `204 No Content` |
+| API-ADM-27  | `/api/v1/admin/category-taxonomies`                 |  GET   | Admin           | `200 OK`         |
+| API-ADM-28  | `/api/v1/admin/category-taxonomies`                 |  POST  | Admin           | `201 Created`    |
+| API-ADM-29  | `/api/v1/admin/category-taxonomies/{code}`          |  PUT   | Admin           | `200 OK`         |
+| API-ADM-30  | `/api/v1/admin/category-taxonomies/{code}`          | DELETE | Admin           | `204 No Content` |
+| API-ADM-31  | `/api/v1/admin/audit-logs`                          |  GET   | Admin           | `200 OK`         |
 | API-RPT-01  | `/api/v1/admin/reports/revenue`                     |  GET   | Admin           | `200 OK`         |
 | API-RPT-02  | `/api/v1/merchant/reports/revenue`                  |  GET   | Merchant        | `200 OK`         |
+
+Operational/System APIs (implementation-level, not mapped to core FR IDs):
+
+| API ID     | Endpoint                                      | Method | Actor     | Success  |
+| :--------- | :-------------------------------------------- | :----: | :-------- | :------- |
+| API-SYS-01 | `/api/v1/system/integrations/status`          |  GET   | Ops/Admin | `200 OK` |
+| API-SYS-02 | `/api/v1/system/integrations/firebase-config` |  GET   | Ops/Admin | `200 OK` |
+| API-SYS-03 | `/api/v1/system/integrations/supabase-config` |  GET   | Ops/Admin | `200 OK` |
 
 `API-CAT-01` query behavior:
 

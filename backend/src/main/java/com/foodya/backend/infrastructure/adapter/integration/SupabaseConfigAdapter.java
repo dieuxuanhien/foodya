@@ -21,6 +21,7 @@ public class SupabaseConfigAdapter implements SupabaseConfigPort {
         return Map.of(
             "projectUrl", apiSecretsProvider.get(IntegrationKeyCatalog.SUPABASE_PROJECT_URL).orElse(""),
             "bucketConfigured", String.valueOf(apiSecretsProvider.isConfigured(IntegrationKeyCatalog.SUPABASE_STORAGE_BUCKET)),
+            "s3EndpointConfigured", String.valueOf(apiSecretsProvider.isConfigured(IntegrationKeyCatalog.SUPABASE_S3_ENDPOINT)),
             "s3AccessKeyIdConfigured", String.valueOf(apiSecretsProvider.isConfigured(IntegrationKeyCatalog.SUPABASE_S3_ACCESS_KEY_ID)),
             "s3SecretConfigured", String.valueOf(apiSecretsProvider.isConfigured(IntegrationKeyCatalog.SUPABASE_S3_SECRET_ACCESS_KEY))
         );

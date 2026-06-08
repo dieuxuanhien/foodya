@@ -264,6 +264,28 @@ public class Order {
         this.paymentStatus = paymentStatus;
     }
 
+    public void markCodPaid() {
+        if (paymentMethod != PaymentMethod.COD) {
+            throw invalidPaymentTransition("mark COD paid");
+        }
+        if (paymentStatus == PaymentStatus.PAID) {
+            return;
+        }
+        requirePaymentStatus(PaymentStatus.UNPAID, "mark COD paid");
+        paymentStatus = PaymentStatus.PAID;
+    }
+
+    public void markCodFailed() {
+        if (paymentMethod != PaymentMethod.COD) {
+            throw invalidPaymentTransition("mark COD failed");
+        }
+        if (paymentStatus == PaymentStatus.FAILED) {
+            return;
+        }
+        requirePaymentStatus(PaymentStatus.UNPAID, "mark COD failed");
+        paymentStatus = PaymentStatus.FAILED;
+    }
+
     public BigDecimal getCommissionAmount() {
         return commissionAmount;
     }
@@ -318,8 +340,18 @@ public class Order {
         }
     }
 
+    private void requirePaymentStatus(PaymentStatus expected, String action) {
+        if (paymentStatus != expected) {
+            throw invalidPaymentTransition(action);
+        }
+    }
+
     private IllegalStateException invalidTransition(String action) {
         return new IllegalStateException("invalid transition for " + action + " from status " + status);
+    }
+
+    private IllegalStateException invalidPaymentTransition(String action) {
+        return new IllegalStateException("invalid payment transition for " + action + " from status " + paymentStatus);
     }
 
     private static boolean isValidAdminTransition(OrderStatus current, OrderStatus target) {

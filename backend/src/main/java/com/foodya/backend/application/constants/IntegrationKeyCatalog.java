@@ -9,6 +9,7 @@ public final class IntegrationKeyCatalog {
 
     public static final String SUPABASE_PROJECT_URL = "supabase.project.url";
     public static final String SUPABASE_STORAGE_BUCKET = "supabase.storage.bucket";
+    public static final String SUPABASE_S3_ENDPOINT = "supabase.storage.s3.endpoint";
     public static final String SUPABASE_S3_ACCESS_KEY_ID = "supabase.storage.s3.access-key-id";
     public static final String SUPABASE_S3_SECRET_ACCESS_KEY = "supabase.storage.s3.secret-access-key";
 
@@ -21,6 +22,8 @@ public final class IntegrationKeyCatalog {
     public static final String FIREBASE_MESSAGING_SENDER_ID = "firebase.messaging.sender.id";
     public static final String FIREBASE_APP_ID = "firebase.app.id";
     public static final String FIREBASE_MEASUREMENT_ID = "firebase.measurement.id";
+    public static final String FIREBASE_SERVICE_ACCOUNT_FILE = "firebase.service.account.file";
+    public static final String FIREBASE_SERVICE_ACCOUNT_JSON = "firebase.service.account.json";
 
     public static final String OPENWEATHER_API_KEY = "openweather.api.key";
 }

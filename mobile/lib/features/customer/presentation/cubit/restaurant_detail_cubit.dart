@@ -30,6 +30,7 @@ class RestaurantDetailCubit extends Cubit<RestaurantDetailState> {
         ),
       );
       await refreshMenu();
+      await refreshReviews();
     } catch (error) {
       final presentation = ApiErrorUiMessageMapper.mapAny(
         error,
@@ -75,6 +76,36 @@ class RestaurantDetailCubit extends Cubit<RestaurantDetailState> {
     }
 
     await _fetchMenu(reset: false);
+  }
+
+  Future<void> refreshReviews() async {
+    final restaurantId = _restaurantId;
+    if (restaurantId == null) {
+      return;
+    }
+
+    emit(state.copyWith(isReviewsLoading: true));
+    try {
+      final reviews = await _repository.listRestaurantReviews(restaurantId);
+      emit(
+        state.copyWith(
+          reviews: reviews,
+          isReviewsLoading: false,
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      final presentation = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to load restaurant reviews.',
+      );
+      emit(
+        state.copyWith(
+          isReviewsLoading: false,
+          errorMessage: presentation.message,
+        ),
+      );
+    }
   }
 
   Future<void> _fetchMenu({required bool reset}) async {

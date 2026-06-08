@@ -7,6 +7,8 @@ import com.foodya.backend.infrastructure.repository.OrderPaymentRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class OrderPaymentAdapter implements OrderPaymentPort {
@@ -17,6 +19,11 @@ public class OrderPaymentAdapter implements OrderPaymentPort {
     public OrderPaymentAdapter(OrderPaymentRepository repository, OrderPaymentMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
+    }
+
+    @Override
+    public Optional<OrderPayment> findByOrderId(UUID orderId) {
+        return repository.findByOrderId(orderId).map(mapper::toDomain);
     }
 
     @Override

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/category_taxonomy.dart';
+import '../../domain/models/order_review.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/models/restaurant_detail.dart';
 import '../../domain/models/restaurant_menu_item.dart';
@@ -83,10 +84,43 @@ class CustomerCatalogRemoteDataSource {
     );
   }
 
+  Future<PagedResult<RestaurantSearchItem>> nearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5.0,
+    String? sort,
+    int page = 0,
+    int size = 10,
+  }) async {
+    final response = await _get(
+      '/api/v1/restaurants/nearby',
+      queryParameters: {
+        'lat': lat.toString(),
+        'lng': lng.toString(),
+        'radiusKm': radiusKm.toString(),
+        'sort': sort,
+        'page': page.toString(),
+        'size': size.toString(),
+      },
+    );
+
+    return _mapPagedData(
+      response,
+      (entry) => RestaurantSearchItem.fromJson(entry),
+    );
+  }
+
   Future<List<CategoryTaxonomy>> listCategoryTaxonomies() async {
     final response = await _get('/api/v1/restaurants/category-taxonomies');
     final data = _extractDataList(response);
     return data.map(CategoryTaxonomy.fromJson).toList(growable: false);
+  }
+
+  Future<List<OrderReview>> listRestaurantReviews(String restaurantId) async {
+    final response = await _get('/api/v1/restaurants/$restaurantId/reviews');
+    return _extractDataList(
+      response,
+    ).map(OrderReview.fromJson).toList(growable: false);
   }
 
   Future<Map<String, dynamic>> _get(

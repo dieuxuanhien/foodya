@@ -290,7 +290,9 @@ public class AdminGovernanceController {
                 order.getSubtotalAmount(),
                 order.getDeliveryFee(),
                 order.getTotalAmount(),
-                order.getDeliveryAddress()
+                order.getDeliveryAddress(),
+                order.getDeliveryLatitude(),
+                order.getDeliveryLongitude()
         );
     }
 }

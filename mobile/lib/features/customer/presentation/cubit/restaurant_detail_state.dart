@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../domain/models/category_taxonomy.dart';
+import '../../domain/models/order_review.dart';
 import '../../domain/models/restaurant_detail.dart';
 import '../../domain/models/restaurant_menu_item.dart';
 
@@ -18,6 +19,8 @@ class RestaurantDetailState extends Equatable {
     required this.status,
     required this.restaurant,
     required this.menuItems,
+    required this.reviews,
+    required this.isReviewsLoading,
     required this.taxonomies,
     required this.selectedTaxonomyCodes,
     required this.menuKeyword,
@@ -32,6 +35,8 @@ class RestaurantDetailState extends Equatable {
         status: RestaurantDetailStatus.initial,
         restaurant: null,
         menuItems: const [],
+        reviews: const [],
+        isReviewsLoading: false,
         taxonomies: const [],
         selectedTaxonomyCodes: const [],
         menuKeyword: '',
@@ -43,6 +48,8 @@ class RestaurantDetailState extends Equatable {
   final RestaurantDetailStatus status;
   final RestaurantDetail? restaurant;
   final List<RestaurantMenuItem> menuItems;
+  final List<OrderReview> reviews;
+  final bool isReviewsLoading;
   final List<CategoryTaxonomy> taxonomies;
   final List<String> selectedTaxonomyCodes;
   final String menuKeyword;
@@ -59,6 +66,8 @@ class RestaurantDetailState extends Equatable {
     RestaurantDetail? restaurant,
     bool clearRestaurant = false,
     List<RestaurantMenuItem>? menuItems,
+    List<OrderReview>? reviews,
+    bool? isReviewsLoading,
     List<CategoryTaxonomy>? taxonomies,
     List<String>? selectedTaxonomyCodes,
     String? menuKeyword,
@@ -72,6 +81,8 @@ class RestaurantDetailState extends Equatable {
       status: status ?? this.status,
       restaurant: clearRestaurant ? null : (restaurant ?? this.restaurant),
       menuItems: menuItems ?? this.menuItems,
+      reviews: reviews ?? this.reviews,
+      isReviewsLoading: isReviewsLoading ?? this.isReviewsLoading,
       taxonomies: taxonomies ?? this.taxonomies,
       selectedTaxonomyCodes:
           selectedTaxonomyCodes ?? this.selectedTaxonomyCodes,
@@ -88,6 +99,8 @@ class RestaurantDetailState extends Equatable {
     status,
     restaurant,
     menuItems,
+    reviews,
+    isReviewsLoading,
     taxonomies,
     selectedTaxonomyCodes,
     menuKeyword,

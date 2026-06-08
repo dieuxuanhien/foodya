@@ -57,7 +57,7 @@ export default function ReportsPage() {
                     <BarChart data={rep.series}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="period" />
-                      <YAxis tickFormatter={(val) => `₫${(val / 1000).toFixed(0)}k`} />
+                      <YAxis tickFormatter={(val) => formatCurrency(Number(val), rep.currencyCode || 'VND')} />
                       <Tooltip formatter={(val: number) => formatCurrency(val, rep.currencyCode || 'VND')} cursor={{ fill: 'var(--bg-hover)' }} contentStyle={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: 8, color: '#fff' }} />
                       <Bar dataKey="revenue" fill="var(--info)" name="Total Revenue" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -76,7 +76,7 @@ export default function ReportsPage() {
                     <BarChart data={rep.series}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="period" />
-                      <YAxis tickFormatter={(val) => `₫${(val / 1000).toFixed(0)}k`} />
+                      <YAxis tickFormatter={(val) => formatCurrency(Number(val), rep.currencyCode || 'VND')} />
                       <Tooltip formatter={(val: number) => formatCurrency(val, rep.currencyCode || 'VND')} cursor={{ fill: 'var(--bg-hover)' }} contentStyle={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: 8, color: '#fff' }} />
                       <Bar dataKey="platformProfit" fill="var(--warning)" name="Platform Profit" radius={[4, 4, 0, 0]} />
                     </BarChart>

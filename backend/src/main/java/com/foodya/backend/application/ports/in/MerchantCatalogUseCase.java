@@ -12,11 +12,14 @@ import com.foodya.backend.application.dto.UpdateMenuItemAvailabilityRequest;
 import com.foodya.backend.application.dto.UpdateMenuItemRequest;
 import com.foodya.backend.application.dto.UpdateRestaurantRequest;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface MerchantCatalogUseCase {
 
     RestaurantData createRestaurant(UUID merchantUserId, CreateRestaurantRequest request);
+
+    List<RestaurantData> listOwnedRestaurants(UUID merchantUserId);
 
     RestaurantData updateRestaurant(UUID merchantUserId, UUID restaurantId, UpdateRestaurantRequest request);
 

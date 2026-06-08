@@ -5,6 +5,7 @@ import '../../../../core/auth/token_store.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/models/auth_session.dart';
 import '../../domain/models/login_request.dart';
+import '../../domain/models/password_recovery.dart';
 import '../../domain/models/register_request.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../data_sources/auth_remote_data_source.dart';
@@ -85,6 +86,35 @@ class HttpAuthRepository implements AuthRepository {
   @override
   Future<void> clearSession() {
     return _tokenStore.clear();
+  }
+
+  @override
+  Future<ForgotPasswordResult> forgotPassword(String email) {
+    return _remoteDataSource.forgotPassword(email.trim());
+  }
+
+  @override
+  Future<VerifyOtpResult> verifyOtp({
+    required String challengeToken,
+    required String otp,
+  }) {
+    return _remoteDataSource.verifyOtp(
+      challengeToken: challengeToken,
+      otp: otp,
+    );
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String resetToken,
+    required String newPassword,
+    required String confirmPassword,
+  }) {
+    return _remoteDataSource.resetPassword(
+      resetToken: resetToken,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
   }
 
   Future<AuthSession> _persistSession(

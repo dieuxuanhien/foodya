@@ -12,12 +12,18 @@ import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
+import com.foodya.backend.application.ports.out.OrderPaymentPort;
+import com.foodya.backend.application.ports.out.OrderTrackingUpdatePublisherPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
 import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.value_objects.PaymentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -27,22 +33,30 @@ import java.util.UUID;
 
 public class OrderLifecycleService implements OrderLifecycleUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderLifecycleService.class);
+
     private final OrderManagementPort orderManagementPort;
     private final RestaurantPort restaurantPort;
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
     private final UserAccountPort userAccountPort;
+    private final OrderPaymentPort orderPaymentPort;
+    private final OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
                                  DeliveryTrackingPointPort deliveryTrackingPointPort,
                                  OrderEventPublisherPort orderEventPublisherPort,
-                                 UserAccountPort userAccountPort) {
+                                 UserAccountPort userAccountPort,
+                                 OrderPaymentPort orderPaymentPort,
+                                 OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
         this.userAccountPort = userAccountPort;
+        this.orderPaymentPort = orderPaymentPort;
+        this.orderTrackingUpdatePublisherPort = orderTrackingUpdatePublisherPort;
     }
 
     public List<OrderSummaryView> customerOrders(UUID customerUserId) {
@@ -86,6 +100,12 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .stream()
                 .map(this::toSummary)
                 .toList();
+    }
+
+    public OrderDetailView merchantOrder(UUID merchantUserId, UUID orderId) {
+        Order order = requireOrder(orderId);
+        assertMerchantOwnsOrder(merchantUserId, order.getRestaurantId());
+        return toDetail(order);
     }
 
     public OrderDetailView merchantUpdateStatus(UUID merchantUserId, UUID orderId, OrderStatus targetStatus) {
@@ -155,6 +175,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         if (targetStatus == OrderStatus.SUCCESS || targetStatus == OrderStatus.FAILED) {
             try {
                 order.deliveryFinish(targetStatus);
+                syncCodPaymentState(order, targetStatus);
             } catch (IllegalStateException ex) {
                 throw new ValidationException("invalid delivery status transition",
                         Map.of("status", "allowed: ASSIGNED->DELIVERING and DELIVERING->SUCCESS|FAILED"));
@@ -186,7 +207,13 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         point.setRecordedAt(recordedAt);
 
         DeliveryTrackingPoint saved = deliveryTrackingPointPort.save(point);
-        return new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
+        OrderTrackingPointView view = new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
+        try {
+            orderTrackingUpdatePublisherPort.publishTrackingPoint(order.getCustomerUserId(), orderId, view);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to publish tracking update for order {}", orderId, ex);
+        }
+        return view;
     }
 
     public List<OrderTrackingPointView> customerTrackingPoints(UUID customerUserId, UUID orderId) {
@@ -229,6 +256,27 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         ));
     }
 
+    private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
+        if (targetStatus == OrderStatus.SUCCESS) {
+            order.markCodPaid();
+        } else if (targetStatus == OrderStatus.FAILED) {
+            order.markCodFailed();
+        } else {
+            return;
+        }
+
+        OrderPayment payment = orderPaymentPort.findByOrderId(order.getId())
+                .orElseGet(OrderPayment::new);
+        payment.setOrderId(order.getId());
+        payment.setPaymentMethod(order.getPaymentMethod());
+        payment.setPaymentStatus(order.getPaymentStatus());
+        payment.setAmount(order.getTotalAmount());
+        payment.setPaidAt(order.getPaymentStatus() == PaymentStatus.PAID
+                ? (order.getCompletedAt() == null ? OffsetDateTime.now() : order.getCompletedAt())
+                : null);
+        orderPaymentPort.save(payment);
+    }
+
     private OrderSummaryView toSummary(Order order) {
         String restaurantName = restaurantPort.findById(order.getRestaurantId())
                 .map(Restaurant::getName)
@@ -269,7 +317,9 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 order.getSubtotalAmount(),
                 order.getDeliveryFee(),
                 order.getTotalAmount(),
-                order.getDeliveryAddress()
+                order.getDeliveryAddress(),
+                order.getDeliveryLatitude(),
+                order.getDeliveryLongitude()
         );
     }
 }

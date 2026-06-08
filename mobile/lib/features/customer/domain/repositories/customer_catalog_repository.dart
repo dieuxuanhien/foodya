@@ -1,4 +1,5 @@
 import '../models/category_taxonomy.dart';
+import '../models/order_review.dart';
 import '../models/paged_result.dart';
 import '../models/restaurant_detail.dart';
 import '../models/restaurant_menu_item.dart';
@@ -28,4 +29,15 @@ abstract class CustomerCatalogRepository {
   });
 
   Future<List<CategoryTaxonomy>> listCategoryTaxonomies();
+
+  Future<PagedResult<RestaurantSearchItem>> nearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5.0,
+    String? sort,
+    int page = 0,
+    int size = 10,
+  });
+
+  Future<List<OrderReview>> listRestaurantReviews(String restaurantId);
 }

@@ -8,6 +8,7 @@ import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.ProfileUseCase;
 import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
+import com.foodya.backend.application.ports.out.UserAvatarStoragePort;
 import com.foodya.backend.domain.policies.PasswordPolicy;
 import com.foodya.backend.domain.services.PhoneNormalizer;
 
@@ -20,13 +21,16 @@ public class ProfileService implements ProfileUseCase {
     private final UserAccountPort userAccountPort;
     private final PasswordHashPort passwordHashPort;
     private final AuditLogService auditLogService;
+    private final UserAvatarStoragePort userAvatarStoragePort;
 
     public ProfileService(UserAccountPort userAccountPort,
                           PasswordHashPort passwordHashPort,
-                          AuditLogService auditLogService) {
+                          AuditLogService auditLogService,
+                          UserAvatarStoragePort userAvatarStoragePort) {
         this.userAccountPort = userAccountPort;
         this.passwordHashPort = passwordHashPort;
         this.auditLogService = auditLogService;
+        this.userAvatarStoragePort = userAvatarStoragePort;
     }
 
     public UserAccountData me(UUID userId) {
@@ -60,6 +64,24 @@ public class ProfileService implements ProfileUseCase {
         String now = "{\"email\":\"" + saved.getEmail() + "\",\"phoneNumber\":\"" + saved.getPhoneNumber() + "\"}";
         auditLogService.securityEvent(saved.getId().toString(), "PROFILE_UPDATED", "USER", saved.getId().toString(), old, now);
         return saved;
+    }
+
+    public UserAccountData uploadAvatar(UUID userId, String originalFileName, String contentType, byte[] content) {
+        if (content == null || content.length == 0) {
+            throw new ValidationException("invalid content", Map.of("file", "must not be empty"));
+        }
+        int maxBytes = 5 * 1024 * 1024;
+        if (content.length > maxBytes) {
+            throw new ValidationException("invalid content", Map.of("file", "must be <= 5MB"));
+        }
+        if (contentType != null && !contentType.isBlank() && !contentType.startsWith("image/")) {
+            throw new ValidationException("invalid contentType", Map.of("contentType", "must be an image mime type"));
+        }
+
+        UserAccountData user = me(userId);
+        String avatarUrl = userAvatarStoragePort.store(userId, originalFileName, contentType, content);
+        user.setAvatarUrl(avatarUrl);
+        return userAccountPort.save(user);
     }
 
     public void changePassword(UUID userId, ChangePasswordRequest request) {

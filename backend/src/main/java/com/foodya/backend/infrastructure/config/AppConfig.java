@@ -40,8 +40,9 @@ public class AppConfig {
 	public ProfileService profileService(
 			UserAccountPort userAccountPort,
 			PasswordHashPort passwordHashPort,
-			AuditLogService auditLogService) {
-		return new ProfileService(userAccountPort, passwordHashPort, auditLogService);
+			AuditLogService auditLogService,
+			UserAvatarStoragePort userAvatarStoragePort) {
+		return new ProfileService(userAccountPort, passwordHashPort, auditLogService, userAvatarStoragePort);
 	}
 
 	@Bean
@@ -95,8 +96,10 @@ public class AppConfig {
 			RestaurantPort restaurantPort,
 			DeliveryTrackingPointPort deliveryTrackingPointPort,
 			OrderEventPublisherPort orderEventPublisherPort,
-			UserAccountPort userAccountPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort);
+			UserAccountPort userAccountPort,
+			OrderPaymentPort orderPaymentPort,
+			OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort, orderTrackingUpdatePublisherPort);
 	}
 
 	@Bean
@@ -119,8 +122,9 @@ public class AppConfig {
 	public NotificationService notificationService(
 			NotificationLogPort notificationLogPort,
 			PushNotificationPort pushNotificationPort,
+			DeviceTokenPort deviceTokenPort,
 			PaginationPolicy paginationPolicy) {
-		return new NotificationService(notificationLogPort, pushNotificationPort, paginationPolicy);
+		return new NotificationService(notificationLogPort, pushNotificationPort, deviceTokenPort, paginationPolicy);
 	}
 
 	@Bean
@@ -149,7 +153,8 @@ public class AppConfig {
 			SystemParameterPort systemParameterPort,
 			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
-			AuditLogService auditLogService) {
+			AuditLogService auditLogService,
+			OrderPaymentPort orderPaymentPort) {
 		return new AdminGovernanceService(
 				adminRestaurantPort,
 				adminOrderPort,
@@ -159,7 +164,8 @@ public class AppConfig {
 				systemParameterPort,
 				adminUserPort,
 				paginationPolicy,
-				auditLogService
+				auditLogService,
+				orderPaymentPort
 		);
 	}
 

@@ -1,4 +1,5 @@
 import '../../domain/models/category_taxonomy.dart';
+import '../../domain/models/order_review.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/models/restaurant_detail.dart';
 import '../../domain/models/restaurant_menu_item.dart';
@@ -63,5 +64,29 @@ class HttpCustomerCatalogRepository implements CustomerCatalogRepository {
   @override
   Future<List<CategoryTaxonomy>> listCategoryTaxonomies() {
     return _remoteDataSource.listCategoryTaxonomies();
+  }
+
+  @override
+  Future<PagedResult<RestaurantSearchItem>> nearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5.0,
+    String? sort,
+    int page = 0,
+    int size = 10,
+  }) {
+    return _remoteDataSource.nearbyRestaurants(
+      lat: lat,
+      lng: lng,
+      radiusKm: radiusKm,
+      sort: sort,
+      page: page,
+      size: size,
+    );
+  }
+
+  @override
+  Future<List<OrderReview>> listRestaurantReviews(String restaurantId) {
+    return _remoteDataSource.listRestaurantReviews(restaurantId);
   }
 }

@@ -19,11 +19,21 @@ Auth requests target backend endpoints under /api/v1/auth and persist tokens in 
 
 ## API Base URL
 
-- Default on Android emulator: http://10.0.2.2:8080
-- Default on iOS/desktop: http://localhost:8080
-- Override at build/run time:
+The app reads `FOODYA_API_BASE_URL` first. If it is not provided, it uses
+platform-specific development defaults from `lib/core/config/app_config.dart`.
 
-  flutter run --dart-define=FOODYA_API_BASE_URL=http://<host>:8080
+- Default on Android emulator: `http://10.0.2.2:8000`
+- Default on web: `http://localhost:8000`
+- Default on iOS/desktop: `http://localhost:8080`
+
+Override at build/run time when your backend uses a different host or port:
+
+```bash
+flutter run --dart-define=FOODYA_API_BASE_URL=http://<host>:8080
+```
+
+For Android emulator, use `10.0.2.2` instead of `localhost` to reach a backend
+running on the host machine.
 
 ## Run
 

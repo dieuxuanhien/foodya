@@ -21,6 +21,8 @@ public interface RestaurantRepository extends JpaRepository<RestaurantPersistenc
 
     List<RestaurantPersistenceModel> findByIdInAndStatusIn(Collection<UUID> ids, Collection<RestaurantStatus> statuses);
 
+    List<RestaurantPersistenceModel> findByOwnerUserIdOrderByCreatedAtDesc(UUID ownerUserId);
+
     Optional<RestaurantPersistenceModel> findByIdAndStatusIn(UUID id, Collection<RestaurantStatus> statuses);
 
     Optional<RestaurantPersistenceModel> findByIdAndOwnerUserId(UUID id, UUID ownerUserId);

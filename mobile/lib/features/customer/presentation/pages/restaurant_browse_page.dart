@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/models/restaurant_search_item.dart';
 import '../../domain/repositories/customer_catalog_repository.dart';
+import '../../../../core/location/geolocation_service.dart';
+import '../../../../core/ui/foodya_ui.dart';
 import '../cubit/restaurant_browse_cubit.dart';
 import '../cubit/restaurant_browse_state.dart';
+import '../widgets/manual_location_sheet.dart';
 
 class RestaurantBrowsePage extends StatelessWidget {
   const RestaurantBrowsePage({super.key});
@@ -16,6 +19,7 @@ class RestaurantBrowsePage extends StatelessWidget {
       create:
           (context) => RestaurantBrowseCubit(
             repository: context.read<CustomerCatalogRepository>(),
+            geolocationService: context.read<GeolocationService>(),
           )..initialize(),
       child: const _RestaurantBrowseView(),
     );
@@ -84,11 +88,11 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                       (sort) => context
                           .read<RestaurantBrowseCubit>()
                           .changeSort(sort),
+                  onNearbyToggle:
+                      (enabled) => _toggleNearby(context, state, enabled),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                _HorizontalChipList(
                   children: [
                     FilterChip(
                       label: const Text('Open now'),
@@ -117,29 +121,33 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
                   ],
                 ),
                 if (state.taxonomies.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Categories',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  const SizedBox(height: 16),
+                  const FoodyaSectionHeader(
+                    title: 'Categories',
+                    leadingIcon: Icons.local_fire_department_outlined,
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: state.taxonomies
-                        .map(
-                          (taxonomy) => FilterChip(
-                            label: Text(taxonomy.displayName),
-                            selected: state.selectedTaxonomyCodes.contains(
-                              taxonomy.code,
-                            ),
-                            onSelected:
-                                (_) => context
-                                    .read<RestaurantBrowseCubit>()
-                                    .toggleTaxonomy(taxonomy.code),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: state.taxonomies.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 6),
+                      itemBuilder: (context, index) {
+                        final taxonomy = state.taxonomies[index];
+                        return FoodyaCategoryChip(
+                          label: taxonomy.displayName,
+                          icon: categoryIcon(taxonomy.code),
+                          selected: state.selectedTaxonomyCodes.contains(
+                            taxonomy.code,
                           ),
-                        )
-                        .toList(growable: false),
+                          onTap:
+                              () => context
+                                  .read<RestaurantBrowseCubit>()
+                                  .toggleTaxonomy(taxonomy.code),
+                        );
+                      },
+                    ),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -151,6 +159,61 @@ class _RestaurantBrowseViewState extends State<_RestaurantBrowseView> {
       ),
     );
   }
+
+  Future<void> _toggleNearby(
+    BuildContext context,
+    RestaurantBrowseState state,
+    bool enabled,
+  ) async {
+    final cubit = context.read<RestaurantBrowseCubit>();
+    if (!enabled) {
+      await cubit.toggleNearby(false);
+      return;
+    }
+
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.my_location_outlined),
+                  title: const Text('Use device location'),
+                  onTap: () => Navigator.of(context).pop('device'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_location_alt_outlined),
+                  title: const Text('Enter latitude and longitude'),
+                  onTap: () => Navigator.of(context).pop('manual'),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (!context.mounted || source == null) {
+      return;
+    }
+
+    if (source == 'device') {
+      await cubit.toggleNearby(true);
+      return;
+    }
+
+    final manual = await showManualLocationSheet(
+      context: context,
+      initialLatitude: state.latitude,
+      initialLongitude: state.longitude,
+    );
+    if (!context.mounted || manual == null) {
+      return;
+    }
+    await cubit.useManualNearbyLocation(
+      latitude: manual.latitude,
+      longitude: manual.longitude,
+    );
+  }
 }
 
 class _SearchSection extends StatelessWidget {
@@ -159,54 +222,107 @@ class _SearchSection extends StatelessWidget {
     required this.state,
     required this.onSearch,
     required this.onSortChanged,
+    required this.onNearbyToggle,
   });
 
   final TextEditingController controller;
   final RestaurantBrowseState state;
   final ValueChanged<String> onSearch;
   final ValueChanged<String> onSortChanged;
+  final ValueChanged<bool> onNearbyToggle;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: TextField(
-            controller: controller,
-            textInputAction: TextInputAction.search,
-            onSubmitted: onSearch,
-            decoration: InputDecoration(
-              hintText: 'Search by restaurant or menu item',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon:
-                  state.keyword.isEmpty
-                      ? null
-                      : IconButton(
-                        onPressed: () {
-                          controller.clear();
-                          onSearch('');
-                        },
-                        icon: const Icon(Icons.clear),
-                      ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                textInputAction: TextInputAction.search,
+                onSubmitted: onSearch,
+                decoration: InputDecoration(
+                  hintText: 'Search by restaurant or menu item',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon:
+                      state.keyword.isEmpty
+                          ? null
+                          : IconButton(
+                            onPressed: () {
+                              controller.clear();
+                              onSearch('');
+                            },
+                            icon: const Icon(Icons.clear),
+                          ),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            _SortMenuButton(state: state, onSortChanged: onSortChanged),
+          ],
         ),
-        const SizedBox(width: 8),
-        DropdownButton<String>(
-          value: state.sort,
-          onChanged: (value) {
-            if (value != null) {
-              onSortChanged(value);
-            }
-          },
-          items: const [
-            DropdownMenuItem(value: 'relevance', child: Text('Relevance')),
-            DropdownMenuItem(value: 'rating_desc', child: Text('Top rated')),
+        const SizedBox(height: 12),
+        _HorizontalChipList(
+          children: [
+            FilterChip(
+              avatar: const Icon(Icons.near_me_outlined),
+              label: const Text('Nearby'),
+              selected: state.isNearby,
+              onSelected: onNearbyToggle,
+            ),
           ],
         ),
       ],
     );
   }
+}
+
+class _SortMenuButton extends StatelessWidget {
+  const _SortMenuButton({required this.state, required this.onSortChanged});
+
+  final RestaurantBrowseState state;
+  final ValueChanged<String> onSortChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      const _SortOption(value: 'relevance', label: 'Relevance'),
+      const _SortOption(value: 'rating_desc', label: 'Top rated'),
+      if (state.latitude != null && state.longitude != null)
+        const _SortOption(value: 'distance_asc', label: 'Closest'),
+    ];
+
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: PopupMenuButton<String>(
+        icon: const Icon(Icons.tune_outlined),
+        tooltip: 'Sort restaurants',
+        onSelected: onSortChanged,
+        itemBuilder:
+            (context) =>
+                options
+                    .map(
+                      (option) => CheckedPopupMenuItem<String>(
+                        value: option.value,
+                        checked: option.value == state.sort,
+                        child: Text(option.label),
+                      ),
+                    )
+                    .toList(),
+      ),
+    );
+  }
+}
+
+class _SortOption {
+  const _SortOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
 }
 
 class _ResultSection extends StatelessWidget {
@@ -226,41 +342,90 @@ class _ResultSection extends StatelessWidget {
     }
 
     if (state.status == RestaurantBrowseStatus.failure) {
-      return _EmptyState(
+      return FoodyaEmptyState(
+        illustrationAsset: 'assets/illustrations/empty_connection.png',
+        icon: Icons.wifi_off_outlined,
         title: 'Unable to load restaurants',
-        subtitle:
+        message:
             state.errorMessage ?? 'Please check your network and try again.',
+        actionLabel: 'Retry',
+        onAction: () => context.read<RestaurantBrowseCubit>().refresh(),
       );
     }
 
     if (state.status == RestaurantBrowseStatus.empty) {
-      return const _EmptyState(
+      return const FoodyaEmptyState(
+        illustrationAsset: 'assets/illustrations/empty_search.png',
+        icon: Icons.search_off_outlined,
         title: 'No restaurants found',
-        subtitle: 'Try adjusting keyword or filters.',
+        message: 'Try adjusting keyword or filters.',
       );
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ...state.restaurants.map(
-          (restaurant) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _RestaurantCard(restaurant: restaurant),
+        if (state.status == RestaurantBrowseStatus.loading &&
+            state.restaurants.isNotEmpty) ...[
+          const LinearProgressIndicator(),
+          const SizedBox(height: 12),
+        ],
+        for (var index = 0; index < state.restaurants.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          _RestaurantCard(restaurant: state.restaurants[index]),
+        ],
+        const SizedBox(height: 16),
+        _RestaurantPaginationControls(state: state),
+      ],
+    );
+  }
+}
+
+class _RestaurantPaginationControls extends StatelessWidget {
+  const _RestaurantPaginationControls({required this.state});
+
+  final RestaurantBrowseState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<RestaurantBrowseCubit>();
+    final pageCount =
+        state.pageCount == 0 && state.restaurants.isNotEmpty
+            ? state.page + 1
+            : state.pageCount;
+    final totalLabel =
+        state.totalElements == 1
+            ? '1 restaurant'
+            : '${state.totalElements} restaurants';
+
+    return Row(
+      children: [
+        IconButton(
+          onPressed: state.canGoToPreviousPage ? cubit.previousPage : null,
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous page',
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              Text(
+                'Page ${state.pageNumber} of $pageCount',
+                style: Theme.of(context).textTheme.titleSmall,
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                totalLabel,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
-        if (state.status == RestaurantBrowseStatus.loadingMore)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: CircularProgressIndicator(),
-          )
-        else if (state.hasMore)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: OutlinedButton(
-              onPressed: () => context.read<RestaurantBrowseCubit>().loadMore(),
-              child: const Text('Load more'),
-            ),
-          ),
+        IconButton(
+          onPressed: state.canGoToNextPage ? cubit.nextPage : null,
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next page',
+        ),
       ],
     );
   }
@@ -282,75 +447,109 @@ class _RestaurantCard extends StatelessWidget {
             () => context.push(
               '/customer/restaurants/${restaurant.restaurantId}',
             ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FoodyaImageSurface(
+              imageUrl: restaurant.backgroundImageUrl,
+              icon: Icons.restaurant,
+              height: 112,
+              width: double.infinity,
+              borderRadius: 0,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    backgroundImage:
-                        restaurant.avatarImageUrl == null
-                            ? null
-                            : NetworkImage(restaurant.avatarImageUrl!),
-                    child:
-                        restaurant.avatarImageUrl == null
-                            ? const Icon(Icons.storefront_outlined)
-                            : null,
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundImage:
+                            restaurant.avatarImageUrl == null
+                                ? null
+                                : NetworkImage(restaurant.avatarImageUrl!),
+                        child:
+                            restaurant.avatarImageUrl == null
+                                ? const Icon(Icons.storefront_outlined)
+                                : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              restaurant.restaurantName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              restaurant.cuisine,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Chip(
+                        label: Text(restaurant.openStatus ? 'Open' : 'Closed'),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          restaurant.restaurantName,
-                          style: Theme.of(context).textTheme.titleMedium,
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _InfoTag(
+                        icon: Icons.star,
+                        text: restaurant.rating.toStringAsFixed(1),
+                      ),
+                      _InfoTag(
+                        icon: Icons.delivery_dining,
+                        text:
+                            'Up to ${restaurant.maxDeliveryKm.toStringAsFixed(1)} km',
+                      ),
+                      if (restaurant.distanceKm != null)
+                        _InfoTag(
+                          icon: Icons.near_me_outlined,
+                          text:
+                              '${restaurant.distanceKm!.toStringAsFixed(1)} km',
                         ),
-                        Text(
-                          restaurant.cuisine,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                    ],
+                  ),
+                  if (matchedNames.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Matched items: ${matchedNames.join(', ')}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  ),
-                  Chip(
-                    label: Text(restaurant.openStatus ? 'Open' : 'Closed'),
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  _InfoTag(
-                    icon: Icons.star,
-                    text: restaurant.rating.toStringAsFixed(1),
-                  ),
-                  _InfoTag(
-                    icon: Icons.delivery_dining,
-                    text:
-                        'Up to ${restaurant.maxDeliveryKm.toStringAsFixed(1)} km',
-                  ),
-                  if (restaurant.distanceKm != null)
-                    _InfoTag(
-                      icon: Icons.near_me_outlined,
-                      text: '${restaurant.distanceKm!.toStringAsFixed(1)} km',
-                    ),
-                ],
-              ),
-              if (matchedNames.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Matched items: ${matchedNames.join(', ')}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _HorizontalChipList extends StatelessWidget {
+  const _HorizontalChipList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var index = 0; index < children.length; index++) ...[
+            if (index > 0) const SizedBox(width: 8),
+            children[index],
+          ],
+        ],
       ),
     );
   }
@@ -368,36 +567,6 @@ class _InfoTag extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       avatar: Icon(icon, size: 16),
       label: Text(text),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.search_off_outlined, size: 36),
-            const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

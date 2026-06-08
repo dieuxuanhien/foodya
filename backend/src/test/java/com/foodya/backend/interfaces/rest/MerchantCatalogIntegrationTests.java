@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -186,6 +187,52 @@ class MerchantCatalogIntegrationTests {
                                 """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void merchantCanListOnlyOwnedRestaurants() throws Exception {
+        String ownerToken = merchantAccessToken("merchant-owner-list", "owner-list@example.com", "+84900111116");
+        String otherToken = merchantAccessToken("merchant-other-list", "other-list@example.com", "+84900111117");
+
+        mockMvc.perform(post("/api/v1/merchant/restaurants")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("""
+                                {
+                                  "name":"Owner Kitchen",
+                                  "cuisineType":"Vietnamese",
+                                  "description":"Owned",
+                                  "addressLine":"5 Le Loi",
+                                  "latitude":10.7771,
+                                  "longitude":106.7001,
+                                  "maxDeliveryKm":5,
+                                  "isOpen":true
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/merchant/restaurants")
+                        .header("Authorization", "Bearer " + otherToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("""
+                                {
+                                  "name":"Other Kitchen",
+                                  "cuisineType":"Vietnamese",
+                                  "description":"Other",
+                                  "addressLine":"6 Le Loi",
+                                  "latitude":10.7771,
+                                  "longitude":106.7001,
+                                  "maxDeliveryKm":5,
+                                  "isOpen":true
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/merchant/restaurants")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("Owner Kitchen"));
     }
 
     @Test

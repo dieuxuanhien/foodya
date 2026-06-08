@@ -41,6 +41,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Foodya uses your location to show nearby restaurants.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Select images for your restaurant and menu items.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos for your restaurant and menu items.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

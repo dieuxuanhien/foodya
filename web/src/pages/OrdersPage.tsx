@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit2, Trash2, Eye } from 'lucide-react';
 import { getOrders, updateOrderStatus, deleteOrder, getOrderDetails, type Order } from '../api/orders';
-import { PageHeader, LoadingCenter, EmptyState, StatusBadge, Pagination, ConfirmModal, formatCurrency, Spinner } from '../components/ui';
+import { PageHeader, LoadingCenter, EmptyState, StatusBadge, Pagination, ConfirmModal, formatCurrency } from '../components/ui';
 
 const STATUS_OPTIONS = ['', 'PENDING', 'ACCEPTED', 'PREPARING', 'DELIVERING', 'DELIVERED', 'CANCELLED'];
 

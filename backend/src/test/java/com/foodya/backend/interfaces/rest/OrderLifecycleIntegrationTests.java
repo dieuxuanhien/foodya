@@ -18,6 +18,7 @@ import com.foodya.backend.infrastructure.repository.CartRepository;
 import com.foodya.backend.infrastructure.repository.MenuCategoryRepository;
 import com.foodya.backend.infrastructure.repository.MenuItemRepository;
 import com.foodya.backend.infrastructure.repository.OrderManagementRepository;
+import com.foodya.backend.infrastructure.repository.OrderPaymentRepository;
 import com.foodya.backend.infrastructure.repository.OrderRepository;
 import com.foodya.backend.infrastructure.repository.RestaurantRepository;
 import com.foodya.backend.infrastructure.repository.UserAccountRepository;
@@ -38,6 +39,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -72,6 +74,9 @@ class OrderLifecycleIntegrationTests {
     private OrderManagementRepository orderManagementRepository;
 
     @Autowired
+    private OrderPaymentRepository orderPaymentRepository;
+
+    @Autowired
     private DeliveryTrackingPointRepository deliveryTrackingPointRepository;
 
     @Autowired
@@ -92,6 +97,7 @@ class OrderLifecycleIntegrationTests {
     @BeforeEach
     void setUp() {
         deliveryTrackingPointRepository.deleteAll();
+        orderPaymentRepository.deleteAll();
         orderManagementRepository.deleteAll();
         orderRepository.deleteAll();
         cartItemRepository.deleteAll();
@@ -151,6 +157,47 @@ class OrderLifecycleIntegrationTests {
                         .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].lng").value(106.7));
+    }
+
+    @Test
+    void deliverySuccessMarksCodOrderPaidAndMirrorsPaymentRow() throws Exception {
+        UserAccount customer = seedUser("customer-c", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-c", UserRole.MERCHANT);
+        UserAccount delivery = seedUser("delivery-c", UserRole.DELIVERY);
+        Restaurant restaurant = seedRestaurant(merchant, "Payment Store");
+        Order order = seedOrder(customer, restaurant, OrderStatus.ACCEPTED);
+
+        String deliveryToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(delivery), UUID.randomUUID().toString());
+
+        mockMvc.perform(post("/api/v1/delivery/orders/{id}/accept", order.getId())
+                        .header("Authorization", "Bearer " + deliveryToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ASSIGNED"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("UNPAID"));
+
+        mockMvc.perform(patch("/api/v1/delivery/orders/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + deliveryToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"status\":\"DELIVERING\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("DELIVERING"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("UNPAID"));
+
+        mockMvc.perform(patch("/api/v1/delivery/orders/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + deliveryToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"status\":\"SUCCESS\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("PAID"));
+
+        var savedOrder = orderRepository.findById(order.getId()).orElseThrow();
+        var payment = orderPaymentRepository.findByOrderId(order.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(PaymentStatus.PAID, savedOrder.getPaymentStatus());
+        org.junit.jupiter.api.Assertions.assertEquals(savedOrder.getPaymentStatus(), payment.getPaymentStatus());
+        org.junit.jupiter.api.Assertions.assertEquals(PaymentMethod.COD, payment.getPaymentMethod());
+        org.junit.jupiter.api.Assertions.assertEquals(0, savedOrder.getTotalAmount().compareTo(payment.getAmount()));
+        org.junit.jupiter.api.Assertions.assertNotNull(payment.getPaidAt());
     }
 
     private UserAccount seedUser(String stem, UserRole role) {
