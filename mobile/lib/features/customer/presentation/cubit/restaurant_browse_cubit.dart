@@ -7,6 +7,8 @@ import '../../domain/repositories/customer_catalog_repository.dart';
 import 'restaurant_browse_state.dart';
 
 class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
+  static const int restaurantPageSize = 10;
+
   RestaurantBrowseCubit({
     required CustomerCatalogRepository repository,
     GeolocationService? geolocationService,
@@ -56,7 +58,13 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
 
   Future<void> toggleNearby(bool enabled) async {
     if (!enabled) {
-      emit(state.copyWith(isNearby: false, clearCoordinates: true));
+      emit(
+        state.copyWith(
+          isNearby: false,
+          clearCoordinates: true,
+          sort: state.sort == 'distance_asc' ? 'relevance' : state.sort,
+        ),
+      );
       await refresh();
       return;
     }
@@ -144,40 +152,52 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
   }
 
   Future<void> refresh() async {
-    await _fetchPage(reset: true);
+    await _fetchPage(pageIndex: 0);
   }
 
-  Future<void> loadMore() async {
-    if (!state.hasMore || state.status == RestaurantBrowseStatus.loadingMore) {
+  Future<void> nextPage() async {
+    if (!state.hasMore || state.isBusy) {
       return;
     }
 
-    await _fetchPage(reset: false);
+    await goToPage(state.page + 1);
   }
 
-  Future<void> _fetchPage({required bool reset}) async {
-    final nextPage = reset ? 0 : state.page + 1;
+  Future<void> previousPage() async {
+    if (state.page == 0 || state.isBusy) {
+      return;
+    }
 
+    await goToPage(state.page - 1);
+  }
+
+  Future<void> goToPage(int pageIndex) async {
+    if (pageIndex < 0 || state.isBusy) {
+      return;
+    }
+
+    if (state.totalPages > 0 && pageIndex >= state.totalPages) {
+      return;
+    }
+
+    await _fetchPage(pageIndex: pageIndex);
+  }
+
+  Future<void> _fetchPage({required int pageIndex}) async {
     emit(
-      state.copyWith(
-        status:
-            reset
-                ? RestaurantBrowseStatus.loading
-                : RestaurantBrowseStatus.loadingMore,
-        clearError: true,
-      ),
+      state.copyWith(status: RestaurantBrowseStatus.loading, clearError: true),
     );
 
     try {
-      final page =
+      final result =
           state.isNearby && state.latitude != null && state.longitude != null
               ? await _repository.nearbyRestaurants(
                 lat: state.latitude!,
                 lng: state.longitude!,
                 radiusKm: state.radiusKm,
                 sort: state.sort,
-                page: nextPage,
-                size: 10,
+                page: pageIndex,
+                size: restaurantPageSize,
               )
               : await _repository.searchRestaurants(
                 keyword:
@@ -186,21 +206,21 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
                 openNow: state.openNow,
                 sort: state.sort,
                 taxonomyCodes: state.selectedTaxonomyCodes,
-                page: nextPage,
-                size: 10,
+                page: pageIndex,
+                size: restaurantPageSize,
               );
-
-      final merged = reset ? page.items : [...state.restaurants, ...page.items];
 
       emit(
         state.copyWith(
           status:
-              merged.isEmpty
+              result.items.isEmpty
                   ? RestaurantBrowseStatus.empty
                   : RestaurantBrowseStatus.success,
-          restaurants: merged,
-          page: page.page,
-          hasMore: page.hasNextPage,
+          restaurants: result.items,
+          page: result.page,
+          totalPages: result.totalPages,
+          totalElements: result.totalElements,
+          hasMore: result.hasNextPage,
           clearError: true,
         ),
       );
@@ -210,7 +230,7 @@ class RestaurantBrowseCubit extends Cubit<RestaurantBrowseState> {
         fallback: 'Unable to load restaurants.',
       );
 
-      if (!reset && state.restaurants.isNotEmpty) {
+      if (state.restaurants.isNotEmpty) {
         emit(
           state.copyWith(
             status: RestaurantBrowseStatus.success,

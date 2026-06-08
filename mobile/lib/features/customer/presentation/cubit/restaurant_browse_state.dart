@@ -3,14 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../domain/models/category_taxonomy.dart';
 import '../../domain/models/restaurant_search_item.dart';
 
-enum RestaurantBrowseStatus {
-  initial,
-  loading,
-  success,
-  empty,
-  loadingMore,
-  failure,
-}
+enum RestaurantBrowseStatus { initial, loading, success, empty, failure }
 
 class RestaurantBrowseState extends Equatable {
   const RestaurantBrowseState({
@@ -27,6 +20,8 @@ class RestaurantBrowseState extends Equatable {
     required this.openNow,
     required this.minRating,
     required this.page,
+    required this.totalPages,
+    required this.totalElements,
     required this.hasMore,
     this.errorMessage,
   });
@@ -46,6 +41,8 @@ class RestaurantBrowseState extends Equatable {
         openNow: null,
         minRating: null,
         page: 0,
+        totalPages: 0,
+        totalElements: 0,
         hasMore: false,
       );
 
@@ -62,15 +59,23 @@ class RestaurantBrowseState extends Equatable {
   final bool? openNow;
   final double? minRating;
   final int page;
+  final int totalPages;
+  final int totalElements;
   final bool hasMore;
   final String? errorMessage;
 
   bool get isInitialLoading =>
       status == RestaurantBrowseStatus.loading && restaurants.isEmpty;
 
-  bool get isBusy =>
-      status == RestaurantBrowseStatus.loading ||
-      status == RestaurantBrowseStatus.loadingMore;
+  bool get isBusy => status == RestaurantBrowseStatus.loading;
+
+  bool get canGoToPreviousPage => page > 0 && !isBusy;
+
+  bool get canGoToNextPage => hasMore && !isBusy;
+
+  int get pageNumber => restaurants.isEmpty ? 0 : page + 1;
+
+  int get pageCount => totalPages;
 
   RestaurantBrowseState copyWith({
     RestaurantBrowseStatus? status,
@@ -86,6 +91,8 @@ class RestaurantBrowseState extends Equatable {
     bool? openNow,
     double? minRating,
     int? page,
+    int? totalPages,
+    int? totalElements,
     bool? hasMore,
     String? errorMessage,
     bool clearError = false,
@@ -108,6 +115,8 @@ class RestaurantBrowseState extends Equatable {
       openNow: resetOpenNow ? null : (openNow ?? this.openNow),
       minRating: resetMinRating ? null : (minRating ?? this.minRating),
       page: page ?? this.page,
+      totalPages: totalPages ?? this.totalPages,
+      totalElements: totalElements ?? this.totalElements,
       hasMore: hasMore ?? this.hasMore,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -128,6 +137,8 @@ class RestaurantBrowseState extends Equatable {
     openNow,
     minRating,
     page,
+    totalPages,
+    totalElements,
     hasMore,
     errorMessage,
   ];

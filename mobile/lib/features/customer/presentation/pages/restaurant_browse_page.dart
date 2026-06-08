@@ -236,24 +236,33 @@ class _SearchSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: controller,
-          textInputAction: TextInputAction.search,
-          onSubmitted: onSearch,
-          decoration: InputDecoration(
-            hintText: 'Search by restaurant or menu item',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon:
-                state.keyword.isEmpty
-                    ? null
-                    : IconButton(
-                      onPressed: () {
-                        controller.clear();
-                        onSearch('');
-                      },
-                      icon: const Icon(Icons.clear),
-                    ),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                textInputAction: TextInputAction.search,
+                onSubmitted: onSearch,
+                decoration: InputDecoration(
+                  hintText: 'Search by restaurant or menu item',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon:
+                      state.keyword.isEmpty
+                          ? null
+                          : IconButton(
+                            onPressed: () {
+                              controller.clear();
+                              onSearch('');
+                            },
+                            icon: const Icon(Icons.clear),
+                          ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _SortMenuButton(state: state, onSortChanged: onSortChanged),
+          ],
         ),
         const SizedBox(height: 12),
         _HorizontalChipList(
@@ -264,41 +273,56 @@ class _SearchSection extends StatelessWidget {
               selected: state.isNearby,
               onSelected: onNearbyToggle,
             ),
-            SizedBox(
-              width: 220,
-              child: DropdownButtonFormField<String>(
-                value: state.sort,
-                decoration: const InputDecoration(
-                  labelText: 'Sort by',
-                  prefixIcon: Icon(Icons.sort),
-                ),
-                onChanged: (value) {
-                  if (value != null) {
-                    onSortChanged(value);
-                  }
-                },
-                items: [
-                  const DropdownMenuItem(
-                    value: 'relevance',
-                    child: Text('Relevance'),
-                  ),
-                  const DropdownMenuItem(
-                    value: 'rating_desc',
-                    child: Text('Top rated'),
-                  ),
-                  if (state.latitude != null && state.longitude != null)
-                    const DropdownMenuItem(
-                      value: 'distance_asc',
-                      child: Text('Closest'),
-                    ),
-                ],
-              ),
-            ),
           ],
         ),
       ],
     );
   }
+}
+
+class _SortMenuButton extends StatelessWidget {
+  const _SortMenuButton({required this.state, required this.onSortChanged});
+
+  final RestaurantBrowseState state;
+  final ValueChanged<String> onSortChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      const _SortOption(value: 'relevance', label: 'Relevance'),
+      const _SortOption(value: 'rating_desc', label: 'Top rated'),
+      if (state.latitude != null && state.longitude != null)
+        const _SortOption(value: 'distance_asc', label: 'Closest'),
+    ];
+
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: PopupMenuButton<String>(
+        icon: const Icon(Icons.tune_outlined),
+        tooltip: 'Sort restaurants',
+        onSelected: onSortChanged,
+        itemBuilder:
+            (context) =>
+                options
+                    .map(
+                      (option) => CheckedPopupMenuItem<String>(
+                        value: option.value,
+                        checked: option.value == state.sort,
+                        child: Text(option.label),
+                      ),
+                    )
+                    .toList(),
+      ),
+    );
+  }
+}
+
+class _SortOption {
+  const _SortOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
 }
 
 class _ResultSection extends StatelessWidget {
@@ -338,40 +362,71 @@ class _ResultSection extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      height: 256,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount:
-            state.restaurants.length +
-            (state.status == RestaurantBrowseStatus.loadingMore || state.hasMore
-                ? 1
-                : 0),
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          if (index < state.restaurants.length) {
-            return SizedBox(
-              width: 308,
-              child: _RestaurantCard(restaurant: state.restaurants[index]),
-            );
-          }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.status == RestaurantBrowseStatus.loading &&
+            state.restaurants.isNotEmpty) ...[
+          const LinearProgressIndicator(),
+          const SizedBox(height: 12),
+        ],
+        for (var index = 0; index < state.restaurants.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          _RestaurantCard(restaurant: state.restaurants[index]),
+        ],
+        const SizedBox(height: 16),
+        _RestaurantPaginationControls(state: state),
+      ],
+    );
+  }
+}
 
-          if (state.status == RestaurantBrowseStatus.loadingMore) {
-            return const SizedBox(
-              width: 132,
-              child: Card(child: Center(child: CircularProgressIndicator())),
-            );
-          }
+class _RestaurantPaginationControls extends StatelessWidget {
+  const _RestaurantPaginationControls({required this.state});
 
-          return SizedBox(
-            width: 132,
-            child: OutlinedButton(
-              onPressed: () => context.read<RestaurantBrowseCubit>().loadMore(),
-              child: const Text('Load more', textAlign: TextAlign.center),
-            ),
-          );
-        },
-      ),
+  final RestaurantBrowseState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<RestaurantBrowseCubit>();
+    final pageCount =
+        state.pageCount == 0 && state.restaurants.isNotEmpty
+            ? state.page + 1
+            : state.pageCount;
+    final totalLabel =
+        state.totalElements == 1
+            ? '1 restaurant'
+            : '${state.totalElements} restaurants';
+
+    return Row(
+      children: [
+        IconButton(
+          onPressed: state.canGoToPreviousPage ? cubit.previousPage : null,
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous page',
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              Text(
+                'Page ${state.pageNumber} of $pageCount',
+                style: Theme.of(context).textTheme.titleSmall,
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                totalLabel,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: state.canGoToNextPage ? cubit.nextPage : null,
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next page',
+        ),
+      ],
     );
   }
 }
@@ -436,9 +491,7 @@ class _RestaurantCard extends StatelessWidget {
                         ),
                       ),
                       Chip(
-                        label: Text(
-                          restaurant.openStatus ? 'Open' : 'Closed',
-                        ),
+                        label: Text(restaurant.openStatus ? 'Open' : 'Closed'),
                         visualDensity: VisualDensity.compact,
                       ),
                     ],

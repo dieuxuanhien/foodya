@@ -170,53 +170,70 @@ void main() {
       geolocationService = MockGeolocationService();
     });
 
-    test('initializes, applies filters, and paginates', () async {
-      when(
-        () => repository.listCategoryTaxonomies(),
-      ).thenAnswer((_) async => [categoryTaxonomy()]);
-      when(
-        () => repository.searchRestaurants(
-          keyword: any(named: 'keyword'),
-          minRating: any(named: 'minRating'),
-          openNow: any(named: 'openNow'),
-          sort: any(named: 'sort'),
-          taxonomyCodes: any(named: 'taxonomyCodes'),
-          page: any(named: 'page'),
-          size: any(named: 'size'),
-        ),
-      ).thenAnswer(
-        (invocation) async => restaurantSearchPage(
-          items: [
-            restaurantSearchItem(
-              id: 'restaurant-${invocation.namedArguments[#page] ?? 0}',
-            ),
-          ],
-          page: invocation.namedArguments[#page] as int? ?? 0,
-          totalPages: 2,
-        ),
-      );
-      final cubit = buildCubit();
+    test(
+      'initializes, applies filters, and pages restaurant results',
+      () async {
+        when(
+          () => repository.listCategoryTaxonomies(),
+        ).thenAnswer((_) async => [categoryTaxonomy()]);
+        when(
+          () => repository.searchRestaurants(
+            keyword: any(named: 'keyword'),
+            minRating: any(named: 'minRating'),
+            openNow: any(named: 'openNow'),
+            sort: any(named: 'sort'),
+            taxonomyCodes: any(named: 'taxonomyCodes'),
+            page: any(named: 'page'),
+            size: any(named: 'size'),
+          ),
+        ).thenAnswer(
+          (invocation) async => restaurantSearchPage(
+            items: [
+              restaurantSearchItem(
+                id: 'restaurant-${invocation.namedArguments[#page] ?? 0}',
+              ),
+            ],
+            page: invocation.namedArguments[#page] as int? ?? 0,
+            totalPages: 2,
+          ),
+        );
+        final cubit = buildCubit();
 
-      await cubit.initialize();
-      await cubit.applyKeyword('pho');
-      await cubit.toggleTaxonomy('vietnamese');
-      await cubit.loadMore();
+        await cubit.initialize();
+        await cubit.applyKeyword('pho');
+        await cubit.toggleTaxonomy('vietnamese');
+        await cubit.nextPage();
 
-      expect(cubit.state.status, RestaurantBrowseStatus.success);
-      expect(cubit.state.selectedTaxonomyCodes, contains('vietnamese'));
-      expect(cubit.state.restaurants, hasLength(2));
-      verify(
-        () => repository.searchRestaurants(
-          keyword: 'pho',
-          minRating: any(named: 'minRating'),
-          openNow: any(named: 'openNow'),
-          sort: any(named: 'sort'),
-          taxonomyCodes: any(named: 'taxonomyCodes'),
-          page: any(named: 'page'),
-          size: any(named: 'size'),
-        ),
-      ).called(greaterThan(0));
-    });
+        expect(cubit.state.status, RestaurantBrowseStatus.success);
+        expect(cubit.state.selectedTaxonomyCodes, contains('vietnamese'));
+        expect(cubit.state.restaurants, hasLength(1));
+        expect(cubit.state.restaurants.single.restaurantId, 'restaurant-1');
+        expect(cubit.state.page, 1);
+        expect(cubit.state.totalPages, 2);
+        verify(
+          () => repository.searchRestaurants(
+            keyword: 'pho',
+            minRating: any(named: 'minRating'),
+            openNow: any(named: 'openNow'),
+            sort: any(named: 'sort'),
+            taxonomyCodes: any(named: 'taxonomyCodes'),
+            page: any(named: 'page'),
+            size: any(named: 'size'),
+          ),
+        ).called(greaterThan(0));
+        verify(
+          () => repository.searchRestaurants(
+            keyword: any(named: 'keyword'),
+            minRating: any(named: 'minRating'),
+            openNow: any(named: 'openNow'),
+            sort: any(named: 'sort'),
+            taxonomyCodes: any(named: 'taxonomyCodes'),
+            page: any(named: 'page'),
+            size: RestaurantBrowseCubit.restaurantPageSize,
+          ),
+        ).called(greaterThan(0));
+      },
+    );
 
     test(
       'handles nearby permission denied and manual nearby success',
