@@ -21,4 +21,6 @@ public interface AiCatalogVectorPort {
     void deleteChunksForMenuItems(Set<UUID> menuItemIds);
 
     List<AiCatalogVectorHit> searchByEmbedding(List<Double> queryEmbedding, int topK);
+
+    List<AiCatalogVectorHit> searchByKeyword(String queryText, int topK);
 }

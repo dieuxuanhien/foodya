@@ -60,6 +60,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private static final int TOP_K_RECOMMENDATIONS = 5;
     private static final int WEATHER_CACHE_SECONDS = 600;
     private static final int RAG_TOP_K = 40;
+    private static final double RRF_K = 60.0;
     private static final int DEFAULT_MAX_SHIPPING_KM = 15;
     private static final int MODEL_INTRO_MAX_CHARS = 180;
     private static final int RESPONSE_SUMMARY_MAX_CHARS = 400;
@@ -104,6 +105,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private final SystemParameterPort systemParameterPort;
     private final GeoPort geoPort;
     private final H3Core h3Core;
+    private final ChatIntentPlanner chatIntentPlanner;
     private final ObjectMapper objectMapper;
     private final Map<String, CachedWeather> weatherCache = new ConcurrentHashMap<>();
 
@@ -134,6 +136,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         } catch (IOException ex) {
             throw new IllegalStateException("Unable to initialize H3", ex);
         }
+        this.chatIntentPlanner = new ChatIntentPlanner(aiEmbeddingPort);
     }
 
     public AiChatResponseView createChat(UUID customerUserId, CreateAiChatRequest request) {
@@ -141,16 +144,28 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             .orElseThrow(() -> new NotFoundException("user not found"));
         String normalizedPrompt = request.prompt().trim();
         List<String> tokens = tokenize(normalizedPrompt);
+        String conversationContext = recentConversationContext(customerUserId);
+        List<Double> promptEmbedding = embedPromptForPlanning(normalizedPrompt, conversationContext);
+        ChatIntentCategory intentCategory = chatIntentPlanner.classify(promptEmbedding);
+
+        if (intentCategory == ChatIntentCategory.GENERAL_CHAT) {
+            String reply = generateChitchatReply(normalizedPrompt, conversationContext);
+            return saveLightweightChat(customerUserId, request, normalizedPrompt, reply);
+        }
+        if (intentCategory == ChatIntentCategory.OUT_OF_SCOPE) {
+            String reply = buildOutOfScopeReply(normalizedPrompt);
+            return saveLightweightChat(customerUserId, request, normalizedPrompt, reply);
+        }
+
         RecommendationIntent intent = parseIntent(normalizedPrompt, tokens);
         Map<UUID, Restaurant> activeRestaurants = activeRestaurantsById();
         Map<UUID, MenuItem> activeMenuItemsById = activeMenuItemsById(activeRestaurants.keySet());
         WeatherContext weather = resolveWeatherContext(request.lat(), request.lng());
         BigDecimal maxShippingDistanceKm = maxShippingDistanceKm();
         boolean locationProvided = request.lat() != null && request.lng() != null;
-        String conversationContext = recentConversationContext(customerUserId);
         Map<UUID, Double> vectorSimilarityByMenuItem = retrieveVectorSimilarity(
             normalizedPrompt,
-            conversationContext,
+            promptEmbedding,
             activeRestaurants,
             activeMenuItemsById
         );
@@ -205,6 +220,46 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                 saved.getPrompt(),
                 saved.getResponseSummary(),
                 recommendations,
+                saved.getCreatedAt()
+        );
+    }
+
+    /**
+     * Embeds the prompt once up front so the same vector can drive both intent classification
+     * and (when the message turns out to be a recommendation request) retrieval — avoiding a
+     * second call against the rate-limited embedding model.
+     */
+    private List<Double> embedPromptForPlanning(String normalizedPrompt, String conversationContext) {
+        try {
+            String queryText = normalizedPrompt + "\nConversation: " + conversationContext;
+            return aiEmbeddingPort.embedText(queryText);
+        } catch (Exception ex) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Persists chitchat/out-of-scope turns without running weather resolution, candidate scoring,
+     * or RAG retrieval — those branches never produce catalog recommendations.
+     */
+    private AiChatResponseView saveLightweightChat(UUID customerUserId,
+                                                    CreateAiChatRequest request,
+                                                    String normalizedPrompt,
+                                                    String responseSummary) {
+        AiChatHistoryData history = new AiChatHistoryData();
+        history.setUserId(customerUserId);
+        history.setPrompt(normalizedPrompt);
+        history.setResponseSummary(responseSummary);
+        history.setContextLatitude(request.lat());
+        history.setContextLongitude(request.lng());
+        history.setWeatherH3IndexRes8(null);
+        AiChatHistoryData saved = aiChatHistoryPort.save(history);
+
+        return new AiChatResponseView(
+                saved.getId(),
+                saved.getPrompt(),
+                saved.getResponseSummary(),
+                List.of(),
                 saved.getCreatedAt()
         );
     }
@@ -478,32 +533,58 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     }
 
     private Map<UUID, Double> retrieveVectorSimilarity(String prompt,
-                                                       String conversationContext,
+                                                       List<Double> promptEmbedding,
                                                        Map<UUID, Restaurant> activeRestaurants,
                                                        Map<UUID, MenuItem> activeMenuItemsById) {
         if (!aiCatalogVectorPort.isReady() || aiCatalogVectorPort.countChunks() == 0) {
             return Map.of();
         }
+        if (promptEmbedding == null || promptEmbedding.isEmpty()) {
+            return Map.of();
+        }
 
         try {
-            String queryText = prompt + "\nConversation: " + conversationContext;
-            List<Double> queryEmbedding = aiEmbeddingPort.embedText(queryText);
-            if (queryEmbedding.isEmpty()) {
-                return Map.of();
-            }
-
-            Map<UUID, Double> similarityByMenu = new LinkedHashMap<>();
-            List<AiCatalogVectorHit> hits = aiCatalogVectorPort.searchByEmbedding(queryEmbedding, RAG_TOP_K);
-            for (AiCatalogVectorHit hit : hits) {
-                if (!activeMenuItemsById.containsKey(hit.menuItemId())) {
-                    continue;
-                }
-                similarityByMenu.merge(hit.menuItemId(), hit.similarity(), (a, b) -> a > b ? a : b);
-            }
-            return similarityByMenu;
+            List<AiCatalogVectorHit> vectorHits = aiCatalogVectorPort.searchByEmbedding(promptEmbedding, RAG_TOP_K);
+            List<AiCatalogVectorHit> keywordHits = aiCatalogVectorPort.searchByKeyword(prompt, RAG_TOP_K);
+            return fuseHybridHits(List.of(vectorHits, keywordHits), activeMenuItemsById);
         } catch (Exception ex) {
             return Map.of();
         }
+    }
+
+    /**
+     * Merges multiple ranked hit lists (e.g. vector cosine search and keyword full-text search)
+     * via Reciprocal Rank Fusion, then min-max normalizes the fused scores to [0,1] so the result
+     * stays compatible with score()'s existing Math.round(vectorSimilarity * 35) weighting.
+     */
+    private Map<UUID, Double> fuseHybridHits(List<List<AiCatalogVectorHit>> rankedHitLists,
+                                             Map<UUID, MenuItem> activeMenuItemsById) {
+        Map<UUID, Double> fusedByMenuItem = new LinkedHashMap<>();
+        for (List<AiCatalogVectorHit> hits : rankedHitLists) {
+            for (int rank = 0; rank < hits.size(); rank++) {
+                AiCatalogVectorHit hit = hits.get(rank);
+                if (!activeMenuItemsById.containsKey(hit.menuItemId())) {
+                    continue;
+                }
+                double rrfScore = 1d / (RRF_K + rank + 1);
+                fusedByMenuItem.merge(hit.menuItemId(), rrfScore, Double::sum);
+            }
+        }
+
+        if (fusedByMenuItem.isEmpty()) {
+            return Map.of();
+        }
+
+        double maxScore = fusedByMenuItem.values().stream().mapToDouble(Double::doubleValue).max().orElse(0d);
+        if (maxScore <= 0d) {
+            return Map.of();
+        }
+
+        Map<UUID, Double> normalized = new LinkedHashMap<>();
+        for (Map.Entry<UUID, Double> entry : fusedByMenuItem.entrySet()) {
+            normalized.put(entry.getKey(), entry.getValue() / maxScore);
+        }
+        return normalized;
     }
 
     public void refreshCatalogSnapshot() {
@@ -656,6 +737,67 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         String summary = extractWeatherSummary(raw);
         WeatherSignal signal = resolveWeatherSignal(raw);
         return new WeatherContext(raw, h3, signal, summary);
+    }
+
+    private static final Pattern VIETNAMESE_HINT_PATTERN = Pattern.compile(
+            "(?i)[\\u00e0\\u00e1\\u1ea3\\u00e3\\u1ea1\\u0103\\u1eb1\\u1eaf\\u1eb3\\u1eb5\\u1eb7\\u00e2\\u1ea7\\u1ea5\\u1ea9\\u1eab\\u1ead"
+            + "\\u00e8\\u00e9\\u1ebb\\u1ebd\\u1eb9\\u00ea\\u1ec1\\u1ebf\\u1ec3\\u1ec5\\u1ec7"
+            + "\\u00ec\\u00ed\\u1ec9\\u0129\\u1ecb"
+            + "\\u00f2\\u00f3\\u1ecf\\u00f5\\u1ecd\\u00f4\\u1ed3\\u1ed1\\u1ed5\\u1ed7\\u1ed9\\u01a1\\u1edd\\u1edb\\u1edf\\u1ee1\\u1ee3"
+            + "\\u00f9\\u00fa\\u1ee7\\u0169\\u1ee5\\u01b0\\u1eeb\\u1ee9\\u1eed\\u1eef\\u1ef1"
+            + "\\u1ef3\\u00fd\\u1ef7\\u1ef9\\u1ef5\\u0111]"
+            + "|\\b(ban|toi|minh|gi|la|nhe|voi|mon|an|quan|gan|cay|re|nay|hom|nay)\\b"
+    );
+
+    private String generateChitchatReply(String prompt, String conversationContext) {
+        String composedPrompt = """
+                You are Foodya's friendly food-app assistant.
+                The user sent a general conversational message (not a food recommendation request).
+                Reply warmly and briefly (1-2 sentences, max 200 characters), matching the user's language
+                (default to Vietnamese when unclear).
+                Do not mention specific menu items, restaurants, prices, or ratings since you have not searched the catalog.
+                Briefly mention that you can help find food and restaurant recommendations on Foodya.
+                Return plain text only.
+                User message: %s
+                Recent chat context: %s
+                """.formatted(prompt, conversationContext);
+
+        try {
+            String raw = aiDraftPort.generateRecommendationDraft(composedPrompt);
+            String text = extractModelText(raw);
+            if (text != null && !text.isBlank()) {
+                String normalized = text
+                        .replaceAll("[\\r\\n]+", " ")
+                        .replaceAll("\\s+", " ")
+                        .trim();
+                normalized = stripWrappingQuotes(normalized);
+                if (!normalized.isBlank() && normalized.length() <= RESPONSE_SUMMARY_MAX_CHARS) {
+                    return normalized;
+                }
+            }
+        } catch (Exception ex) {
+            // fall through to canned reply
+        }
+        return defaultChitchatReply(prompt);
+    }
+
+    private String defaultChitchatReply(String prompt) {
+        return looksVietnamese(prompt)
+                ? "Mình là trợ lý của Foodya, lúc nào cũng sẵn sàng giúp bạn tìm món ăn và nhà hàng ngon gần đây — cứ hỏi mình nhé!"
+                : "I'm Foodya's assistant — I'm here to help you discover great food and restaurants nearby. Just ask away!";
+    }
+
+    private String buildOutOfScopeReply(String prompt) {
+        return looksVietnamese(prompt)
+                ? "Mình là trợ lý gợi ý món ăn của Foodya nên chỉ hỗ trợ các câu hỏi về món ăn, nhà hàng và đặt món thôi nhé — thử hỏi mình \"gợi ý món gần đây\" xem sao!"
+                : "I'm Foodya's food recommendation assistant, so I can only help with questions about food, restaurants, and ordering — try asking me to \"suggest something nearby\"!";
+    }
+
+    private static boolean looksVietnamese(String text) {
+        if (text == null || text.isBlank()) {
+            return true;
+        }
+        return VIETNAMESE_HINT_PATTERN.matcher(text.toLowerCase(Locale.ROOT)).find();
     }
 
     private String generateAiDraft(String prompt,

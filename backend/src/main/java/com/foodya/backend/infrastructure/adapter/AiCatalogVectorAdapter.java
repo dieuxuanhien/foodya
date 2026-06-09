@@ -212,6 +212,40 @@ public class AiCatalogVectorAdapter implements AiCatalogVectorPort {
         }
     }
 
+    @Override
+    public List<AiCatalogVectorHit> searchByKeyword(String queryText, int topK) {
+        if (!isReady() || queryText == null || queryText.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            return jdbcTemplate.query(
+                    """
+                    SELECT menu_item_id,
+                           restaurant_id,
+                           chunk_text,
+                           ts_rank(to_tsvector('simple', chunk_text), plainto_tsquery('simple', ?)) AS rank
+                    FROM ai_catalog_chunks
+                    WHERE to_tsvector('simple', chunk_text) @@ plainto_tsquery('simple', ?)
+                    ORDER BY rank DESC
+                    LIMIT ?
+                    """,
+                    (rs, rowNum) -> new AiCatalogVectorHit(
+                            UUID.fromString(rs.getString("menu_item_id")),
+                            UUID.fromString(rs.getString("restaurant_id")),
+                            rs.getString("chunk_text"),
+                            rs.getDouble("rank")
+                    ),
+                    queryText,
+                    queryText,
+                    topK
+            );
+        } catch (DataAccessException ex) {
+            log.warn("Keyword (full-text) search against AI catalog chunks failed; continuing with vector results only", ex);
+            return List.of();
+        }
+    }
+
     private boolean hasVectorColumn() {
         try {
             Integer count = jdbcTemplate.queryForObject(
