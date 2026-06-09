@@ -62,7 +62,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private static final int RAG_TOP_K = 40;
     private static final double RRF_K = 60.0;
     private static final int DEFAULT_MAX_SHIPPING_KM = 15;
-    private static final int MODEL_INTRO_MAX_CHARS = 180;
+    private static final int MODEL_INTRO_MAX_CHARS = 300;
     private static final int RESPONSE_SUMMARY_MAX_CHARS = 400;
     private static final Pattern TOKEN_SPLITTER = Pattern.compile("[^\\p{L}\\p{Nd}]+");
     private static final Pattern DIGIT_PATTERN = Pattern.compile("\\d");
@@ -204,7 +204,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             intent,
             maxShippingDistanceKm,
             conversationContext);
-        String responseSummary = buildSafeResponseSummary(aiDraft, recommendations, intent);
+        String responseSummary = buildSafeResponseSummary(aiDraft, recommendations, intent, normalizedPrompt);
 
         AiChatHistoryData history = new AiChatHistoryData();
         history.setUserId(customerUserId);
@@ -834,21 +834,22 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                                              String conversationContext) {
         return """
                 You are Foodya's food recommendation assistant.
-                Goal: write a warm one-sentence intro before Foodya displays verified recommendation cards.
-                Rules:
-                - Match the customer's language when clear; otherwise use friendly Vietnamese.
-                - Use only the Foodya catalog candidates listed below as context.
-                - Do not invent or mention menu item names, restaurant names, prices, ratings, distances, promotions, nutrition facts, delivery times, or delivery guarantees.
-                - Do not say you can order or reserve for the user.
-                - If the request is outside food recommendations, gently steer back to Foodya food suggestions.
-                - Return plain text only.
-                - One sentence, maximum 180 characters.
+                Goal: write a warm, PERSONALIZED 2-3 sentence response that directly addresses what the user asked for, then introduces the recommendation cards Foodya is about to show.
+                LANGUAGE RULE (highest priority): Detect the language of "User request" below and reply in EXACTLY that language. Vietnamese request → Vietnamese reply. English request → English reply. Mixed → follow the dominant language.
+                Content rules:
+                - In the first sentence, acknowledge the user's specific intent (e.g. if they asked for something spicy and cheap, say so — but do not invent facts).
+                - In the second sentence, briefly explain why the shown results match their request (use the "reason" fields from the catalog candidates as context; do NOT copy the raw reason text — rephrase naturally).
+                - In the third sentence, invite them to browse the cards.
+                - Do NOT mention or invent menu item names, restaurant names, prices, ratings, distances, promotions, nutrition facts, delivery times, or delivery guarantees.
+                - Do NOT say you can order or reserve for the user.
+                - Return plain text only. No markdown, no bullets.
+                - Maximum 300 characters total.
                 User request: %s
                 Recent chat context: %s
                 Weather context: %s
                 Intent hints: %s
                 Max shipping distance km: %s
-                Foodya catalog candidates:
+                Foodya catalog candidates (use the "reason" field to understand why each was selected):
                 %s
                 """.formatted(
                 prompt,
@@ -873,28 +874,36 @@ public class AiRecommendationService implements AiRecommendationUseCase {
 
     private String buildSafeResponseSummary(String aiDraft,
                                             List<AiRecommendationItemView> recommendations,
-                                            RecommendationIntent intent) {
-        if (intent.nearbyRestaurantQuery() && !recommendations.isEmpty()) {
+                                            RecommendationIntent intent,
+                                            String userPrompt) {
+        boolean vi = looksVietnamese(userPrompt);
+
+        if (recommendations.isEmpty()) {
+            return vi
+                    ? "Mình chưa tìm thấy lựa chọn nào phù hợp lúc này. Bạn thử mở rộng từ khóa, bỏ bớt bộ lọc đánh giá hoặc ngân sách, hoặc đổi vị trí xem nhé!"
+                    : "I couldn't find a matching Foodya option right now. Try a broader keyword, lower rating or budget filters, or another location.";
+        }
+
+        if (intent.nearbyRestaurantQuery()) {
             String nearby = recommendations.stream()
                     .map(item -> item.restaurantName() + " (" + safeDecimal(item.distanceKm()) + " km)")
                     .distinct()
                     .limit(3)
                     .reduce((a, b) -> a + ", " + b)
                     .orElse("none");
-            return truncate("Nearby restaurants within delivery range: " + nearby
-                    + ". Pick a Foodya card below to view the menu.", RESPONSE_SUMMARY_MAX_CHARS);
+            return vi
+                    ? truncate("Có một số nhà hàng gần bạn trong vùng giao hàng: " + nearby + ". Chọn thẻ bên dưới để xem thực đơn nhé!", RESPONSE_SUMMARY_MAX_CHARS)
+                    : truncate("Nearby restaurants within delivery range: " + nearby + ". Pick a Foodya card below to view the menu.", RESPONSE_SUMMARY_MAX_CHARS);
         }
 
-        if (recommendations.isEmpty()) {
-            return "I couldn't find a matching Foodya option right now. Try a broader keyword, lower rating or budget filters, or another location.";
-        }
-
-        String deterministicSummary = "I found Foodya options that match your request. Pick a card below to view details.";
         String safeIntro = sanitizeModelIntro(aiDraft, recommendations);
-        if (safeIntro == null) {
-            return deterministicSummary;
+        if (safeIntro != null) {
+            return truncate(safeIntro, RESPONSE_SUMMARY_MAX_CHARS);
         }
-        return truncate(safeIntro + " " + deterministicSummary, RESPONSE_SUMMARY_MAX_CHARS);
+
+        return vi
+                ? "Đây là một số gợi ý từ Foodya phù hợp với yêu cầu của bạn. Chọn thẻ bên dưới để xem chi tiết nhé!"
+                : "Here are some Foodya options that match what you're looking for. Pick a card below to see the details!";
     }
 
     private String sanitizeModelIntro(String aiDraftRaw, List<AiRecommendationItemView> recommendations) {
@@ -913,7 +922,6 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         }
         if (DIGIT_PATTERN.matcher(normalized).find()
                 || normalized.contains("@")
-                || MODEL_ENTITY_SUGGESTION_PATTERN.matcher(normalized).matches()
                 || mentionsCatalogEntity(normalized, recommendations)
                 || containsUnsupportedClaim(normalized)) {
             return null;
