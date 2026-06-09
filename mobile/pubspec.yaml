@@ -63,3 +63,4 @@ flutter:
   assets:
     - assets/branding/img_logo_full.webp
     - assets/illustrations/
+    - assets/loading/

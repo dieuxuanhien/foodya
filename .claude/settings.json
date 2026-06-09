@@ -17,7 +17,8 @@
       "Bash(mvn test *)",
       "mcp__gitnexus__context",
       "Bash(cd /f/DOAN1/foodya/backend && grep -rn \"GOOGLE_AI_STUDIO_API_KEY\\\\|GoogleAiStudio\\\\|google.*api.*key\" src/main/java/com/foodya/backend/application/constants/IntegrationKeyCatalog.java src/main/java/com/foodya/backend/infrastructure/config/*.java 2>/dev/null | head -20)",
-      "Read(//f/f/DOAN1/foodya/backend/src/main/java/com/foodya/backend/application/constants/**)"
+      "Read(//f/f/DOAN1/foodya/backend/src/main/java/com/foodya/backend/application/constants/**)",
+      "Bash(dart analyze *)"
     ]
   }
 }

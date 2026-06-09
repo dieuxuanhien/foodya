@@ -155,11 +155,25 @@ class _ConversationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Compute this first so it can gate the empty-state early return below.
+    final hasPendingPrompt =
+        state.status == AiChatStatus.submitting &&
+        state.pendingPrompt != null &&
+        state.pendingPrompt!.isNotEmpty;
+
     if (state.status == AiChatStatus.loading && state.history.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Image.asset(
+          'assets/loading/response_loading.gif',
+          width: 72,
+          height: 72,
+        ),
+      );
     }
 
-    if (state.history.isEmpty) {
+    // Only show empty-state when there is genuinely nothing to display,
+    // including no in-flight first message.
+    if (state.history.isEmpty && !hasPendingPrompt) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -172,10 +186,6 @@ class _ConversationList extends StatelessWidget {
     }
 
     final history = state.history.reversed.toList(growable: false);
-    final hasPendingPrompt =
-        state.status == AiChatStatus.submitting &&
-        state.pendingPrompt != null &&
-        state.pendingPrompt!.isNotEmpty;
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -297,18 +307,20 @@ class _BotTypingBubble extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Image.asset(
+            'assets/loading/response_loading.gif',
+            width: 36,
+            height: 36,
           ),
         ),
       ),
     );
   }
 }
+
+// ── Recommendation cards ──────────────────────────────────────────────────────
 
 class _RecommendationCards extends StatelessWidget {
   const _RecommendationCards({required this.items});
@@ -317,29 +329,188 @@ class _RecommendationCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: items
-          .map(
-            (item) => Card(
-              margin: const EdgeInsets.only(left: 36, bottom: 8),
-              child: ListTile(
-                title: Text(item.menuItemName),
-                subtitle: Text('${item.restaurantName}\n${item.reason}'),
-                trailing: Text(formatVndCurrency(item.price)),
-                onTap:
-                    item.restaurantId.isEmpty
-                        ? null
-                        : () => context.push(
-                          '/customer/restaurants/${item.restaurantId}',
-                        ),
-              ),
-            ),
-          )
-          .toList(growable: false),
+    return SizedBox(
+      height: 176,
+      child: ListView.separated(
+        padding: const EdgeInsets.only(left: 36, right: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) =>
+            _RecommendationCard(item: items[index]),
+      ),
     );
   }
 }
+
+class _RecommendationCard extends StatelessWidget {
+  const _RecommendationCard({required this.item});
+
+  final AiRecommendationItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return SizedBox(
+      width: 228,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: InkWell(
+          onTap:
+              item.restaurantId.isEmpty
+                  ? null
+                  : () => context.push(
+                    '/customer/restaurants/${item.restaurantId}',
+                  ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.restaurant_menu_rounded,
+                        color: colors.primary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.menuItemName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 1),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.storefront_outlined,
+                                size: 12,
+                                color: colors.outline,
+                              ),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  item.restaurantName,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.outline,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (item.reason.isNotEmpty)
+                  Text(
+                    item.reason,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                const Spacer(),
+                Row(
+                  children: [
+                    if (item.distanceKm != null) ...[
+                      _InfoChip(
+                        icon: Icons.near_me_outlined,
+                        label: '${item.distanceKm!.toStringAsFixed(1)} km',
+                        colors: colors,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    if (item.restaurantRating != null)
+                      _InfoChip(
+                        icon: Icons.star_rounded,
+                        label: item.restaurantRating!.toStringAsFixed(1),
+                        colors: colors,
+                        iconColor: Colors.amber,
+                      ),
+                    const Spacer(),
+                    Text(
+                      formatVndCurrency(item.price),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.colors,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final ColorScheme colors;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: iconColor ?? colors.outline),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: colors.outline),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Composer ──────────────────────────────────────────────────────────────────
 
 class _ChatComposer extends StatelessWidget {
   const _ChatComposer({
