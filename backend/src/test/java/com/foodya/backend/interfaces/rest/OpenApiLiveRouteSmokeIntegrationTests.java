@@ -12,12 +12,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.foodya.backend.infrastructure.persistence.models.UserAccountPersistenceModel;
+import com.foodya.backend.infrastructure.repository.UserAccountRepository;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -33,11 +37,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ActiveProfiles("test")
 class OpenApiLiveRouteSmokeIntegrationTests {
 
-        private static final String PASSWORD = "Strong@123";
-        private static final String SEEDED_ADMIN_USER_ID = "12121212-1212-1212-1212-121212121212";
-        private static final String SEEDED_MERCHANT_USER_ID = "13131313-1313-1313-1313-131313131313";
-        private static final String SEEDED_DELIVERY_USER_ID = "14141414-1414-1414-1414-141414141414";
-        private static final String SEEDED_CUSTOMER_USER_ID = "15151515-1515-1515-1515-151515151515";
+    private static final String PASSWORD = "Strong@123";
+    private static final String SEEDED_ADMIN_USER_ID = "12121212-1212-1212-1212-121212121212";
+    private static final String SEEDED_MERCHANT_USER_ID = "13131313-1313-1313-1313-131313131313";
+    private static final String SEEDED_DELIVERY_USER_ID = "14141414-1414-1414-1414-141414141414";
+    private static final String SEEDED_CUSTOMER_USER_ID = "15151515-1515-1515-1515-151515151515";
     private static final String SEEDED_RESTAURANT_ID = "16161616-1616-1616-1616-161616161616";
     private static final String SEEDED_CATEGORY_ID = "17171717-1717-1717-1717-171717171717";
     private static final String SEEDED_MENU_ITEM_ID = "18181818-1818-1818-1818-181818181818";
@@ -53,8 +57,11 @@ class OpenApiLiveRouteSmokeIntegrationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
-        @Autowired
-        private TokenPort tokenPort;
+    @Autowired
+    private TokenPort tokenPort;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -117,6 +124,9 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "GET /api/v1/me/location-address" -> assertNot5xx(request("GET", "/api/v1/me/location-address?lat=10.77&lng=106.70", auth.customerAccess, null));
             case "PATCH /api/v1/me" -> assertNot5xx(request("PATCH", "/api/v1/me", auth.customerAccess,
                     "{\"fullName\":\"API Customer Updated\"}"));
+            case "POST /api/v1/me/avatar" -> assertNot5xx(requestWithHeaders("POST", "/api/v1/me/avatar", auth.customerAccess,
+                    "--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"avatar.png\"\r\nContent-Type: image/png\r\n\r\nfake\r\n--boundary--",
+                    Map.of("Content-Type", "multipart/form-data; boundary=boundary")));
             case "PUT /api/v1/me/password" -> assertNot5xx(request("PUT", "/api/v1/me/password", auth.customerAccess,
                     "{\"currentPassword\":\"Strong@123\",\"newPassword\":\"Strong@123!\",\"confirmPassword\":\"Strong@123!\"}"));
 
@@ -152,9 +162,14 @@ class OpenApiLiveRouteSmokeIntegrationTests {
 
             case "GET /api/v1/notifications" -> assertNot5xx(request("GET", "/api/v1/notifications", auth.customerAccess, null));
             case "PATCH /api/v1/notifications/{id}/read" -> assertNot5xx(request("PATCH", "/api/v1/notifications/" + SEEDED_NOTIFICATION_ID + "/read", auth.customerAccess, "{}"));
+            case "POST /api/v1/notifications/devices" -> assertNot5xx(request("POST", "/api/v1/notifications/devices", auth.customerAccess,
+                    "{\"token\":\"fcm_token_smoke\",\"platform\":\"ANDROID\",\"deviceId\":\"device_1\",\"appVersion\":\"1.0.0\"}"));
+            case "DELETE /api/v1/notifications/devices" -> assertNot5xx(requestWithHeaders("DELETE", "/api/v1/notifications/devices", auth.customerAccess,
+                    "{\"token\":\"fcm_token_smoke\"}", Map.of()));
 
             case "POST /api/v1/merchant/restaurants" -> assertNot5xx(request("POST", "/api/v1/merchant/restaurants", auth.merchantAccess,
                     "{\"name\":\"Smoke Merchant Rest\",\"cuisineType\":\"Vietnamese\",\"description\":\"smoke\",\"addressLine\":\"1 smoke road\",\"latitude\":10.77,\"longitude\":106.70,\"maxDeliveryKm\":5.0}"));
+            case "GET /api/v1/merchant/restaurants" -> assertNot5xx(request("GET", "/api/v1/merchant/restaurants", auth.merchantAccess, null));
             case "GET /api/v1/merchant/cuisine-types" -> assertNot5xx(request("GET", "/api/v1/merchant/cuisine-types", auth.merchantAccess, null));
             case "PATCH /api/v1/merchant/restaurants/{id}" -> assertNot5xx(request("PATCH", "/api/v1/merchant/restaurants/" + SEEDED_RESTAURANT_ID, auth.merchantAccess,
                     "{\"name\":\"API Smoke Bistro Updated\",\"isOpen\":true}"));
@@ -174,8 +189,9 @@ class OpenApiLiveRouteSmokeIntegrationTests {
                     "{\"isAvailable\":true}"));
 
             case "GET /api/v1/merchant/restaurants/{restaurantId}/orders" -> assertNot5xx(request("GET", "/api/v1/merchant/restaurants/" + SEEDED_RESTAURANT_ID + "/orders", auth.merchantAccess, null));
-            case "PATCH /api/v1/merchant/orders/{orderId}/status" -> assertNot5xx(request("PATCH", "/api/v1/merchant/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/status", auth.merchantAccess,
-                    "{\"status\":\"PREPARING\"}"));
+            case "GET /api/v1/merchant/orders/{orderId}" -> assertNot5xx(request("GET", "/api/v1/merchant/orders/" + SEEDED_ACCEPTED_ORDER_ID, auth.merchantAccess, null));
+            case "PATCH /api/v1/merchant/orders/{orderId}/status" -> assertNot5xx(request("PATCH", "/api/v1/merchant/orders/" + SEEDED_ACCEPTED_ORDER_ID + "/status", auth.merchantAccess,
+                    "{\"status\":\"ACCEPTED\"}"));
 
             case "PATCH /api/v1/merchant/reviews/{reviewId}/response" -> assertNot5xx(request("PATCH", "/api/v1/merchant/reviews/" + SEEDED_REVIEW_ID + "/response", auth.merchantAccess,
                     "{\"response\":\"Thanks from smoke suite\"}"));
@@ -195,18 +211,48 @@ class OpenApiLiveRouteSmokeIntegrationTests {
                     "{\"lat\":10.777,\"lng\":106.702,\"recordedAt\":\"2026-03-31T10:05:00Z\"}"));
 
             case "GET /api/v1/admin/restaurants" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants", auth.adminAccess, null));
+            case "GET /api/v1/admin/restaurants/{id}" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID, auth.adminAccess, null));
+            case "POST /api/v1/admin/restaurants" -> assertNot5xx(request("POST", "/api/v1/admin/restaurants", auth.adminAccess,
+                    "{\"name\":\"Smoke Admin Rest\",\"cuisineType\":\"Vietnamese\",\"description\":\"smoke\",\"addressLine\":\"1 smoke rd\",\"latitude\":10.77,\"longitude\":106.70,\"maxDeliveryKm\":5.0}"));
+            case "PUT /api/v1/admin/restaurants/{id}" -> assertNot5xx(request("PUT", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID, auth.adminAccess,
+                    "{\"name\":\"Smoke Admin Rest Updated\",\"cuisineType\":\"Vietnamese\",\"description\":\"smoke\",\"addressLine\":\"1 smoke rd\",\"latitude\":10.77,\"longitude\":106.70,\"maxDeliveryKm\":5.0}"));
             case "POST /api/v1/admin/restaurants/{id}/approve" -> assertNot5xx(request("POST", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID + "/approve", auth.adminAccess, "{}"));
             case "POST /api/v1/admin/restaurants/{id}/reject" -> assertNot5xx(request("POST", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID + "/reject", auth.adminAccess, "{}"));
             case "DELETE /api/v1/admin/restaurants/{id}" -> assertNot5xx(request("DELETE", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID, auth.adminAccess, null));
             case "GET /api/v1/admin/orders" -> assertNot5xx(request("GET", "/api/v1/admin/orders", auth.adminAccess, null));
+            case "GET /api/v1/admin/restaurants/{id}/menu-categories" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID + "/menu-categories", auth.adminAccess, null));
+            case "GET /api/v1/admin/menu-items" -> assertNot5xx(request("GET", "/api/v1/admin/menu-items", auth.adminAccess, null));
+            case "POST /api/v1/admin/restaurants/{id}/menu-items" -> assertNot5xx(request("POST", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID + "/menu-items", auth.adminAccess,
+                    "{\"categoryId\":\"" + SEEDED_CATEGORY_ID + "\",\"name\":\"Admin Item\",\"description\":\"smoke\",\"price\":50000}"));
+            case "PUT /api/v1/admin/menu-items/{id}" -> assertNot5xx(request("PUT", "/api/v1/admin/menu-items/" + SEEDED_MENU_ITEM_ID, auth.adminAccess,
+                    "{\"categoryId\":\"" + SEEDED_CATEGORY_ID + "\",\"name\":\"Admin Item Updated\",\"description\":\"smoke\",\"price\":60000}"));
             case "PATCH /api/v1/admin/orders/{id}/status" -> assertNot5xx(request("PATCH", "/api/v1/admin/orders/" + SEEDED_ACCEPTED_ORDER_ID + "/status", auth.adminAccess,
                     "{\"status\":\"ASSIGNED\"}"));
             case "DELETE /api/v1/admin/orders/{id}" -> assertNot5xx(request("DELETE", "/api/v1/admin/orders/" + randomId, auth.adminAccess, null));
             case "DELETE /api/v1/admin/menu-items/{id}" -> assertNot5xx(request("DELETE", "/api/v1/admin/menu-items/" + randomId, auth.adminAccess, null));
 
+            case "GET /api/v1/admin/category-taxonomies" -> assertNot5xx(request("GET", "/api/v1/admin/category-taxonomies", auth.adminAccess, null));
+            case "POST /api/v1/admin/category-taxonomies" -> assertNot5xx(request("POST", "/api/v1/admin/category-taxonomies", auth.adminAccess,
+                    "{\"code\":\"SMOKE_TAX\",\"name\":\"Smoke Tax\",\"description\":\"smoke\"}"));
+            case "PUT /api/v1/admin/category-taxonomies/{code}" -> assertNot5xx(request("PUT", "/api/v1/admin/category-taxonomies/SMOKE_TAX", auth.adminAccess,
+                    "{\"name\":\"Smoke Tax Updated\",\"description\":\"smoke\"}"));
+            case "DELETE /api/v1/admin/category-taxonomies/{code}" -> assertNot5xx(request("DELETE", "/api/v1/admin/category-taxonomies/SMOKE_TAX", auth.adminAccess, null));
+
+            case "GET /api/v1/admin/audit-logs" -> assertNot5xx(request("GET", "/api/v1/admin/audit-logs", auth.adminAccess, null));
+
+            case "GET /api/v1/restaurants/category-taxonomies" -> assertNot5xx(request("GET", "/api/v1/restaurants/category-taxonomies", null, null));
+
             case "GET /api/v1/admin/users" -> assertNot5xx(request("GET", "/api/v1/admin/users", auth.adminAccess, null));
+            case "GET /api/v1/admin/users/{id}" -> assertNot5xx(request("GET", "/api/v1/admin/users/" + auth.customerUserId, auth.adminAccess, null));
+            case "POST /api/v1/admin/users" -> assertNot5xx(request("POST", "/api/v1/admin/users", auth.adminAccess,
+                    "{\"username\":\"smoke_u_" + randomId.substring(0, 8) + "\",\"email\":\"smoke_u_" + randomId.substring(0, 8) + "@test.local\",\"phoneNumber\":\"+84901111999\",\"fullName\":\"Smoke U\",\"password\":\"Strong@123\",\"role\":\"CUSTOMER\",\"status\":\"ACTIVE\"}"));
+            case "PUT /api/v1/admin/users/{id}" -> assertNot5xx(request("PUT", "/api/v1/admin/users/" + auth.customerUserId, auth.adminAccess,
+                    "{\"username\":\"api_customer\",\"email\":\"api_customer@foodya.local\",\"phoneNumber\":\"+84900000000\",\"fullName\":\"Updated Customer\",\"role\":\"CUSTOMER\",\"status\":\"ACTIVE\"}"));
+            case "POST /api/v1/admin/users/{id}/reset-password" -> assertNot5xx(request("POST", "/api/v1/admin/users/" + auth.customerUserId + "/reset-password", auth.adminAccess,
+                    "{\"newPassword\":\"Strong@1234!\"}"));
             case "POST /api/v1/admin/users/{id}/lock" -> assertNot5xx(request("POST", "/api/v1/admin/users/" + auth.customerUserId + "/lock", auth.adminAccess, "{}"));
             case "POST /api/v1/admin/users/{id}/unlock" -> assertNot5xx(request("POST", "/api/v1/admin/users/" + auth.customerUserId + "/unlock", auth.adminAccess, "{}"));
+            case "POST /api/v1/admin/users/{id}/approve" -> assertNot5xx(request("POST", "/api/v1/admin/users/" + auth.customerUserId + "/approve", auth.adminAccess, "{}"));
             case "DELETE /api/v1/admin/users/{id}" -> assertNot5xx(request("DELETE", "/api/v1/admin/users/" + randomId, auth.adminAccess, null));
 
             case "GET /api/v1/admin/notifications" -> assertNot5xx(request("GET", "/api/v1/admin/notifications", auth.adminAccess, null));
@@ -228,6 +274,7 @@ class OpenApiLiveRouteSmokeIntegrationTests {
     }
 
     private AuthContext authenticateSeedUsers() throws Exception {
+        ensureSeedUsersExist();
         TokenPair admin = issueSeedToken(UUID.fromString(SEEDED_ADMIN_USER_ID), "api_admin", UserRole.ADMIN);
         TokenPair merchant = issueSeedToken(UUID.fromString(SEEDED_MERCHANT_USER_ID), "api_merchant", UserRole.MERCHANT);
         TokenPair delivery = issueSeedToken(UUID.fromString(SEEDED_DELIVERY_USER_ID), "api_delivery", UserRole.DELIVERY);
@@ -240,6 +287,30 @@ class OpenApiLiveRouteSmokeIntegrationTests {
                 customer.refreshToken,
                 SEEDED_CUSTOMER_USER_ID
         );
+    }
+
+    private void ensureSeedUsersExist() {
+        ensureSeedUser(UUID.fromString(SEEDED_ADMIN_USER_ID), "api_admin", "api_admin@foodya.local", "+84910000001", UserRole.ADMIN);
+        ensureSeedUser(UUID.fromString(SEEDED_MERCHANT_USER_ID), "api_merchant", "api_merchant@foodya.local", "+84910000002", UserRole.MERCHANT);
+        ensureSeedUser(UUID.fromString(SEEDED_DELIVERY_USER_ID), "api_delivery", "api_delivery@foodya.local", "+84910000003", UserRole.DELIVERY);
+        ensureSeedUser(UUID.fromString(SEEDED_CUSTOMER_USER_ID), "api_customer", "api_customer@foodya.local", "+84910000004", UserRole.CUSTOMER);
+    }
+
+    private void ensureSeedUser(UUID id, String username, String email, String phone, UserRole role) {
+        if (userAccountRepository.findById(id).isEmpty()) {
+            UserAccountPersistenceModel entity = new UserAccountPersistenceModel();
+            entity.setId(id);
+            entity.setUsername(username);
+            entity.setEmail(email);
+            entity.setPhoneNumber(phone);
+            entity.setFullName(username);
+            entity.setPasswordHash("$2a$12$ToJ7.i/gko6YUDM69CynPOXQ6zEPG2PBteF/OUIYBTsejBctxW3bm");
+            entity.setRole(role);
+            entity.setStatus(UserStatus.ACTIVE);
+            entity.setCreatedAt(OffsetDateTime.now());
+            entity.setUpdatedAt(OffsetDateTime.now());
+            userAccountRepository.save(entity);
+        }
     }
 
     private TokenPair issueSeedToken(UUID userId, String username, UserRole role) {

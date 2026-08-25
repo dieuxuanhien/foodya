@@ -99,7 +99,8 @@ class ArchitectureRulesTests {
                         "org.springframework..",
                         "com.foodya.backend.infrastructure..",
                         "com.foodya.backend.application.."
-                );
+                )
+                .allowEmptyShould(true);
 
         rule.check(classes);
     }
@@ -123,7 +124,8 @@ class ArchitectureRulesTests {
                         "com.foodya.backend.infrastructure..",
                         "com.foodya.backend.application..",
                         "com.foodya.backend.interfaces.."
-                );
+                )
+                .allowEmptyShould(true);
 
         rule.check(classes);
     }

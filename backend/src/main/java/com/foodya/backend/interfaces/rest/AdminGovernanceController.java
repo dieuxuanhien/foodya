@@ -10,6 +10,7 @@ import com.foodya.backend.application.ports.in.AdminGovernanceUseCase;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateMenuItemApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
@@ -17,6 +18,7 @@ import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
+import com.foodya.backend.interfaces.rest.dto.UpdateMenuItemApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -107,16 +109,16 @@ public class AdminGovernanceController {
 
     @PostMapping("/restaurants/{id}/approve")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> approveRestaurant(Authentication authentication,
-                                                                                           @PathVariable String id,
-                                                                                           HttpServletRequest request) {
+                                                                                            @PathVariable String id,
+                                                                                            HttpServletRequest request) {
         RestaurantData restaurant = adminGovernanceService.approveRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
     @PostMapping("/restaurants/{id}/reject")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> rejectRestaurant(Authentication authentication,
-                                                                                           @PathVariable String id,
-                                                                                           HttpServletRequest request) {
+                                                                                            @PathVariable String id,
+                                                                                            HttpServletRequest request) {
         RestaurantData restaurant = adminGovernanceService.rejectRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
@@ -187,18 +189,18 @@ public class AdminGovernanceController {
     @PostMapping("/restaurants/{id}/menu-items")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItem(Authentication authentication,
                                                                                @PathVariable String id,
-                                                                               @Valid @RequestBody com.foodya.backend.application.dto.CreateMenuItemRequest req,
+                                                                               @Valid @RequestBody CreateMenuItemApiRequest req,
                                                                                HttpServletRequest request) {
-        MenuItemData menuItem = adminGovernanceService.createMenuItem(parseUuid(id, "id"), req, CurrentUser.userId(authentication));
+        MenuItemData menuItem = adminGovernanceService.createMenuItem(parseUuid(id, "id"), req.toApplicationDto(), CurrentUser.userId(authentication));
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(request)));
     }
 
     @PutMapping("/menu-items/{id}")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> updateMenuItem(Authentication authentication,
                                                                                @PathVariable String id,
-                                                                               @Valid @RequestBody com.foodya.backend.application.dto.UpdateMenuItemRequest req,
+                                                                               @Valid @RequestBody UpdateMenuItemApiRequest req,
                                                                                HttpServletRequest request) {
-        MenuItemData menuItem = adminGovernanceService.updateMenuItem(parseUuid(id, "id"), req, CurrentUser.userId(authentication));
+        MenuItemData menuItem = adminGovernanceService.updateMenuItem(parseUuid(id, "id"), req.toApplicationDto(), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(request)));
     }
 

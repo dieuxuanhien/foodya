@@ -192,9 +192,8 @@ public class AppConfig {
 			WeatherContextPort weatherContextPort,
 			AiChatHistoryPort aiChatHistoryPort,
 			SystemParameterPort systemParameterPort,
-			GeoPort geoPort,
-			ObjectMapper objectMapper) {
-		return new AiRecommendationService(aiEmbeddingPort, aiCatalogVectorPort, menuItemPort, restaurantPort, userAccountPort, aiDraftPort, weatherContextPort, aiChatHistoryPort, systemParameterPort, geoPort, objectMapper);
+			GeoPort geoPort) {
+		return new AiRecommendationService(aiEmbeddingPort, aiCatalogVectorPort, menuItemPort, restaurantPort, userAccountPort, aiDraftPort, weatherContextPort, aiChatHistoryPort, systemParameterPort, geoPort);
 	}
 
 	@Bean

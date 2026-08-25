@@ -1,9 +1,9 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.RespondOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
+import com.foodya.backend.interfaces.rest.dto.RespondOrderReviewApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -31,7 +31,7 @@ public class MerchantReviewReplyController {
     @PatchMapping("/{id}")
     public ApiSuccessResponse<OrderReviewResponse> patchReply(Authentication authentication,
                                                               @PathVariable UUID id,
-                                                              @Valid @RequestBody RespondOrderReviewRequest request,
+                                                              @Valid @RequestBody RespondOrderReviewApiRequest request,
                                                               HttpServletRequest httpServletRequest) {
         OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.merchantRespond(CurrentUser.userId(authentication), id, request.response())

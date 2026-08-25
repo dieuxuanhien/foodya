@@ -3,6 +3,7 @@ package com.foodya.backend.application.usecases;
 import com.foodya.backend.application.dto.AiChatHistoryData;
 import com.foodya.backend.application.dto.CreateAiChatRequest;
 import com.foodya.backend.application.dto.UserAccountData;
+import com.foodya.backend.application.dto.WeatherData;
 import com.foodya.backend.application.ports.out.AiCatalogVectorPort;
 import com.foodya.backend.application.ports.out.AiChatHistoryPort;
 import com.foodya.backend.application.ports.out.AiDraftPort;
@@ -126,12 +127,14 @@ class WeatherCachingIntegrationTests {
 
         given(geoPort.haversineKm(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
                 .willReturn(new BigDecimal("1.200"));
+        given(geoPort.geoToH3Index(anyDouble(), anyDouble(), anyInt()))
+                .willReturn("8828308281fffff");
 
-        given(weatherContextPort.getCurrentWeatherRaw(anyDouble(), anyDouble()))
-                .willReturn("{\"weather\":[{\"main\":\"Rain\",\"description\":\"light rain\"}],\"main\":{\"temp\":28.1}}");
+        given(weatherContextPort.getCurrentWeather(anyDouble(), anyDouble()))
+                .willReturn(Optional.of(new WeatherData("Rain", "light rain", 28.1)));
 
         given(aiDraftPort.generateRecommendationDraft(anyString()))
-                .willReturn("{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Try Pho Bo nearby\"}]}}]}");
+                .willReturn("Try Pho Bo nearby");
 
         given(aiChatHistoryPort.findByUserIdOrderByCreatedAtDesc(userId)).willReturn(List.of());
         given(aiChatHistoryPort.save(any(AiChatHistoryData.class))).willAnswer(invocation -> {
@@ -160,6 +163,6 @@ class WeatherCachingIntegrationTests {
         assertEquals(first.recommendations().size(), second.recommendations().size());
 
         verify(weatherContextPort, times(1))
-                .getCurrentWeatherRaw(request.lat().doubleValue(), request.lng().doubleValue());
+                .getCurrentWeather(request.lat().doubleValue(), request.lng().doubleValue());
     }
 }

@@ -72,4 +72,9 @@ public class GeoAdapter implements GeoPort {
             throw new IllegalStateException("Cannot parse Goong reverse geocode", ex);
         }
     }
+
+    @Override
+    public String geoToH3Index(double lat, double lng, int resolution) {
+        return h3Core.geoToH3Address(lat, lng, resolution);
+    }
 }

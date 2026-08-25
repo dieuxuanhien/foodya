@@ -1,11 +1,11 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.CategoryTaxonomyData;
-import com.foodya.backend.application.dto.CreateCategoryTaxonomyRequest;
-import com.foodya.backend.application.dto.UpdateCategoryTaxonomyRequest;
 import com.foodya.backend.application.ports.in.AdminCategoryTaxonomyUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.CategoryTaxonomyResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateCategoryTaxonomyApiRequest;
+import com.foodya.backend.interfaces.rest.dto.UpdateCategoryTaxonomyApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -52,9 +52,9 @@ public class AdminCategoryTaxonomyController {
     @PostMapping
     @Operation(summary = "Create category taxonomy")
     public ResponseEntity<ApiSuccessResponse<CategoryTaxonomyResponse>> create(Authentication authentication,
-                                                                               @Valid @RequestBody CreateCategoryTaxonomyRequest request,
-                                                                               HttpServletRequest httpServletRequest) {
-        CategoryTaxonomyData data = adminCategoryTaxonomyService.create(request, CurrentUser.userId(authentication));
+                                                                                @Valid @RequestBody CreateCategoryTaxonomyApiRequest request,
+                                                                                HttpServletRequest httpServletRequest) {
+        CategoryTaxonomyData data = adminCategoryTaxonomyService.create(request.toApplicationDto(), CurrentUser.userId(authentication));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiSuccessResponse.of(CommonApiMapper.toCategoryTaxonomyResponse(data), RequestTrace.from(httpServletRequest)));
     }
@@ -62,10 +62,10 @@ public class AdminCategoryTaxonomyController {
     @PutMapping("/{code}")
     @Operation(summary = "Update category taxonomy")
     public ResponseEntity<ApiSuccessResponse<CategoryTaxonomyResponse>> update(Authentication authentication,
-                                                                               @PathVariable String code,
-                                                                               @Valid @RequestBody UpdateCategoryTaxonomyRequest request,
-                                                                               HttpServletRequest httpServletRequest) {
-        CategoryTaxonomyData data = adminCategoryTaxonomyService.update(code, request, CurrentUser.userId(authentication));
+                                                                                @PathVariable String code,
+                                                                                @Valid @RequestBody UpdateCategoryTaxonomyApiRequest request,
+                                                                                HttpServletRequest httpServletRequest) {
+        CategoryTaxonomyData data = adminCategoryTaxonomyService.update(code, request.toApplicationDto(), CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toCategoryTaxonomyResponse(data), RequestTrace.from(httpServletRequest)));
     }
 

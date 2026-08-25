@@ -1,8 +1,8 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.CreateOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateOrderReviewApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
@@ -33,7 +33,7 @@ public class CustomerReviewController {
     @PostMapping("/{orderId}/reviews")
     public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> createReview(Authentication authentication,
                                                                                  @PathVariable UUID orderId,
-                                                                                 @Valid @RequestBody CreateOrderReviewRequest request,
+                                                                                 @Valid @RequestBody CreateOrderReviewApiRequest request,
                                                                                  HttpServletRequest httpServletRequest) {
         OrderReviewResponse data = createReviewData(authentication, orderId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -42,7 +42,7 @@ public class CustomerReviewController {
 
     private OrderReviewResponse createReviewData(Authentication authentication,
                                                  UUID orderId,
-                                                 CreateOrderReviewRequest request) {
+                                                 CreateOrderReviewApiRequest request) {
         OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.createReview(CurrentUser.userId(authentication), orderId, request.stars(), request.comment())
         );

@@ -1,23 +1,23 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.in.MerchantCatalogUseCase;
-import com.foodya.backend.application.dto.CreateMenuCategoryRequest;
-import com.foodya.backend.application.dto.CreateMenuItemRequest;
 import com.foodya.backend.application.dto.MenuCategoryData;
 import com.foodya.backend.application.dto.MenuItemData;
-import com.foodya.backend.application.dto.CreateRestaurantRequest;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantData;
-import com.foodya.backend.application.dto.UpdateMenuCategoryRequest;
-import com.foodya.backend.application.dto.UpdateMenuItemAvailabilityRequest;
-import com.foodya.backend.application.dto.UpdateMenuItemRequest;
-import com.foodya.backend.application.dto.UpdateRestaurantRequest;
 import com.foodya.backend.application.constants.AppCuisineCatalog;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateMenuCategoryApiRequest;
+import com.foodya.backend.interfaces.rest.dto.CreateMenuItemApiRequest;
+import com.foodya.backend.interfaces.rest.dto.CreateRestaurantApiRequest;
 import com.foodya.backend.interfaces.rest.dto.MenuCategoryResponse;
 import com.foodya.backend.interfaces.rest.dto.MenuItemResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.dto.RestaurantDetailResponse;
+import com.foodya.backend.interfaces.rest.dto.UpdateMenuCategoryApiRequest;
+import com.foodya.backend.interfaces.rest.dto.UpdateMenuItemApiRequest;
+import com.foodya.backend.interfaces.rest.dto.UpdateMenuItemAvailabilityApiRequest;
+import com.foodya.backend.interfaces.rest.dto.UpdateRestaurantApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
@@ -64,10 +64,10 @@ public class MerchantCatalogController {
     @PostMapping(value = "/restaurants", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create restaurant")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurant(Authentication authentication,
-                                                                                          @Valid @RequestBody CreateRestaurantRequest request,
+                                                                                          @Valid @RequestBody CreateRestaurantApiRequest request,
                                                                                           HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request);
+        RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request.toApplicationDto());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
@@ -75,12 +75,12 @@ public class MerchantCatalogController {
     @PostMapping(value = "/restaurants", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create restaurant with image")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurantWithImage(Authentication authentication,
-                                                                                                   @Valid @RequestPart("payload") CreateRestaurantRequest request,
+                                                                                                   @Valid @RequestPart("payload") CreateRestaurantApiRequest request,
                                                                                                    @RequestPart(value = "backgroundFile", required = false) MultipartFile backgroundFile,
                                                                                                    @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
                                                                                                    HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request);
+        RestaurantData restaurant = merchantCatalogService.createRestaurant(merchantId, request.toApplicationDto());
         restaurant = applyRestaurantImages(merchantId, restaurant.getId(), restaurant, backgroundFile, avatarFile);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
@@ -102,10 +102,10 @@ public class MerchantCatalogController {
     @Operation(summary = "Update restaurant")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurant(Authentication authentication,
                                                                                           @PathVariable String id,
-                                                                                          @Valid @RequestBody UpdateRestaurantRequest request,
+                                                                                          @Valid @RequestBody UpdateRestaurantApiRequest request,
                                                                                           HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, parseUuid(id, "id"), request);
+        RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, parseUuid(id, "id"), request.toApplicationDto());
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
 
@@ -113,13 +113,13 @@ public class MerchantCatalogController {
     @Operation(summary = "Update restaurant with image")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurantWithImage(Authentication authentication,
                                                                                                    @PathVariable String id,
-                                                                                                   @Valid @RequestPart("payload") UpdateRestaurantRequest request,
+                                                                                                   @Valid @RequestPart("payload") UpdateRestaurantApiRequest request,
                                                                                                    @RequestPart(value = "backgroundFile", required = false) MultipartFile backgroundFile,
                                                                                                    @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
                                                                                                    HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
         UUID restaurantId = parseUuid(id, "id");
-        RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, restaurantId, request);
+        RestaurantData restaurant = merchantCatalogService.updateRestaurant(merchantId, restaurantId, request.toApplicationDto());
         restaurant = applyRestaurantImages(merchantId, restaurantId, restaurant, backgroundFile, avatarFile);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(httpServletRequest)));
     }
@@ -134,10 +134,10 @@ public class MerchantCatalogController {
     @Operation(summary = "Create menu category")
     public ResponseEntity<ApiSuccessResponse<MenuCategoryResponse>> createCategory(Authentication authentication,
                                                                                     @PathVariable String id,
-                                                                                    @Valid @RequestBody CreateMenuCategoryRequest request,
+                                                                                    @Valid @RequestBody CreateMenuCategoryApiRequest request,
                                                                                     HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuCategoryData category = merchantCatalogService.createCategory(merchantId, parseUuid(id, "id"), request);
+        MenuCategoryData category = merchantCatalogService.createCategory(merchantId, parseUuid(id, "id"), request.toApplicationDto());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(CommonApiMapper.toMenuCategoryResponse(category), RequestTrace.from(httpServletRequest)));
     }
@@ -162,10 +162,10 @@ public class MerchantCatalogController {
     @Operation(summary = "Update menu category")
     public ResponseEntity<ApiSuccessResponse<MenuCategoryResponse>> updateCategory(Authentication authentication,
                                                                                     @PathVariable String id,
-                                                                                    @Valid @RequestBody UpdateMenuCategoryRequest request,
+                                                                                    @Valid @RequestBody UpdateMenuCategoryApiRequest request,
                                                                                     HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuCategoryData category = merchantCatalogService.updateCategory(merchantId, parseUuid(id, "id"), request);
+        MenuCategoryData category = merchantCatalogService.updateCategory(merchantId, parseUuid(id, "id"), request.toApplicationDto());
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuCategoryResponse(category), RequestTrace.from(httpServletRequest)));
     }
 
@@ -182,10 +182,10 @@ public class MerchantCatalogController {
     @Operation(summary = "Create menu item")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItem(Authentication authentication,
                                                                                 @PathVariable String id,
-                                                                                @Valid @RequestBody CreateMenuItemRequest request,
+                                                                                @Valid @RequestBody CreateMenuItemApiRequest request,
                                                                                 HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuItemData menuItem = merchantCatalogService.createMenuItem(merchantId, parseUuid(id, "id"), request);
+        MenuItemData menuItem = merchantCatalogService.createMenuItem(merchantId, parseUuid(id, "id"), request.toApplicationDto());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
     }
@@ -194,12 +194,12 @@ public class MerchantCatalogController {
     @Operation(summary = "Create menu item with image")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItemWithImage(Authentication authentication,
                                                                                          @PathVariable String id,
-                                                                                         @Valid @RequestPart("payload") CreateMenuItemRequest request,
+                                                                                         @Valid @RequestPart("payload") CreateMenuItemApiRequest request,
                                                                                          @RequestPart("file") MultipartFile file,
                                                                                          HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
         UUID restaurantId = parseUuid(id, "id");
-        MenuItemData menuItem = merchantCatalogService.createMenuItem(merchantId, restaurantId, request);
+        MenuItemData menuItem = merchantCatalogService.createMenuItem(merchantId, restaurantId, request.toApplicationDto());
 
         try {
             menuItem = merchantCatalogService.uploadMenuItemImage(
@@ -237,10 +237,10 @@ public class MerchantCatalogController {
     @Operation(summary = "Update menu item")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> updateMenuItem(Authentication authentication,
                                                                                 @PathVariable String id,
-                                                                                @Valid @RequestBody UpdateMenuItemRequest request,
+                                                                                @Valid @RequestBody UpdateMenuItemApiRequest request,
                                                                                 HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuItemData menuItem = merchantCatalogService.updateMenuItem(merchantId, parseUuid(id, "id"), request);
+        MenuItemData menuItem = merchantCatalogService.updateMenuItem(merchantId, parseUuid(id, "id"), request.toApplicationDto());
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
     }
 
@@ -257,10 +257,10 @@ public class MerchantCatalogController {
     @Operation(summary = "Update menu item availability")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> updateAvailability(Authentication authentication,
                                                                                    @PathVariable String id,
-                                                                                   @Valid @RequestBody UpdateMenuItemAvailabilityRequest request,
+                                                                                   @Valid @RequestBody UpdateMenuItemAvailabilityApiRequest request,
                                                                                    HttpServletRequest httpServletRequest) {
         UUID merchantId = principal(authentication);
-        MenuItemData menuItem = merchantCatalogService.updateAvailability(merchantId, parseUuid(id, "id"), request);
+        MenuItemData menuItem = merchantCatalogService.updateAvailability(merchantId, parseUuid(id, "id"), request.toApplicationDto());
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(httpServletRequest)));
     }
 

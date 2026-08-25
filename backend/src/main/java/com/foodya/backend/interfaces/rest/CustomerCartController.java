@@ -1,11 +1,11 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.dto.ActiveCartView;
-import com.foodya.backend.application.dto.AddCartItemRequest;
-import com.foodya.backend.application.dto.UpdateCartItemRequest;
 import com.foodya.backend.application.ports.in.CartUseCase;
 import com.foodya.backend.interfaces.rest.dto.ActiveCartResponse;
+import com.foodya.backend.interfaces.rest.dto.AddCartItemApiRequest;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.UpdateCartItemApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.CartApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -57,7 +57,7 @@ public class CustomerCartController {
             @ApiResponse(responseCode = "422", description = "Validation failed")
     })
     public ResponseEntity<ApiSuccessResponse<ActiveCartResponse>> addItem(Authentication authentication,
-                                                                           @Valid @RequestBody AddCartItemRequest request,
+                                                                           @Valid @RequestBody AddCartItemApiRequest request,
                                                                            HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.addItem(CurrentUser.userId(authentication), request.menuItemId(), request.quantity(), request.note());
         return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
@@ -67,7 +67,7 @@ public class CustomerCartController {
     @Operation(summary = "Update cart item quantity")
     public ResponseEntity<ApiSuccessResponse<ActiveCartResponse>> updateItem(Authentication authentication,
                                                                               @PathVariable String menuItemId,
-                                                                              @Valid @RequestBody UpdateCartItemRequest request,
+                                                                              @Valid @RequestBody UpdateCartItemApiRequest request,
                                                                               HttpServletRequest httpServletRequest) {
         ActiveCartView view = cartService.updateItem(CurrentUser.userId(authentication), menuItemId, request.quantity(), request.note());
         return ResponseEntity.ok(ApiSuccessResponse.of(CartApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));

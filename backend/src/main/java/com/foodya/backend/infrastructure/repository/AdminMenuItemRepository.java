@@ -11,11 +11,22 @@ import java.util.UUID;
 
 public interface AdminMenuItemRepository extends JpaRepository<MenuItemPersistenceModel, UUID> {
 
-	@Query("""
-			select m from MenuItemPersistenceModel m
+	@Query(value = """
+			select distinct m from MenuItemPersistenceModel m
+			left join m.taxonomyCodes tc
 			where m.deletedAt is null
 				and (:restaurantId is null or m.restaurantId = :restaurantId)
-		""")
+				and (:keyword is null or lower(m.name) like lower(concat('%', :keyword, '%')))
+				and (cast(:taxonomyCode as string) is null or tc = :taxonomyCode)
+			""",
+			countQuery = """
+			select count(distinct m) from MenuItemPersistenceModel m
+			left join m.taxonomyCodes tc
+			where m.deletedAt is null
+				and (:restaurantId is null or m.restaurantId = :restaurantId)
+				and (:keyword is null or lower(m.name) like lower(concat('%', :keyword, '%')))
+				and (cast(:taxonomyCode as string) is null or tc = :taxonomyCode)
+			""")
 	Page<MenuItemPersistenceModel> searchAdmin(@Param("restaurantId") UUID restaurantId,
 													   @Param("taxonomyCode") String taxonomyCode,
 													   @Param("keyword") String keyword,

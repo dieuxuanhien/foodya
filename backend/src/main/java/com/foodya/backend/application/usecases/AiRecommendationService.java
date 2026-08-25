@@ -7,6 +7,7 @@ import com.foodya.backend.application.dto.AiCatalogVectorHit;
 import com.foodya.backend.application.dto.AiRecommendationItemView;
 import com.foodya.backend.application.dto.CreateAiChatRequest;
 import com.foodya.backend.application.dto.AiChatHistoryData;
+import com.foodya.backend.application.dto.WeatherData;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.ports.in.AiRecommendationUseCase;
 import com.foodya.backend.application.ports.out.AiCatalogVectorPort;
@@ -23,11 +24,7 @@ import com.foodya.backend.domain.entities.SystemParameter;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Restaurant;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uber.h3core.H3Core;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.Normalizer;
@@ -40,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,8 +89,6 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private final AiChatHistoryPort aiChatHistoryPort;
     private final SystemParameterPort systemParameterPort;
     private final GeoPort geoPort;
-    private final H3Core h3Core;
-    private final ObjectMapper objectMapper;
     private final Map<String, CachedWeather> weatherCache = new ConcurrentHashMap<>();
     private volatile Instant lastRagSnapshotAt;
 
@@ -105,24 +101,17 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                                    WeatherContextPort weatherContextPort,
                                    AiChatHistoryPort aiChatHistoryPort,
                                    SystemParameterPort systemParameterPort,
-                                   GeoPort geoPort,
-                                   ObjectMapper objectMapper) {
-                    this.aiEmbeddingPort = aiEmbeddingPort;
-                    this.aiCatalogVectorPort = aiCatalogVectorPort;
+                                   GeoPort geoPort) {
+        this.aiEmbeddingPort = aiEmbeddingPort;
+        this.aiCatalogVectorPort = aiCatalogVectorPort;
         this.menuItemPort = menuItemPort;
         this.restaurantPort = restaurantPort;
-                    this.userAccountPort = userAccountPort;
+        this.userAccountPort = userAccountPort;
         this.aiDraftPort = aiDraftPort;
         this.weatherContextPort = weatherContextPort;
         this.aiChatHistoryPort = aiChatHistoryPort;
         this.systemParameterPort = systemParameterPort;
         this.geoPort = geoPort;
-        this.objectMapper = objectMapper;
-        try {
-            this.h3Core = H3Core.newInstance();
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to initialize H3", ex);
-        }
     }
 
     public AiChatResponseView createChat(UUID customerUserId, CreateAiChatRequest request) {
@@ -564,26 +553,27 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             return WeatherContext.empty();
         }
 
-        String weatherH3Key = h3Core.geoToH3Address(lat.doubleValue(), lng.doubleValue(), H3_WEATHER_RES);
+        String weatherH3Key = geoPort.geoToH3Index(lat.doubleValue(), lng.doubleValue(), H3_WEATHER_RES);
         Instant now = Instant.now();
         CachedWeather cached = weatherCache.get(weatherH3Key);
         if (cached != null && now.isBefore(cached.expiresAt())) {
-            return toWeatherContext(cached.rawWeather(), weatherH3Key);
+            return toWeatherContext(cached.weatherData(), weatherH3Key);
         }
 
         try {
-            String raw = weatherContextPort.getCurrentWeatherRaw(lat.doubleValue(), lng.doubleValue());
-            weatherCache.put(weatherH3Key, new CachedWeather(raw, now.plusSeconds(WEATHER_CACHE_SECONDS)));
-            return toWeatherContext(raw, weatherH3Key);
+            Optional<WeatherData> optData = weatherContextPort.getCurrentWeather(lat.doubleValue(), lng.doubleValue());
+            WeatherData data = optData.orElse(null);
+            weatherCache.put(weatherH3Key, new CachedWeather(data, now.plusSeconds(WEATHER_CACHE_SECONDS)));
+            return toWeatherContext(data, weatherH3Key);
         } catch (Exception ex) {
             return new WeatherContext(null, weatherH3Key, WeatherSignal.UNKNOWN, "not available");
         }
     }
 
-    private WeatherContext toWeatherContext(String raw, String h3) {
-        String summary = extractWeatherSummary(raw);
-        WeatherSignal signal = resolveWeatherSignal(raw);
-        return new WeatherContext(raw, h3, signal, summary);
+    private WeatherContext toWeatherContext(WeatherData data, String h3) {
+        String summary = extractWeatherSummary(data);
+        WeatherSignal signal = resolveWeatherSignal(data);
+        return new WeatherContext(data, h3, signal, summary);
     }
 
     private String generateAiDraft(String prompt,
@@ -626,9 +616,8 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             return truncate("Nearby restaurants within delivery range: " + nearby, 400);
         }
 
-        String draftText = extractModelText(aiDraft);
-        if (draftText != null && !draftText.isBlank()) {
-            return truncate(draftText.replaceAll("\\s+", " ").trim(), 400);
+        if (aiDraft != null && !aiDraft.isBlank()) {
+            return truncate(aiDraft.replaceAll("\\s+", " ").trim(), 400);
         }
 
         if (recommendations.isEmpty()) {
@@ -720,65 +709,37 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                 peopleCount);
     }
 
-    private WeatherSignal resolveWeatherSignal(String rawWeather) {
-        if (rawWeather == null || rawWeather.isBlank()) {
+    private WeatherSignal resolveWeatherSignal(WeatherData data) {
+        if (data == null) {
             return WeatherSignal.UNKNOWN;
         }
-        try {
-            JsonNode root = objectMapper.readTree(rawWeather);
-            String weatherMain = root.path("weather").path(0).path("main").asText("").toLowerCase(Locale.ROOT);
-            double tempC = root.path("main").path("temp").asDouble(Double.NaN);
-            if (weatherMain.contains("rain") || weatherMain.contains("drizzle") || weatherMain.contains("thunder")) {
-                return WeatherSignal.RAINY;
-            }
-            if (!Double.isNaN(tempC)) {
-                if (tempC >= 31) {
-                    return WeatherSignal.HOT;
-                }
-                if (tempC <= 20) {
-                    return WeatherSignal.COLD;
-                }
-            }
-            return WeatherSignal.NORMAL;
-        } catch (Exception ex) {
-            return WeatherSignal.UNKNOWN;
+        String main = data.weatherMain() == null ? "" : data.weatherMain().toLowerCase(Locale.ROOT);
+        if (main.contains("rain") || main.contains("drizzle") || main.contains("thunder")) {
+            return WeatherSignal.RAINY;
         }
+        Double tempC = data.temperatureCelsius();
+        if (tempC != null && !Double.isNaN(tempC)) {
+            if (tempC >= 31) {
+                return WeatherSignal.HOT;
+            }
+            if (tempC <= 20) {
+                return WeatherSignal.COLD;
+            }
+        }
+        return WeatherSignal.NORMAL;
     }
 
-    private String extractWeatherSummary(String rawWeather) {
-        if (rawWeather == null || rawWeather.isBlank()) {
+    private String extractWeatherSummary(WeatherData data) {
+        if (data == null) {
             return "not available";
         }
-        try {
-            JsonNode root = objectMapper.readTree(rawWeather);
-            String weatherMain = root.path("weather").path(0).path("main").asText("unknown");
-            String weatherDesc = root.path("weather").path(0).path("description").asText("");
-            JsonNode tempNode = root.path("main").path("temp");
-            String temp = tempNode.isNumber() ? tempNode.decimalValue().setScale(1, RoundingMode.HALF_UP) + "C" : "n/a";
-            String summary = weatherMain + (weatherDesc.isBlank() ? "" : " (" + weatherDesc + ")") + ", temp=" + temp;
-            return truncate(summary, 120);
-        } catch (Exception ex) {
-            return "not available";
-        }
-    }
-
-    private String extractModelText(String aiDraftRaw) {
-        if (aiDraftRaw == null || aiDraftRaw.isBlank()) {
-            return null;
-        }
-        try {
-            JsonNode root = objectMapper.readTree(aiDraftRaw);
-            JsonNode parts = root.path("candidates").path(0).path("content").path("parts");
-            if (parts.isArray() && !parts.isEmpty()) {
-                String text = parts.get(0).path("text").asText("");
-                if (!text.isBlank()) {
-                    return text;
-                }
-            }
-        } catch (Exception ignored) {
-            // Adapter may already return plain text, keep fallback below.
-        }
-        return aiDraftRaw;
+        String weatherMain = data.weatherMain() != null ? data.weatherMain() : "unknown";
+        String weatherDesc = data.description() != null ? data.description() : "";
+        String temp = data.temperatureCelsius() != null
+                ? BigDecimal.valueOf(data.temperatureCelsius()).setScale(1, RoundingMode.HALF_UP) + "C"
+                : "n/a";
+        String summary = weatherMain + (weatherDesc.isBlank() ? "" : " (" + weatherDesc + ")") + ", temp=" + temp;
+        return truncate(summary, 120);
     }
 
     private BigDecimal maxShippingDistanceKm() {
@@ -1064,10 +1025,10 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         return raw.substring(0, maxLen);
     }
 
-    private record CachedWeather(String rawWeather, Instant expiresAt) {
+    private record CachedWeather(WeatherData weatherData, Instant expiresAt) {
     }
 
-    private record WeatherContext(String rawWeather,
+    private record WeatherContext(WeatherData data,
                                   String weatherH3IndexRes8,
                                   WeatherSignal signal,
                                   String summary) {

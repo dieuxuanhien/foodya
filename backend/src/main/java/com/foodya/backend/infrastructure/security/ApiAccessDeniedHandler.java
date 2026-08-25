@@ -1,7 +1,6 @@
 package com.foodya.backend.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodya.backend.interfaces.rest.dto.ApiErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,7 +27,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        ApiErrorResponse body = new ApiErrorResponse(
+        SecurityErrorResponse body = new SecurityErrorResponse(
                 "FORBIDDEN",
                 "access is denied",
                 null,

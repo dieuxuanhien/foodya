@@ -1,10 +1,10 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.CreateAiChatRequest;
 import com.foodya.backend.application.ports.in.AiRecommendationUseCase;
 import com.foodya.backend.interfaces.rest.dto.AiChatHistoryResponse;
 import com.foodya.backend.interfaces.rest.dto.AiChatResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateAiChatApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.AiChatApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -42,10 +42,10 @@ public class CustomerAiChatController {
             @ApiResponse(responseCode = "422", description = "Validation failed")
     })
     public ApiSuccessResponse<AiChatResponse> create(Authentication authentication,
-                                                     @Valid @RequestBody CreateAiChatRequest request,
+                                                     @Valid @RequestBody CreateAiChatApiRequest request,
                                                      HttpServletRequest httpServletRequest) {
         AiChatResponse data = AiChatApiMapper.toResponse(
-                aiRecommendationService.createChat(CurrentUser.userId(authentication), request)
+                aiRecommendationService.createChat(CurrentUser.userId(authentication), request.toApplicationDto())
         );
         return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
     }
