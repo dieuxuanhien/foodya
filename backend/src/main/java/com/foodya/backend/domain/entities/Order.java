@@ -286,6 +286,17 @@ public class Order {
         paymentStatus = PaymentStatus.FAILED;
     }
 
+    public void syncCodPaymentStatus(PaymentStatus targetPaymentStatus) {
+        if (paymentMethod != PaymentMethod.COD) {
+            return;
+        }
+        if (targetPaymentStatus == PaymentStatus.PAID) {
+            markCodPaid();
+        } else if (targetPaymentStatus == PaymentStatus.FAILED) {
+            markCodFailed();
+        }
+    }
+
     public BigDecimal getCommissionAmount() {
         return commissionAmount;
     }

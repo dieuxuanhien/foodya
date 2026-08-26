@@ -115,7 +115,7 @@ class OrderLifecycleIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Cancel Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
 
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/customer/orders")
                         .header("Authorization", "Bearer " + customerToken))
@@ -138,8 +138,8 @@ class OrderLifecycleIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Delivery Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.ACCEPTED);
 
-        String deliveryToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(delivery), UUID.randomUUID().toString());
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String deliveryToken = tokenService.issueAccessToken(delivery, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/delivery/orders/{id}/accept", order.getId())
                         .header("Authorization", "Bearer " + deliveryToken))
@@ -167,7 +167,7 @@ class OrderLifecycleIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Payment Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.ACCEPTED);
 
-        String deliveryToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(delivery), UUID.randomUUID().toString());
+        String deliveryToken = tokenService.issueAccessToken(delivery, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/delivery/orders/{id}/accept", order.getId())
                         .header("Authorization", "Bearer " + deliveryToken))

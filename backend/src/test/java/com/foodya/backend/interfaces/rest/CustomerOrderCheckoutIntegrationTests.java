@@ -207,7 +207,7 @@ class CustomerOrderCheckoutIntegrationTests {
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
         UserAccount saved = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
-        return tokenService.issueAccessToken(AuthPersistenceMapper.toData(saved), UUID.randomUUID().toString());
+        return tokenService.issueAccessToken(saved, UUID.randomUUID().toString());
     }
 
     private UUID extractUserIdFromToken(String token) {

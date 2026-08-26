@@ -2,23 +2,14 @@ package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.AiChatHistoryData;
 import com.foodya.backend.application.dto.CreateAiChatRequest;
-import com.foodya.backend.application.dto.UserAccountData;
-import com.foodya.backend.application.dto.WeatherData;
-import com.foodya.backend.application.ports.out.AiCatalogVectorPort;
-import com.foodya.backend.application.ports.out.AiChatHistoryPort;
-import com.foodya.backend.application.ports.out.AiDraftPort;
-import com.foodya.backend.application.ports.out.AiEmbeddingPort;
-import com.foodya.backend.application.ports.out.GeoPort;
-import com.foodya.backend.application.ports.out.MenuItemPort;
-import com.foodya.backend.application.ports.out.RestaurantPort;
-import com.foodya.backend.application.ports.out.SystemParameterPort;
-import com.foodya.backend.application.ports.out.UserAccountPort;
-import com.foodya.backend.application.ports.out.WeatherContextPort;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.application.dto.WeatherData;
 import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.application.ports.out.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,7 +77,7 @@ class WeatherCachingIntegrationTests {
     void setUp() {
         userId = UUID.randomUUID();
 
-        var user = new UserAccountData();
+        var user = new UserAccount();
         user.setId(userId);
         user.setUsername("weather-customer");
         user.setEmail("weather@example.com");

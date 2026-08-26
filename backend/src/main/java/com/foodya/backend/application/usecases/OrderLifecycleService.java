@@ -258,9 +258,9 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
 
     private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
         if (targetStatus == OrderStatus.SUCCESS) {
-            order.markCodPaid();
+            order.syncCodPaymentStatus(PaymentStatus.PAID);
         } else if (targetStatus == OrderStatus.FAILED) {
-            order.markCodFailed();
+            order.syncCodPaymentStatus(PaymentStatus.FAILED);
         } else {
             return;
         }
@@ -282,7 +282,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .map(Restaurant::getName)
                 .orElse("Unknown Restaurant");
         String customerName = userAccountPort.findById(order.getCustomerUserId())
-                .map(UserAccountData::getFullName)
+                .map(com.foodya.backend.domain.entities.UserAccount::getFullName)
                 .orElse("Unknown Customer");
 
         return new OrderSummaryView(
@@ -301,7 +301,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .map(Restaurant::getName)
                 .orElse("Unknown Restaurant");
         String customerName = userAccountPort.findById(order.getCustomerUserId())
-                .map(UserAccountData::getFullName)
+                .map(com.foodya.backend.domain.entities.UserAccount::getFullName)
                 .orElse("Unknown Customer");
 
         return new OrderDetailView(

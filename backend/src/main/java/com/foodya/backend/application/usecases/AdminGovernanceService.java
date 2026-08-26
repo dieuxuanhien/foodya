@@ -427,9 +427,9 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
 
     private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
         if (targetStatus == OrderStatus.SUCCESS) {
-            order.markCodPaid();
+            order.syncCodPaymentStatus(PaymentStatus.PAID);
         } else if (targetStatus == OrderStatus.FAILED) {
-            order.markCodFailed();
+            order.syncCodPaymentStatus(PaymentStatus.FAILED);
         } else {
             return;
         }

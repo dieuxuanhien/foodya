@@ -1,10 +1,10 @@
 package com.foodya.backend.application.ports.out;
 
-import com.foodya.backend.application.dto.MenuItemData;
-import com.foodya.backend.application.dto.OrderItemData;
-import com.foodya.backend.application.dto.OrderData;
-import com.foodya.backend.application.dto.OrderPaymentData;
-import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderItem;
+import com.foodya.backend.domain.entities.OrderPayment;
+import com.foodya.backend.domain.entities.Restaurant;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,15 +12,15 @@ import java.util.UUID;
 
 public interface OrderCheckoutPort {
 
-    Optional<OrderData> findByCustomerUserIdAndIdempotencyKey(UUID customerUserId, String idempotencyKey);
+    Optional<Order> findByCustomerUserIdAndIdempotencyKey(UUID customerUserId, String idempotencyKey);
 
-    Optional<RestaurantData> findActiveRestaurantById(UUID restaurantId);
+    Optional<Restaurant> findActiveRestaurantById(UUID restaurantId);
 
-    Optional<MenuItemData> findMenuItemById(UUID menuItemId);
+    Optional<MenuItem> findMenuItemById(UUID menuItemId);
 
-    OrderData saveOrder(OrderData order);
+    Order saveOrder(Order order);
 
-    void saveOrderItems(List<OrderItemData> items);
+    void saveOrderItems(List<OrderItem> items);
 
-    void saveOrderPayment(OrderPaymentData payment);
+    void saveOrderPayment(OrderPayment payment);
 }

@@ -1,12 +1,12 @@
 package com.foodya.backend.application.ports.out;
 
-import com.foodya.backend.application.dto.PasswordResetChallengeData;
+import com.foodya.backend.domain.entities.PasswordResetChallenge;
 
 import java.util.Optional;
 
 public interface PasswordResetChallengePort {
 
-    Optional<PasswordResetChallengeData> findByChallengeToken(String challengeToken);
+    Optional<PasswordResetChallenge> findByChallengeToken(String challengeToken);
 
-    PasswordResetChallengeData save(PasswordResetChallengeData challenge);
+    PasswordResetChallenge save(PasswordResetChallenge challenge);
 }

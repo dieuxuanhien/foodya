@@ -1,9 +1,9 @@
 package com.foodya.backend.infrastructure.adapter.security;
 
 import com.foodya.backend.application.dto.TokenClaims;
-import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.ports.out.SecurityPolicyPort;
 import com.foodya.backend.application.ports.out.TokenPort;
+import com.foodya.backend.domain.entities.UserAccount;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -29,19 +29,19 @@ public class JwtTokenAdapter implements TokenPort {
     }
 
     @Override
-    public String issueAccessToken(UserAccountData user, String jti) {
+    public String issueAccessToken(UserAccount user, String jti) {
         OffsetDateTime expiry = OffsetDateTime.now().plusMinutes(securityPolicyPort.accessTokenMinutes());
         return issue(user, TOKEN_TYPE_ACCESS, jti, expiry, Map.of(CLAIM_ROLE, user.getRole().name()));
     }
 
     @Override
-    public String issueRefreshToken(UserAccountData user, String jti, String family) {
+    public String issueRefreshToken(UserAccount user, String jti, String family) {
         OffsetDateTime expiry = OffsetDateTime.now().plusDays(securityPolicyPort.refreshTokenDays());
         return issue(user, TOKEN_TYPE_REFRESH, jti, expiry, Map.of("family", family));
     }
 
     @Override
-    public String issueResetToken(UserAccountData user, String jti, String challengeToken) {
+    public String issueResetToken(UserAccount user, String jti, String challengeToken) {
         OffsetDateTime expiry = OffsetDateTime.now().plusMinutes(securityPolicyPort.resetTokenMinutes());
         return issue(user, TOKEN_TYPE_RESET, jti, expiry, Map.of("challengeToken", challengeToken));
     }
@@ -62,7 +62,7 @@ public class JwtTokenAdapter implements TokenPort {
         );
     }
 
-    private String issue(UserAccountData user,
+    private String issue(UserAccount user,
                          String tokenType,
                          String jti,
                          OffsetDateTime expiresAt,

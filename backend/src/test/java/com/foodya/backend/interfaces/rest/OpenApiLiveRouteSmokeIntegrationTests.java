@@ -314,7 +314,7 @@ class OpenApiLiveRouteSmokeIntegrationTests {
     }
 
     private TokenPair issueSeedToken(UUID userId, String username, UserRole role) {
-        UserAccountData user = new UserAccountData();
+        com.foodya.backend.domain.entities.UserAccount user = new com.foodya.backend.domain.entities.UserAccount();
         user.setId(userId);
         user.setUsername(username);
         user.setEmail(username + "@foodya.local");

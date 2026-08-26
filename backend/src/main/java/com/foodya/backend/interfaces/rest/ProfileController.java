@@ -1,8 +1,8 @@
 package com.foodya.backend.interfaces.rest;
 
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.application.ports.in.ProfileUseCase;
 import com.foodya.backend.application.ports.out.GeoPort;
-import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
@@ -61,7 +61,7 @@ public class ProfileController {
     })
     public ResponseEntity<ApiSuccessResponse<ProfileResponse>> me(Authentication authentication,
                                                               HttpServletRequest httpServletRequest) {
-        UserAccountData user = profileService.me(CurrentUser.userId(authentication));
+        UserAccount user = profileService.me(CurrentUser.userId(authentication));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toProfileResponse(user), RequestTrace.from(httpServletRequest)));
     }
 
@@ -97,7 +97,7 @@ public class ProfileController {
                 request.phoneNumber(),
                 request.avatarUrl()
         );
-        UserAccountData user = profileService.update(CurrentUser.userId(authentication), command);
+        UserAccount user = profileService.update(CurrentUser.userId(authentication), command);
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toProfileResponse(user), RequestTrace.from(httpServletRequest)));
     }
 
@@ -112,7 +112,7 @@ public class ProfileController {
                                                                             @RequestPart("file") MultipartFile file,
                                                                             HttpServletRequest httpServletRequest) throws java.io.IOException {
         UUID userId = CurrentUser.userId(authentication);
-        UserAccountData user = profileService.uploadAvatar(
+        UserAccount user = profileService.uploadAvatar(
                 userId,
                 file.getOriginalFilename(),
                 file.getContentType(),

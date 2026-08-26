@@ -139,4 +139,15 @@ public class NotificationLog {
     public void setReadAt(OffsetDateTime readAt) {
         this.readAt = readAt;
     }
+
+    public void markSent() {
+        this.status = NotificationStatus.SENT;
+        this.sentAt = OffsetDateTime.now();
+    }
+
+    public void markRead() {
+        if (this.readAt == null) {
+            this.readAt = OffsetDateTime.now();
+        }
+    }
 }

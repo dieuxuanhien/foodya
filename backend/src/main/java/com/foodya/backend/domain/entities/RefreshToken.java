@@ -91,4 +91,18 @@ public class RefreshToken {
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    public void revoke() {
+        if (this.revokedAt == null) {
+            this.revokedAt = OffsetDateTime.now();
+        }
+    }
+
+    public boolean isExpired() {
+        return expiresAt != null && expiresAt.isBefore(OffsetDateTime.now());
+    }
+
+    public boolean isValid() {
+        return revokedAt == null && !isExpired();
+    }
 }

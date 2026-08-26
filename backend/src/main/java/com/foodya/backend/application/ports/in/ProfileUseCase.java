@@ -2,17 +2,17 @@ package com.foodya.backend.application.ports.in;
 
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
-import com.foodya.backend.application.dto.UserAccountData;
+import com.foodya.backend.domain.entities.UserAccount;
 
 import java.util.UUID;
 
 public interface ProfileUseCase {
 
-    UserAccountData me(UUID userId);
+    UserAccount me(UUID userId);
 
-    UserAccountData update(UUID userId, UpdateProfileRequest request);
+    UserAccount update(UUID userId, UpdateProfileRequest request);
 
-    UserAccountData uploadAvatar(UUID userId, String originalFileName, String contentType, byte[] content);
+    UserAccount uploadAvatar(UUID userId, String originalFileName, String contentType, byte[] content);
 
     void changePassword(UUID userId, ChangePasswordRequest request);
 }

@@ -9,16 +9,18 @@ import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.application.ports.out.CartItemPort;
 import com.foodya.backend.application.ports.out.CartPort;
-import com.foodya.backend.application.dto.MenuItemData;
-import com.foodya.backend.application.dto.OrderItemData;
-import com.foodya.backend.application.dto.OrderData;
-import com.foodya.backend.application.dto.OrderPaymentData;
-import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderItem;
+import com.foodya.backend.domain.entities.OrderPayment;
+import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderCheckoutPort;
 import com.foodya.backend.application.ports.out.RouteDistancePort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.CartItem;
+import com.foodya.backend.domain.policies.DeliveryFeePolicy;
+import com.foodya.backend.domain.services.OrderCodeGenerator;
 import com.foodya.backend.domain.value_objects.CartStatus;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
@@ -75,15 +77,15 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                                         CreateOrderFromCartRequest request) {
         String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
 
-        OrderData existing = orderCheckoutPort.findByCustomerUserIdAndIdempotencyKey(customerUserId, normalizedIdempotencyKey).orElse(null);
+        Order existing = orderCheckoutPort.findByCustomerUserIdAndIdempotencyKey(customerUserId, normalizedIdempotencyKey).orElse(null);
         if (existing != null) {
             return toView(existing);
         }
 
         CartCheckoutQuote quote = buildCartCheckoutQuote(customerUserId, request);
 
-        OrderData order = new OrderData();
-        order.setOrderCode(newOrderCode());
+        Order order = new Order();
+        order.setOrderCode(OrderCodeGenerator.generateOrderCode());
         order.setCustomerUserId(customerUserId);
         order.setIdempotencyKey(normalizedIdempotencyKey);
         order.setRestaurantId(quote.restaurant.getId());
@@ -101,14 +103,14 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         order.setShippingFeeMarginAmount(quote.shippingFeeMarginAmount);
         order.setPlatformProfitAmount(quote.platformProfitAmount);
 
-        OrderData savedOrder = orderCheckoutPort.saveOrder(order);
+        Order savedOrder = orderCheckoutPort.saveOrder(order);
 
-        for (OrderItemData item : quote.orderItems) {
+        for (OrderItem item : quote.orderItems) {
             item.setOrderId(savedOrder.getId());
         }
         orderCheckoutPort.saveOrderItems(quote.orderItems);
 
-        OrderPaymentData payment = new OrderPaymentData();
+        OrderPayment payment = new OrderPayment();
         payment.setOrderId(savedOrder.getId());
         payment.setPaymentMethod(PaymentMethod.COD);
         payment.setPaymentStatus(PaymentStatus.UNPAID);
@@ -145,18 +147,18 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         UUID restaurantId = activeCart.getRestaurantId();
         if (restaurantId == null) {
             UUID menuItemId = cartItems.get(0).getMenuItemId();
-            MenuItemData firstMenuItem = orderCheckoutPort.findMenuItemById(menuItemId)
+            MenuItem firstMenuItem = orderCheckoutPort.findMenuItemById(menuItemId)
                     .orElseThrow(() -> new NotFoundException("menu item not found"));
             restaurantId = firstMenuItem.getRestaurantId();
         }
 
-        RestaurantData restaurant = orderCheckoutPort.findActiveRestaurantById(restaurantId)
+        Restaurant restaurant = orderCheckoutPort.findActiveRestaurantById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
 
         int currencyMinorUnit = intParam("currency.minor_unit", 0);
         RoundingMode roundingMode = roundingModeParam("currency.rounding_mode", "HALF_UP");
 
-        List<OrderItemData> orderItems = new ArrayList<>();
+        List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
@@ -164,7 +166,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 throw new ValidationException("invalid quantity", Map.of("quantity", "must be >= 1"));
             }
 
-            MenuItemData menuItem = orderCheckoutPort.findMenuItemById(cartItem.getMenuItemId())
+            MenuItem menuItem = orderCheckoutPort.findMenuItemById(cartItem.getMenuItemId())
                     .orElseThrow(() -> new NotFoundException("menu item not found"));
 
             if (!restaurantId.equals(menuItem.getRestaurantId())) {
@@ -172,10 +174,10 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             }
             assertMenuItemOrderable(menuItem);
 
-            BigDecimal lineTotal = round(menuItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())), currencyMinorUnit, roundingMode);
+            BigDecimal lineTotal = DeliveryFeePolicy.roundAmount(menuItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())), currencyMinorUnit, roundingMode);
             subtotal = subtotal.add(lineTotal);
 
-            OrderItemData line = new OrderItemData();
+            OrderItem line = new OrderItem();
             line.setMenuItemId(menuItem.getId());
             line.setMenuItemNameSnapshot(menuItem.getName());
             line.setUnitPriceSnapshot(menuItem.getPrice());
@@ -197,24 +199,23 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                     Map.of("distanceKm", "must be <= shipping.max_delivery_km"));
         }
 
-        BigDecimal deliveryFee = computeDeliveryFee(routeDistanceKm, currencyMinorUnit, roundingMode);
-        BigDecimal roundedSubtotal = round(subtotal, currencyMinorUnit, roundingMode);
-        BigDecimal total = round(roundedSubtotal.add(deliveryFee), currencyMinorUnit, roundingMode);
+        BigDecimal deliveryFee = DeliveryFeePolicy.calculateDeliveryFee(
+                routeDistanceKm,
+                decimalParam("shipping.base_delivery_fee", DeliveryFeePolicy.DEFAULT_BASE_FEE),
+                decimalParam("shipping.base_distance_km", DeliveryFeePolicy.DEFAULT_BASE_DISTANCE_KM),
+                decimalParam("shipping.fee_per_km", DeliveryFeePolicy.DEFAULT_FEE_PER_KM),
+                currencyMinorUnit,
+                roundingMode
+        );
+        BigDecimal roundedSubtotal = DeliveryFeePolicy.roundAmount(subtotal, currencyMinorUnit, roundingMode);
+        BigDecimal total = DeliveryFeePolicy.roundAmount(roundedSubtotal.add(deliveryFee), currencyMinorUnit, roundingMode);
 
         BigDecimal commissionRatePercent = decimalParam("finance.commission_rate_percent", BigDecimal.TEN);
         BigDecimal shippingMarginRatePercent = decimalParam("finance.shipping_margin_rate_percent", BigDecimal.ZERO);
 
-        BigDecimal commissionAmount = round(
-                roundedSubtotal.multiply(commissionRatePercent).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP),
-                currencyMinorUnit,
-                roundingMode
-        );
-        BigDecimal shippingFeeMarginAmount = round(
-                deliveryFee.multiply(shippingMarginRatePercent).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP),
-                currencyMinorUnit,
-                roundingMode
-        );
-        BigDecimal platformProfitAmount = round(commissionAmount.add(shippingFeeMarginAmount), currencyMinorUnit, roundingMode);
+        BigDecimal commissionAmount = DeliveryFeePolicy.calculateCommission(roundedSubtotal, commissionRatePercent, currencyMinorUnit, roundingMode);
+        BigDecimal shippingFeeMarginAmount = DeliveryFeePolicy.calculateShippingMargin(deliveryFee, shippingMarginRatePercent, currencyMinorUnit, roundingMode);
+        BigDecimal platformProfitAmount = DeliveryFeePolicy.calculatePlatformProfit(commissionAmount, shippingFeeMarginAmount, currencyMinorUnit, roundingMode);
 
         return new CartCheckoutQuote(
                 restaurant,
@@ -226,22 +227,6 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 shippingFeeMarginAmount,
                 platformProfitAmount
         );
-    }
-
-    private BigDecimal computeDeliveryFee(BigDecimal distanceKm,
-                                          int minorUnit,
-                                          RoundingMode roundingMode) {
-        BigDecimal baseFee = decimalParam("shipping.base_delivery_fee", BigDecimal.valueOf(10000));
-        BigDecimal baseDistanceKm = decimalParam("shipping.base_distance_km", BigDecimal.valueOf(2));
-        BigDecimal feePerKm = decimalParam("shipping.fee_per_km", BigDecimal.valueOf(5000));
-
-        if (distanceKm.compareTo(baseDistanceKm) <= 0) {
-            return round(baseFee, minorUnit, roundingMode);
-        }
-
-        BigDecimal extraKm = distanceKm.subtract(baseDistanceKm);
-        BigDecimal fee = baseFee.add(extraKm.multiply(feePerKm));
-        return round(fee, minorUnit, roundingMode);
     }
 
     private static BigDecimal round(BigDecimal value, int minorUnit, RoundingMode roundingMode) {
@@ -292,16 +277,10 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         }
     }
 
-    private static void assertMenuItemOrderable(MenuItemData menuItem) {
+    private static void assertMenuItemOrderable(MenuItem menuItem) {
         if (!menuItem.isActive() || !menuItem.isAvailable() || menuItem.getDeletedAt() != null) {
             throw new ValidationException("menu item is not orderable", Map.of("menuItemId", "inactive or unavailable"));
         }
-    }
-
-    private static String newOrderCode() {
-        String timestamp = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String suffix = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        return "ORD-" + timestamp + "-" + suffix;
     }
 
     private String currencyCode() {
@@ -310,7 +289,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 .orElse("VND");
     }
 
-    private OrderCreatedView toView(OrderData order) {
+    private OrderCreatedView toView(Order order) {
         return new OrderCreatedView(
                 order.getId(),
                 order.getOrderCode(),
@@ -328,8 +307,8 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
     }
 
     private static final class CartCheckoutQuote {
-        private final RestaurantData restaurant;
-        private final List<OrderItemData> orderItems;
+        private final Restaurant restaurant;
+        private final List<OrderItem> orderItems;
         private final BigDecimal subtotal;
         private final BigDecimal deliveryFee;
         private final BigDecimal total;
@@ -337,8 +316,8 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         private final BigDecimal shippingFeeMarginAmount;
         private final BigDecimal platformProfitAmount;
 
-        private CartCheckoutQuote(RestaurantData restaurant,
-                                  List<OrderItemData> orderItems,
+        private CartCheckoutQuote(Restaurant restaurant,
+                                  List<OrderItem> orderItems,
                                   BigDecimal subtotal,
                                   BigDecimal deliveryFee,
                                   BigDecimal total,
