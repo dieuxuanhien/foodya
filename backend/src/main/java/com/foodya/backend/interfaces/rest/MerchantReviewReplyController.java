@@ -9,6 +9,7 @@ import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,13 +30,13 @@ public class MerchantReviewReplyController {
     }
 
     @PatchMapping("/{id}")
-    public ApiSuccessResponse<OrderReviewResponse> patchReply(Authentication authentication,
+    public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> patchReply(Authentication authentication,
                                                               @PathVariable UUID id,
                                                               @Valid @RequestBody RespondOrderReviewApiRequest request,
                                                               HttpServletRequest httpServletRequest) {
         OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.merchantRespond(CurrentUser.userId(authentication), id, request.response())
         );
-        return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
+        return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest)));
     }
 }

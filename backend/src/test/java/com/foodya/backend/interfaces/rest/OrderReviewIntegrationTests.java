@@ -150,11 +150,11 @@ class OrderReviewIntegrationTests {
             .map(orderReviewMapper::toDomain)
             .orElseThrow();
 
-        mockMvc.perform(patch("/api/v1/merchant/reviews/{id}/response", review.getId())
+        mockMvc.perform(post("/api/v1/merchant/reviews/{id}/replies", review.getId())
                         .header("Authorization", "Bearer " + merchantToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"response\":\"Thank you\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.merchantResponse").value("Thank you"));
     }
 

@@ -1,21 +1,27 @@
 package com.foodya.backend.interfaces.rest;
 
 import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
+import com.foodya.backend.application.dto.OrderSummaryView;
+import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.CancelOrderApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderTrackingPointResponse;
+import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,12 +39,18 @@ public class CustomerOrderLifecycleController {
 
     @GetMapping
     public ApiSuccessResponse<List<OrderSummaryResponse>> myOrders(Authentication authentication,
+                                                                   @RequestParam(required = false) @Min(0) Integer page,
+                                                                   @RequestParam(required = false) @Min(1) @Max(200) Integer size,
                                                                    HttpServletRequest request) {
-        List<OrderSummaryResponse> data = orderLifecycleService.customerOrders(CurrentUser.userId(authentication))
-                .stream()
+        PaginatedResult<OrderSummaryView> result = orderLifecycleService.customerOrders(CurrentUser.userId(authentication), page, size);
+        List<OrderSummaryResponse> data = result.items().stream()
                 .map(OrderLifecycleApiMapper::toSummary)
                 .toList();
-        return ApiSuccessResponse.of(data, RequestTrace.from(request));
+        return ApiSuccessResponse.of(
+                data,
+                new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
+                RequestTrace.from(request)
+        );
     }
 
     @GetMapping("/{orderId}")

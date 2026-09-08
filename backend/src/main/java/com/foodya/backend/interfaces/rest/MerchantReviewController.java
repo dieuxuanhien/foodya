@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,17 +28,6 @@ public class MerchantReviewController {
 
     public MerchantReviewController(OrderReviewUseCase orderReviewService) {
         this.orderReviewService = orderReviewService;
-    }
-
-    @PatchMapping("/{reviewId}/response")
-    public ApiSuccessResponse<OrderReviewResponse> respond(Authentication authentication,
-                                                           @PathVariable UUID reviewId,
-                                                           @Valid @RequestBody RespondOrderReviewApiRequest request,
-                                                           HttpServletRequest httpServletRequest) {
-        OrderReviewResponse data = OrderReviewApiMapper.toResponse(
-                orderReviewService.merchantRespond(CurrentUser.userId(authentication), reviewId, request.response())
-        );
-        return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
     }
 
     @PostMapping("/{reviewId}/replies")

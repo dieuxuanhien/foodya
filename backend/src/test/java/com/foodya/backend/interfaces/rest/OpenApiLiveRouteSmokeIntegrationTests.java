@@ -201,7 +201,6 @@ class OpenApiLiveRouteSmokeIntegrationTests {
                     "{\"response\":\"Smoke update\"}"));
 
             case "GET /api/v1/delivery/orders/assignments" -> assertNot5xx(request("GET", "/api/v1/delivery/orders/assignments", auth.deliveryAccess, null));
-            case "GET /api/v1/delivery/orders/assigned" -> assertNot5xx(request("GET", "/api/v1/delivery/orders/assigned", auth.deliveryAccess, null));
             case "POST /api/v1/delivery/orders/{orderId}/accept" -> assertNot5xx(request("POST", "/api/v1/delivery/orders/" + SEEDED_ACCEPTED_ORDER_ID + "/accept", auth.deliveryAccess, "{}"));
             case "PATCH /api/v1/delivery/orders/{orderId}/status" -> assertNot5xx(request("PATCH", "/api/v1/delivery/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/status", auth.deliveryAccess,
                     "{\"status\":\"DELIVERING\"}"));

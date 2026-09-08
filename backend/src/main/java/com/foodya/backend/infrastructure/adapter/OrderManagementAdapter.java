@@ -1,11 +1,14 @@
 package com.foodya.backend.infrastructure.adapter;
 
+import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.infrastructure.mapper.OrderMapper;
 import com.foodya.backend.infrastructure.persistence.models.OrderPersistenceModel;
 import com.foodya.backend.infrastructure.repository.OrderManagementRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -41,19 +44,27 @@ public class OrderManagementAdapter implements OrderManagementPort {
     }
 
     @Override
-    public List<Order> findByCustomerUserIdOrderByPlacedAtDesc(UUID customerUserId) {
-        return repository.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId)
-                .stream()
-                .map(mapper::toDomain)
-                .toList();
+    public PaginatedResult<Order> findByCustomerUserIdOrderByPlacedAtDesc(UUID customerUserId, int page, int size) {
+        Page<OrderPersistenceModel> paged = repository.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId, PageRequest.of(page, size));
+        return new PaginatedResult<>(
+                paged.getContent().stream().map(mapper::toDomain).toList(),
+                paged.getNumber(),
+                paged.getSize(),
+                paged.getTotalElements(),
+                paged.getTotalPages()
+        );
     }
 
     @Override
-    public List<Order> findByRestaurantIdOrderByPlacedAtDesc(UUID restaurantId) {
-        return repository.findByRestaurantIdOrderByPlacedAtDesc(restaurantId)
-                .stream()
-                .map(mapper::toDomain)
-                .toList();
+    public PaginatedResult<Order> findByRestaurantIdOrderByPlacedAtDesc(UUID restaurantId, int page, int size) {
+        Page<OrderPersistenceModel> paged = repository.findByRestaurantIdOrderByPlacedAtDesc(restaurantId, PageRequest.of(page, size));
+        return new PaginatedResult<>(
+                paged.getContent().stream().map(mapper::toDomain).toList(),
+                paged.getNumber(),
+                paged.getSize(),
+                paged.getTotalElements(),
+                paged.getTotalPages()
+        );
     }
 
     @Override

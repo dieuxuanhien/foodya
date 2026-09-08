@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -91,7 +92,7 @@ public class AdminGovernanceController {
                 req.isOpen(), req.status(), req.latitude(), req.longitude(), req.maxDeliveryKm()
         );
         RestaurantData restaurant = adminGovernanceService.createRestaurant(command, CurrentUser.userId(authentication));
-        return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
     @PutMapping("/restaurants/{id}")

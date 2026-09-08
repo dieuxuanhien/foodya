@@ -191,19 +191,26 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
     }
 
     public MenuCategoryData updateCategory(UUID merchantUserId, UUID categoryId, UpdateMenuCategoryRequest request) {
-        requireText(request.name(), "name");
-        requireNonNull(request.sortOrder(), "sortOrder");
-        requireNonNull(request.isActive(), "isActive");
         MenuCategory category = menuCategoryPort.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("menu category not found"));
         ownedRestaurant(merchantUserId, category.getRestaurantId());
-        if (menuCategoryPort.existsByRestaurantIdAndNameIgnoreCaseAndIdNot(category.getRestaurantId(), request.name().trim(), categoryId)) {
-            throw new ValidationException("category already exists", Map.of("name", "duplicate category name"));
+
+        if (request.name() != null) {
+            requireText(request.name(), "name");
+            if (menuCategoryPort.existsByRestaurantIdAndNameIgnoreCaseAndIdNot(category.getRestaurantId(), request.name().trim(), categoryId)) {
+                throw new ValidationException("category already exists", Map.of("name", "duplicate category name"));
+            }
+            category.setName(request.name().trim());
         }
 
-        category.setName(request.name().trim());
-        category.setSortOrder(request.sortOrder());
-        category.setActive(request.isActive());
+        if (request.sortOrder() != null) {
+            category.setSortOrder(request.sortOrder());
+        }
+
+        if (request.isActive() != null) {
+            category.setActive(request.isActive());
+        }
+
         return toMenuCategoryData(menuCategoryPort.save(category));
     }
 
@@ -258,32 +265,48 @@ public class MerchantCatalogService implements MerchantCatalogUseCase {
     }
 
     public MenuItemData updateMenuItem(UUID merchantUserId, UUID menuItemId, UpdateMenuItemRequest request) {
-        requireText(request.categoryId(), "categoryId");
-        requireNonEmptyTaxonomyCodes(request.taxonomyCodes(), "taxonomyCodes");
-        requireText(request.name(), "name");
-        requireText(request.description(), "description");
-        requireNonNull(request.price(), "price");
-        requireNonNull(request.isActive(), "isActive");
-        requireNonNull(request.isAvailable(), "isAvailable");
         MenuItem item = menuItemPort.findById(menuItemId)
                 .orElseThrow(() -> new NotFoundException("menu item not found"));
         ownedRestaurant(merchantUserId, item.getRestaurantId());
-        validatePrice(request.price());
 
-        UUID categoryId = parseUuid(request.categoryId(), "categoryId");
-        menuCategoryPort.findByIdAndRestaurantId(categoryId, item.getRestaurantId())
-                .orElseThrow(() -> new ValidationException("invalid category", Map.of("categoryId", "does not belong to restaurant")));
+        if (request.categoryId() != null) {
+            requireText(request.categoryId(), "categoryId");
+            UUID categoryId = parseUuid(request.categoryId(), "categoryId");
+            menuCategoryPort.findByIdAndRestaurantId(categoryId, item.getRestaurantId())
+                    .orElseThrow(() -> new ValidationException("invalid category", Map.of("categoryId", "does not belong to restaurant")));
+            item.setCategoryId(categoryId);
+        }
 
-        List<String> taxonomyCodes = normalizeTaxonomyCodes(request.taxonomyCodes());
-        validateTaxonomyCodes(taxonomyCodes);
+        if (request.taxonomyCodes() != null) {
+            requireNonEmptyTaxonomyCodes(request.taxonomyCodes(), "taxonomyCodes");
+            List<String> taxonomyCodes = normalizeTaxonomyCodes(request.taxonomyCodes());
+            validateTaxonomyCodes(taxonomyCodes);
+            item.setTaxonomyCodes(new LinkedHashSet<>(taxonomyCodes));
+        }
 
-        item.setCategoryId(categoryId);
-        item.setTaxonomyCodes(new LinkedHashSet<>(taxonomyCodes));
-        item.setName(request.name().trim());
-        item.setDescription(request.description());
-        item.setPrice(request.price());
-        item.setActive(request.isActive());
-        item.setAvailable(request.isAvailable());
+        if (request.name() != null) {
+            requireText(request.name(), "name");
+            item.setName(request.name().trim());
+        }
+
+        if (request.description() != null) {
+            requireText(request.description(), "description");
+            item.setDescription(request.description());
+        }
+
+        if (request.price() != null) {
+            validatePrice(request.price());
+            item.setPrice(request.price());
+        }
+
+        if (request.isActive() != null) {
+            item.setActive(request.isActive());
+        }
+
+        if (request.isAvailable() != null) {
+            item.setAvailable(request.isAvailable());
+        }
+
         return toMenuItemData(menuItemPort.save(item));
     }
 

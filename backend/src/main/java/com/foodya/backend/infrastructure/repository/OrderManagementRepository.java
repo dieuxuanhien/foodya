@@ -2,6 +2,8 @@ package com.foodya.backend.infrastructure.repository;
 
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.infrastructure.persistence.models.OrderPersistenceModel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -19,9 +21,9 @@ import java.util.UUID;
  */
 public interface OrderManagementRepository extends JpaRepository<OrderPersistenceModel, UUID> {
 
-    List<OrderPersistenceModel> findByCustomerUserIdOrderByPlacedAtDesc(UUID customerUserId);
+    Page<OrderPersistenceModel> findByCustomerUserIdOrderByPlacedAtDesc(UUID customerUserId, Pageable pageable);
 
-    List<OrderPersistenceModel> findByRestaurantIdOrderByPlacedAtDesc(UUID restaurantId);
+    Page<OrderPersistenceModel> findByRestaurantIdOrderByPlacedAtDesc(UUID restaurantId, Pageable pageable);
 
     List<OrderPersistenceModel> findByStatusInOrderByPlacedAtAsc(Collection<OrderStatus> statuses);
 }

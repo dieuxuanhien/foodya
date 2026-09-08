@@ -2,6 +2,7 @@ package com.foodya.backend.interfaces.rest.dto;
 
 import com.foodya.backend.domain.value_objects.UserRole;
 import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.interfaces.rest.validation.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +12,7 @@ public record AdminUserCreateRequest(
         @NotBlank @Email String email,
         @NotBlank String phoneNumber,
         @NotBlank String fullName,
-        @NotBlank String password,
+        @NotBlank @StrongPassword String password,
         @NotNull UserRole role,
         @NotNull UserStatus status
 ) {

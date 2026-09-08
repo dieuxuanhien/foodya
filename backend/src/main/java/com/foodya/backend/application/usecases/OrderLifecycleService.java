@@ -1,10 +1,11 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.OrderDetailView;
+import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.dto.OrderSummaryView;
 import com.foodya.backend.application.dto.OrderTrackingPointView;
+import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.UserAccountData;
-import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
@@ -21,6 +22,7 @@ import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     private final UserAccountPort userAccountPort;
     private final OrderPaymentPort orderPaymentPort;
     private final OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort;
+    private final PaginationPolicy paginationPolicy;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
@@ -49,7 +52,8 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                                  OrderEventPublisherPort orderEventPublisherPort,
                                  UserAccountPort userAccountPort,
                                  OrderPaymentPort orderPaymentPort,
-                                 OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
+                                 OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
+                                 PaginationPolicy paginationPolicy) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
@@ -57,13 +61,19 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         this.userAccountPort = userAccountPort;
         this.orderPaymentPort = orderPaymentPort;
         this.orderTrackingUpdatePublisherPort = orderTrackingUpdatePublisherPort;
+        this.paginationPolicy = paginationPolicy;
     }
 
-    public List<OrderSummaryView> customerOrders(UUID customerUserId) {
-        return orderManagementPort.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+    public PaginatedResult<OrderSummaryView> customerOrders(UUID customerUserId, Integer page, Integer size) {
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<Order> result = orderManagementPort.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId, spec.page(), spec.size());
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toSummary).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
     }
 
     public OrderDetailView customerOrder(UUID customerUserId, UUID orderId) {
@@ -89,17 +99,22 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         return toDetail(saved);
     }
 
-    public List<OrderSummaryView> merchantOrders(UUID merchantUserId, UUID restaurantId) {
+    public PaginatedResult<OrderSummaryView> merchantOrders(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
         Restaurant restaurant = restaurantPort.findById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
         if (!restaurant.getOwnerUserId().equals(merchantUserId)) {
             throw new ForbiddenException("restaurant does not belong to merchant");
         }
 
-        return orderManagementPort.findByRestaurantIdOrderByPlacedAtDesc(restaurantId)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<Order> result = orderManagementPort.findByRestaurantIdOrderByPlacedAtDesc(restaurantId, spec.page(), spec.size());
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toSummary).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
     }
 
     public OrderDetailView merchantOrder(UUID merchantUserId, UUID orderId) {

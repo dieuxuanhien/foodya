@@ -150,7 +150,7 @@ class OrderLifecycleIntegrationTests {
                         .header("Authorization", "Bearer " + deliveryToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"lat\":10.7800000,\"lng\":106.7000000,\"recordedAt\":\"2026-03-31T00:00:00Z\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.lat").value(10.78));
 
         mockMvc.perform(get("/api/v1/customer/orders/{id}/tracking", order.getId())
