@@ -8,6 +8,7 @@ import com.foodya.backend.application.dto.RestaurantData;
 import com.foodya.backend.application.dto.RestaurantSearchView;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
+import com.foodya.backend.application.ports.in.CatalogUseCase;
 import com.foodya.backend.application.ports.out.CategoryTaxonomyPort;
 import com.foodya.backend.application.ports.out.CatalogQueryPort;
 import com.foodya.backend.application.ports.out.GeoPort;
@@ -30,7 +31,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class CatalogService {
+public class CatalogService implements CatalogUseCase {
 
     private static final List<RestaurantStatus> PUBLIC_STATUSES = List.of(RestaurantStatus.ACTIVE);
 
@@ -52,6 +53,7 @@ public class CatalogService {
         this.geoPort = geoPort;
     }
 
+    @Override
     public List<CategoryTaxonomyData> listCategoryTaxonomies() {
         return categoryTaxonomyPort.findActive().stream().map(taxonomy -> {
             CategoryTaxonomyData data = new CategoryTaxonomyData();
@@ -65,17 +67,18 @@ public class CatalogService {
         }).toList();
     }
 
+    @Override
     public PaginatedResult<RestaurantSearchView> searchRestaurants(String q,
-                                                                        String cuisine,
-                                                                        BigDecimal minRating,
-                                                                        Boolean openNow,
-                                                                        List<String> taxonomyCodes,
-                                                                        Integer page,
-                                                                        Integer size,
-                                                                        String sort,
-                                                                        BigDecimal lat,
-                                                                        BigDecimal lng,
-                                                                        BigDecimal radiusKm) {
+                                                                  String cuisine,
+                                                                  BigDecimal minRating,
+                                                                  Boolean openNow,
+                                                                  List<String> taxonomyCodes,
+                                                                  Integer page,
+                                                                  Integer size,
+                                                                  String sort,
+                                                                  BigDecimal lat,
+                                                                  BigDecimal lng,
+                                                                  BigDecimal radiusKm) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         String keyword = q == null ? "" : q.trim();
         List<String> normalizedTaxonomyCodes = normalizeTaxonomyCodes(taxonomyCodes);
@@ -131,11 +134,12 @@ public class CatalogService {
         return new PaginatedResult<>(responses, spec.page(), spec.size(), sorted.size(), totalPages);
     }
 
+    @Override
     public PaginatedResult<RestaurantSearchView> nearby(BigDecimal lat,
-                                                            BigDecimal lng,
-                                                            BigDecimal radiusKm,
-                                                            Integer page,
-                                                            Integer size) {
+                                                     BigDecimal lng,
+                                                     BigDecimal radiusKm,
+                                                     Integer page,
+                                                     Integer size) {
         if (lat == null || lng == null || radiusKm == null) {
             throw new ValidationException("invalid nearby parameters", Map.of("lat/lng/radiusKm", "must be provided"));
         }
@@ -161,17 +165,19 @@ public class CatalogService {
         return new PaginatedResult<>(responses, spec.page(), spec.size(), sorted.size(), totalPages);
     }
 
+    @Override
     public RestaurantData restaurantDetail(UUID restaurantId) {
         return catalogQueryPort.findRestaurantByIdAndStatusIn(restaurantId, PUBLIC_STATUSES)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
     }
 
+    @Override
     public PaginatedResult<MenuItemData> publicMenuItems(UUID restaurantId,
-                                                          String keyword,
-                                                          List<String> taxonomyCodes,
-                                                          String sort,
-                                                          Integer page,
-                                                          Integer size) {
+                                                       String keyword,
+                                                       List<String> taxonomyCodes,
+                                                       String sort,
+                                                       Integer page,
+                                                       Integer size) {
         PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
         restaurantDetail(restaurantId);
 

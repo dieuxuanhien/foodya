@@ -1,6 +1,7 @@
 package com.foodya.backend.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodya.backend.application.ports.in.CatalogUseCase;
 import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.application.usecases.*;
 import com.foodya.backend.application.usecases.policy.BackupPolicyEnforcementService;
@@ -46,7 +47,7 @@ public class AppConfig {
 	}
 
 	@Bean
-	public CatalogService catalogService(
+	public CatalogUseCase catalogService(
 			CatalogQueryPort catalogQueryPort,
 			CategoryTaxonomyPort categoryTaxonomyPort,
 			SystemParameterPort systemParameterPort,

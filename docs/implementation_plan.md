@@ -4,32 +4,34 @@
 
 ---
 
+Reminder: This system is in developing and dont operate in real world, so change everything including db, seeds, doesnt need to care any existing data.
+
 ## Part 1: Current System Deep Analysis
 
 ### 1.1 Data Model Assessment
 
 The current v1 data model is **well-structured** for a clean architecture monolith. Key entities:
 
-| Entity | Table | Status | Notes |
-|--------|-------|--------|-------|
-| `UserAccount` | `user_accounts` | ✅ Solid | UUID PK, role-based (CUSTOMER, MERCHANT, DELIVERY, ADMIN) |
-| `Restaurant` | `restaurants` | ✅ Solid | Has `h3_index_res9`, `geo_point` geography column, GIST index |
-| `MenuCategory` | `menu_categories` | ✅ Solid | Linked to taxonomy system |
-| `MenuItem` | `menu_items` | ✅ Solid | Soft-delete with `deleted_at`, `is_active` |
-| `Order` | `orders` | ✅ Solid | State machine, idempotency key, COD payments |
-| `OrderItem` | `order_items` | ✅ Solid | Snapshot pricing |
-| `OrderPayment` | `order_payments` | ✅ Solid | Audit mirror of payment state |
-| `DeliveryAssignment` | `delivery_assignments` | ✅ Solid | Links order → delivery user |
-| `DeliveryLocationPoint` | `delivery_location_points` | ✅ Solid | GPS telemetry (lat, lng, heading, speed, recordedAt) |
-| `Cart/CartItem` | `carts`, `cart_items` | ✅ Solid | Single active cart, single-restaurant enforcement |
-| `OrderReview` | `order_reviews` | ✅ Solid | 1-5 stars, merchant reply chain |
-| `NotificationLog` | `notification_logs` | ✅ Solid | Receiver-scoped, read tracking |
-| `DeviceToken` | `device_tokens` | ✅ Solid | FCM token management |
-| `AiCatalogChunk` | `ai_catalog_chunks` | ✅ Solid | pgvector embeddings for RAG |
-| `AiChatMessage` | `ai_chat_messages` | ✅ Solid | Chat history with metadata |
-| `SystemParameter` | `system_parameters` | ✅ Solid | Runtime config, versioned, audited |
-| `AuditLog` | `audit_logs` | ✅ Solid | Admin action audit trail |
-| `CategoryTaxonomy` | `category_taxonomies` | ✅ Solid | Hierarchical category system |
+| Entity                    | Table                        | Status   | Notes                                                            |
+| ------------------------- | ---------------------------- | -------- | ---------------------------------------------------------------- |
+| `UserAccount`           | `user_accounts`            | ✅ Solid | UUID PK, role-based (CUSTOMER, MERCHANT, DELIVERY, ADMIN)        |
+| `Restaurant`            | `restaurants`              | ✅ Solid | Has`h3_index_res9`, `geo_point` geography column, GIST index |
+| `MenuCategory`          | `menu_categories`          | ✅ Solid | Linked to taxonomy system                                        |
+| `MenuItem`              | `menu_items`               | ✅ Solid | Soft-delete with`deleted_at`, `is_active`                    |
+| `Order`                 | `orders`                   | ✅ Solid | State machine, idempotency key, COD payments                     |
+| `OrderItem`             | `order_items`              | ✅ Solid | Snapshot pricing                                                 |
+| `OrderPayment`          | `order_payments`           | ✅ Solid | Audit mirror of payment state                                    |
+| `DeliveryAssignment`    | `delivery_assignments`     | ✅ Solid | Links order → delivery user                                     |
+| `DeliveryLocationPoint` | `delivery_location_points` | ✅ Solid | GPS telemetry (lat, lng, heading, speed, recordedAt)             |
+| `Cart/CartItem`         | `carts`, `cart_items`    | ✅ Solid | Single active cart, single-restaurant enforcement                |
+| `OrderReview`           | `order_reviews`            | ✅ Solid | 1-5 stars, merchant reply chain                                  |
+| `NotificationLog`       | `notification_logs`        | ✅ Solid | Receiver-scoped, read tracking                                   |
+| `DeviceToken`           | `device_tokens`            | ✅ Solid | FCM token management                                             |
+| `AiCatalogChunk`        | `ai_catalog_chunks`        | ✅ Solid | pgvector embeddings for RAG                                      |
+| `AiChatMessage`         | `ai_chat_messages`         | ✅ Solid | Chat history with metadata                                       |
+| `SystemParameter`       | `system_parameters`        | ✅ Solid | Runtime config, versioned, audited                               |
+| `AuditLog`              | `audit_logs`               | ✅ Solid | Admin action audit trail                                         |
+| `CategoryTaxonomy`      | `category_taxonomies`      | ✅ Solid | Hierarchical category system                                     |
 
 **Database extensions active**: `postgis`, `pg_trgm`, `pgvector` (with graceful fallback).
 
@@ -38,15 +40,15 @@ The current v1 data model is **well-structured** for a clean architecture monoli
 
 #### What's Missing for V2
 
-| Missing Entity/Column | Purpose | Priority |
-|----------------------|---------|----------|
-| `driver_shifts` table | Driver online/offline lifecycle tracking with shift history | HIGH |
-| `driver_h3_cells` or `h3_index` on driver location | H3-indexed driver position for fast spatial lookup | HIGH |
-| `order_batches` table | Multi-order batching for single driver | HIGH |
-| `payment_transactions` table | VNPAY transaction lifecycle (initiate → callback → settle) | HIGH |
-| `weather_cache` table (or Redis key) | H3 res8-keyed weather data cache | MEDIUM |
-| `delivery_routes` table | Stored route polyline for driver navigation and customer tracking | MEDIUM |
-| `location_name_mappings` table | Old → new Vietnamese administrative name migration | MEDIUM |
+| Missing Entity/Column                                  | Purpose                                                           | Priority |
+| ------------------------------------------------------ | ----------------------------------------------------------------- | -------- |
+| `driver_shifts` table                                | Driver online/offline lifecycle tracking with shift history       | HIGH     |
+| `driver_h3_cells` or `h3_index` on driver location | H3-indexed driver position for fast spatial lookup                | HIGH     |
+| `order_batches` table                                | Multi-order batching for single driver                            | HIGH     |
+| `payment_transactions` table                         | VNPAY transaction lifecycle (initiate → callback → settle)      | HIGH     |
+| `weather_cache` table (or Redis key)                 | H3 res8-keyed weather data cache                                  | MEDIUM   |
+| `delivery_routes` table                              | Stored route polyline for driver navigation and customer tracking | MEDIUM   |
+| `location_name_mappings` table                       | Old → new Vietnamese administrative name migration               | MEDIUM   |
 
 ---
 
@@ -55,6 +57,7 @@ The current v1 data model is **well-structured** for a clean architecture monoli
 The API layer is **comprehensive** with 90+ endpoints across 27 controllers. Key findings:
 
 #### ✅ Strengths
+
 - Consistent role-scoped prefixes: `/api/v1/admin/**`, `/api/v1/merchant/**`, `/api/v1/customer/**`, `/api/v1/delivery/**`
 - Standardized response wrapper `ApiSuccessResponse<T>` / `ApiErrorResponse`
 - Rate limiting on auth and AI endpoints
@@ -69,22 +72,23 @@ The API layer is **comprehensive** with 90+ endpoints across 27 controllers. Key
 
 #### ⚠️ Anti-Patterns Found
 
-| # | Anti-Pattern | Location | Severity |
-|---|-------------|----------|----------|
-| 1 | **Header injection for actor identity** | `AdminSystemParameterController` extracts `X-User-Role` and `X-Actor-Id` from headers instead of `CurrentUser.userId(authentication)` | 🔴 HIGH — potential spoofing |
-| 2 | **Duplicate endpoints** | `GET /delivery/orders/assignments` AND `/assigned` (same handler); `POST /tracking-points` AND `/locations` (identical logic) | 🟡 MEDIUM — confusing API surface |
-| 3 | **HTTP status code inconsistency** | Admin create operations return 200 instead of 201; inconsistent 204 vs 200 for mutations | 🟡 MEDIUM — API contract confusion |
-| 4 | **PATCH with NOT NULL fields** | `UpdateMenuCategoryApiRequest`, `UpdateMenuItemApiRequest` mark all fields `@NotNull` — forces PUT semantics on a PATCH verb | 🟡 MEDIUM — semantic mismatch |
-| 5 | **Missing pagination** | `GET /customer/orders` and `GET /merchant/.../orders` return unbounded lists | 🟡 MEDIUM — performance risk |
-| 6 | **Missing password validation** | `AdminUserCreateRequest` lacks `@StrongPassword` unlike all other password fields | 🟡 MEDIUM — security gap |
-| 7 | **Inconsistent response wrapping** | Some controllers return `ResponseEntity<ApiSuccessResponse<T>>`, others return bare `ApiSuccessResponse<T>` | 🟢 LOW — works but inconsistent |
-| 8 | **Inconsistent min delivery distance** | Admin API allows `maxDeliveryKm >= 0.0` but merchant API requires `>= 0.1` | 🟢 LOW — edge case |
+| # | Anti-Pattern                                  | Location                                                                                                                                      | Severity                            |
+| - | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 1 | **Header injection for actor identity** | `AdminSystemParameterController` extracts `X-User-Role` and `X-Actor-Id` from headers instead of `CurrentUser.userId(authentication)` | 🔴 HIGH — potential spoofing       |
+| 2 | **Duplicate endpoints**                 | `GET /delivery/orders/assignments` AND `/assigned` (same handler); `POST /tracking-points` AND `/locations` (identical logic)         | 🟡 MEDIUM — confusing API surface  |
+| 3 | **HTTP status code inconsistency**      | Admin create operations return 200 instead of 201; inconsistent 204 vs 200 for mutations                                                      | 🟡 MEDIUM — API contract confusion |
+| 4 | **PATCH with NOT NULL fields**          | `UpdateMenuCategoryApiRequest`, `UpdateMenuItemApiRequest` mark all fields `@NotNull` — forces PUT semantics on a PATCH verb           | 🟡 MEDIUM — semantic mismatch      |
+| 5 | **Missing pagination**                  | `GET /customer/orders` and `GET /merchant/.../orders` return unbounded lists                                                              | 🟡 MEDIUM — performance risk       |
+| 6 | **Missing password validation**         | `AdminUserCreateRequest` lacks `@StrongPassword` unlike all other password fields                                                         | 🟡 MEDIUM — security gap           |
+| 7 | **Inconsistent response wrapping**      | Some controllers return`ResponseEntity<ApiSuccessResponse<T>>`, others return bare `ApiSuccessResponse<T>`                                | 🟢 LOW — works but inconsistent    |
+| 8 | **Inconsistent min delivery distance**  | Admin API allows`maxDeliveryKm >= 0.0` but merchant API requires `>= 0.1`                                                                 | 🟢 LOW — edge case                 |
 
 ---
 
 ### 1.3 Architecture & Flow Assessment
 
 #### ✅ Clean Architecture Compliance
+
 - ArchUnit tests enforce strict layer boundaries (domain → application → infrastructure → interfaces)
 - Legacy package guardrails prevent regressions
 - Application layer is framework-free (no `@Service`, `@Transactional`, no Jakarta validation)
@@ -92,24 +96,29 @@ The API layer is **comprehensive** with 90+ endpoints across 27 controllers. Key
 - Services explicitly wired in `AppConfig.java`
 
 #### ✅ Order Lifecycle Flow
+
 ```
 PENDING → ACCEPTED → ASSIGNED → PREPARING → DELIVERING → SUCCESS
                                                          ↘ FAILED
 Any of first 3 states → CANCELLED
 ```
+
 State transitions are enforced. Notifications fire on each transition to correct receivers.
 
 #### ✅ Checkout Flow
+
 1. Customer reviews cost (dry-run) → Goong Maps route distance → fee calculation
 2. Customer places order with `Idempotency-Key` → cart validated → order created → cart cleared → merchant notified
 
 #### ✅ RAG Chatbot Flow
+
 1. Customer sends message → system gathers context (weather via H3 res8 cache, budget parsing, conversation history)
 2. pgvector similarity search on `ai_catalog_chunks` → candidate menu items
 3. Gemini generates response grounded strictly on catalog data
 4. Response filtered for hallucinations → fallback to rule-scored candidates if needed
 
 #### ✅ Real-Time Tracking Flow
+
 1. Driver posts GPS telemetry via REST → stored in `delivery_location_points`
 2. Backend publishes via STOMP to `/user/{customerId}/queue/orders/{orderId}/tracking`
 3. Customer receives live coordinates via WebSocket
@@ -118,16 +127,16 @@ State transitions are enforced. Notifications fire on each transition to correct
 
 ### 1.4 Test Suite Assessment
 
-| Category | Count | Quality |
-|----------|-------|---------|
-| Architecture rules (ArchUnit) | 1 class, 15+ rules | ✅ Excellent |
-| REST integration tests | 16 classes | ✅ Good coverage |
-| Application service unit tests | 4 classes | ⚠️ Sparse |
-| Infrastructure adapter tests | 4 classes | ⚠️ Sparse |
-| OpenAPI smoke test | 1 class | ✅ Innovative — hits every route |
-| Domain unit tests | 0 | ❌ Gap |
-| Concurrency tests | 0 | ❌ Gap |
-| WebSocket E2E tests | 0 | ❌ Gap |
+| Category                       | Count              | Quality                           |
+| ------------------------------ | ------------------ | --------------------------------- |
+| Architecture rules (ArchUnit)  | 1 class, 15+ rules | ✅ Excellent                      |
+| REST integration tests         | 16 classes         | ✅ Good coverage                  |
+| Application service unit tests | 4 classes          | ⚠️ Sparse                       |
+| Infrastructure adapter tests   | 4 classes          | ⚠️ Sparse                       |
+| OpenAPI smoke test             | 1 class            | ✅ Innovative — hits every route |
+| Domain unit tests              | 0                  | ❌ Gap                            |
+| Concurrency tests              | 0                  | ❌ Gap                            |
+| WebSocket E2E tests            | 0                  | ❌ Gap                            |
 
 **Test anti-patterns**: Manual JSON string payloads, repeated cleanup boilerplate, string-based JSON parsing in some tests.
 
@@ -142,32 +151,32 @@ gantt
     title Foodya V2 Implementation Phases
     dateFormat X
     axisFormat %s
-    
+  
     section Foundation
     Phase 0: Anti-Pattern Fixes               :p0, 0, 3
     Phase 1: Location + Goong v2 Migration    :p1, 3, 6
-    
+  
     section Driver Core
     Phase 2: Driver Lifecycle (Grab Toggle)    :p2, 6, 8
     Phase 3: H3 Driver Indexing               :p3, 8, 11
     Phase 4: Driver Matching                  :p4, 11, 14
     Phase 5: Multi-Order Batching             :p5, 14, 17
-    
+  
     section Routing & Tracking
     Phase 6: Route Calc (Goong Trip v2)       :p6, 6, 9
     Phase 7: Enhanced Live Tracking           :p7, 9, 12
-    
+  
     section Payment
     Phase 8: VNPAY Integration                :p8, 6, 10
-    
+  
     section Dynamic Pricing
     Phase 9: Weather Service + Redis Cache    :p9, 6, 9
     Phase 10: Dynamic Cost Engine             :p10, 9, 12
-    
+  
     section AI/RAG
     Phase 11: RAG Enhancements                :p11, 3, 7
     Phase 12: Seed Data + Metadata            :p12, 7, 10
-    
+  
     section Mobile
     Phase 13: Driver Mobile Screens           :p13, 17, 23
     Phase 14: Customer Tracking UI            :p14, 23, 26
@@ -203,6 +212,7 @@ The Authentication parameter should be added to the method signatures. Run the e
 ### 0.2 Remove Duplicate Endpoints
 
 **Problem**: Three pairs of duplicate endpoints exist:
+
 1. `GET /delivery/orders/assignments` AND `/assigned` → same handler
 2. `POST /delivery/orders/{id}/tracking-points` AND `/locations` → identical logic
 3. `PATCH /merchant/reviews/{id}/response` AND `POST /merchant/reviews/{id}/replies` AND `PATCH /merchant/review-replies/{id}` → overlapping review response logic
@@ -212,6 +222,7 @@ The Authentication parameter should be added to the method signatures. Run the e
 **Why**: Duplicate endpoints double the attack surface, confuse API consumers, and make OpenAPI docs misleading. Pick the name that best follows REST conventions.
 
 **Canonical choices**:
+
 - Keep `GET /assignments` (noun-based, clearer intent than `assigned` adjective)
 - Keep `POST /tracking-points` (resource creation semantics, 201 status)
 - Keep `POST /reviews/{id}/replies` + `PATCH /review-replies/{id}` (separate create vs update)
@@ -308,12 +319,14 @@ Run all integration tests after."
 ## Phase 1: Location Name Migration + Goong Maps v2 API Migration
 
 > **WHY FIRST**:
+>
 > 1. **Low risk, high stability**: Location mappings and API endpoint URLs are factual data — they don't involve complex business logic and are unlikely to need rework.
 > 2. **Foundation for everything Goong**: Phases 6 (routing), 7 (tracking), 9 (weather), 10 (dynamic pricing), and all geocoding calls depend on Goong Maps. Migrating to v2 once means every subsequent phase builds on the correct API from day one.
 > 3. **Admin boundary consistency**: Goong v2 returns post-2024 Vietnamese admin names. If we build routing/geocoding on v1 and migrate later, we'd need to re-test everything. Doing it first avoids that.
 > 4. **Enables `has_deprecated_administrative_unit` param**: v2 supports this flag for backward compatibility during data migration — we need it while old addresses still exist in the DB.
 >
 > **Migration strategy: Mapping table + batch update + on-read normalization + v2 endpoint migration**:
+>
 > 1. Build a mapping table of old_name → new_name for all affected provinces/districts/wards
 > 2. Batch-update existing addresses in the database
 > 3. Add on-read normalization so old names in external data (user input, API responses) get mapped
@@ -442,6 +455,7 @@ Run ProfileIntegrationTests to verify the location-address endpoint still works.
 **UX Model**: Exactly like the Grab driver app — a single big "GO" button that toggles online/offline. No concept of scheduled shifts. Driver can toggle unlimited times per day.
 
 **V2 Driver States**:
+
 ```
 OFFLINE ←→ ONLINE → ON_DELIVERY → ONLINE (auto, after delivery completes)
 ONLINE → BUSY (max orders reached) → ONLINE (auto, when order delivered)
@@ -453,6 +467,7 @@ Any → SUSPENDED (admin action) → OFFLINE (after unsuspend)
 **Internal session tracking**: Each OFFLINE→ONLINE toggle creates a `DriverOnlineSession` record (table: `driver_online_sessions`). When driver goes offline, `ended_at` is filled. This is invisible to the driver — they just see a toggle. The session data powers analytics (total online hours, utilization rate, earnings per hour).
 
 **Why a proper state machine instead of boolean flags**:
+
 - **Auditability**: We need to know when drivers went online/offline for earnings, SLA, and analytics
 - **Concurrency safety**: Boolean flags can't prevent race conditions during driver assignment
 - **Business rules**: Different states allow different operations (can't assign order to OFFLINE driver)
@@ -462,6 +477,7 @@ Any → SUSPENDED (admin action) → OFFLINE (after unsuspend)
 ### 1.2 Database Changes
 
 New table `driver_online_sessions` (internal name — driver never sees "session" or "shift"):
+
 ```sql
 CREATE TABLE driver_online_sessions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -591,6 +607,7 @@ Write an integration test DeliveryStatusIntegrationTests.java covering:
 ## Phase 3: H3 Geospatial Driver Indexing
 
 > **WHY H3 instead of PostGIS ST_DWithin or geohash**:
+>
 > 1. **Uniform cell area**: H3 hexagons have nearly equal area at each resolution (unlike geohash rectangles which distort near poles). For Vietnam (~10°N), this matters less, but H3 also avoids the "edge effect" where nearby points fall in different geohash prefixes.
 > 2. **k-ring neighbor queries**: H3's `kRing(cell, k)` returns all cells within k hexagonal rings — this maps perfectly to "find drivers within N km" with predictable cell counts. PostGIS `ST_DWithin` requires a spatial index scan which is slower for high-frequency updates (driver locations update every 3-5 seconds).
 > 3. **Resolution math**: At resolution 9, each hexagon is ~0.1 km² (105m edge). k-ring of 3 covers ~1.2 km radius. k-ring of 15 covers ~5 km. This gives us precise radius control.
@@ -726,12 +743,14 @@ Run OrderLifecycleIntegrationTests to verify no regression."
 ## Phase 5: Multi-Order Batching
 
 > **WHY batch multiple orders to one driver**: In dense urban areas (HCMC, Hanoi), multiple orders from nearby restaurants going to nearby customers can be efficiently combined. This:
+>
 > 1. Reduces driver idle time between deliveries
 > 2. Reduces total distance driven (shared route segments)
 > 3. Increases driver earnings per hour
 > 4. Reduces platform cost per delivery
 >
 > **Algorithm choice: Greedy Nearest-Neighbor with constraints** instead of full VRP solver:
+>
 > - Full Vehicle Routing Problem (VRP) is NP-hard. For real-time assignment (< 1 second), we need a heuristic.
 > - Google OR-Tools or VROOM are overkill for 2-3 order batches.
 > - Greedy nearest-neighbor with max detour constraint gives 85-90% of optimal with O(n²) complexity.
@@ -822,13 +841,15 @@ Add system parameters:
 ## Phase 6: Route Calculation & Storage (Goong Trip API v2)
 
 > **WHY Goong Trip API v2** (not Directions API, not OSRM):
+>
 > 1. **Multi-stop optimization built-in**: Trip API v2 (`/v2/trip`) optimizes waypoint order for shortest total route — critical for multi-order batching (Phase 5). Directions API only does A→B.
 > 2. **Vietnam-specific road rules**: Accounts for one-way streets, turning bans, time-based vehicle restrictions unique to Vietnamese cities.
 > 3. **v2 already migrated**: Phase 1 migrated GoongMapsClient to v2 and added the `tripRouteRaw()` method. This phase just creates the port/adapter/service layer on top.
 > 4. **Traffic-aware**: Real-time traffic data for ETA estimation.
 > 5. **Google Maps-compatible response**: Returns encoded polylines, legs, distance/duration in Google-compatible format — Flutter's `google_maps_flutter` can render directly.
 >
-> **WHY store routes**: 
+> **WHY store routes**:
+>
 > 1. Customer tracking needs to show the planned route + driver position on it
 > 2. Driver needs turn-by-turn display
 > 3. Route distance is needed for delivery fee (already used in checkout)
@@ -925,6 +946,7 @@ Write integration tests."
 
 > **WHY enhance the existing STOMP-based tracking**:
 > The current system stores telemetry and publishes via STOMP. What's missing:
+>
 > 1. **Route-snapped position**: Raw GPS coordinates jump around. Snapping to the planned route gives smooth visualization.
 > 2. **ETA updates**: As the driver progresses, ETA should update based on remaining route distance.
 > 3. **Customer-facing tracking page**: Mobile needs a map with route polyline + driver marker + live updates.
@@ -981,12 +1003,14 @@ Update OrderTrackingPointResponse DTO to include snapped coordinates and ETA fie
 ## Phase 8: VNPAY Payment Gateway
 
 > **WHY VNPAY**:
+>
 > 1. VNPAY is the most widely adopted payment gateway in Vietnam (60%+ market share for online payments)
 > 2. Supports VNPay QR, bank cards (ATM/Visa/Master), e-wallets
 > 3. Well-documented API with sandbox environment
 > 4. Required for moving beyond COD
 >
 > **Design pattern: Payment Strategy + State Machine**:
+>
 > - Strategy pattern: `PaymentGatewayPort` interface with `VNPayAdapter` implementation (can add MoMo, ZaloPay later)
 > - State machine: `PENDING → PROCESSING → COMPLETED / FAILED → REFUNDED`
 > - Idempotency: Use order's existing idempotency key as VNPAY `vnp_TxnRef`
@@ -1127,6 +1151,7 @@ Create features/payment/ directory with bloc, pages, and data layer."
 ## Phase 9: Weather Service & Redis Caching
 
 > **WHY Redis for caching (not Caffeine/EhCache)**:
+>
 > 1. **Shared cache**: Multiple backend instances (horizontal scaling) need shared cache. In-process caches (Caffeine) are per-JVM.
 > 2. **TTL management**: Redis has native TTL per key. Weather data should expire after 10-15 minutes (per SRS BR36).
 > 3. **Data structures**: Redis Hashes are perfect for "H3 cell → weather data" mapping. Redis GEO for driver locations.
@@ -1222,6 +1247,7 @@ Wire in AppConfig."
 > **WHY Redis GEO for driver locations**:
 > Redis GEO uses a sorted set with geohash scores. `GEOSEARCH` can find all members within a radius in O(N+log(M)) where N is the number of results and M is the total members. For driver lookup, this is blazing fast.
 > But we ALSO store H3 index because our matching algorithm uses H3 k-ring queries (which are precise hex rings, not circles). So we maintain both:
+>
 > - Redis GEO: for radius-based proximity queries
 > - Redis Hash: for H3-indexed lookups
 
@@ -1267,15 +1293,18 @@ Update DriverMatchingAdapter to query from Redis cache first (fall back to DB)."
 ## Phase 10: Dynamic Cost Engine
 
 > **WHY dynamic pricing**:
+>
 > 1. **Weather surcharge**: Drivers face higher risk and slower speeds in rain. Compensating them retains supply.
 > 2. **Route-based fee**: SRS already specifies Goong route distance-based fee. But we can add time-of-day and congestion factors.
 > 3. **Demand surge**: Peak hours (11am-1pm, 6pm-8pm) with low driver supply should price higher to attract drivers.
 >
 > **Design: Chain of Responsibility pattern for fee modifiers**:
 > Each modifier is a pure function: `(baseFee, context) → adjustedFee`. They chain:
+>
 > ```
 > baseFee → DistanceModifier → WeatherModifier → DemandSurgeModifier → finalFee
 > ```
+>
 > **Why Chain of Responsibility**: Modifiers are independent, composable, and can be enabled/disabled via SystemParameter. Adding a new modifier requires zero changes to existing ones.
 
 ### 9.1 Fee Calculation Engine
@@ -1359,6 +1388,7 @@ Run checkout integration tests."
 ## Phase 11: Advanced RAG System Enhancements
 
 > **Current state analysis**: The RAG system is already functional with:
+>
 > - pgvector embeddings in `ai_catalog_chunks`
 > - Google AI Studio (`text-embedding-004`) for embedding generation
 > - Gemini for LLM generation
@@ -1368,15 +1398,10 @@ Run checkout integration tests."
 > **What needs improvement for "super advanced" RAG**:
 >
 > 1. **Hybrid search**: Vector similarity alone misses exact keyword matches. Combine pgvector cosine similarity with `pg_trgm` trigram text search for hybrid retrieval. Research shows hybrid search improves recall by 15-30% over vector-only.
->
 > 2. **Re-ranking**: After initial retrieval, re-rank candidates using a cross-encoder or LLM-based relevance scoring. This reduces false positives where semantically similar but contextually wrong items surface.
->
 > 3. **Chunking strategy**: Menu items should be chunked with rich context (restaurant info, cuisine type, price range, ingredients, dietary tags). Current chunks may lack sufficient context for the LLM to reason about.
->
 > 4. **Query expansion**: User says "something spicy for 2 people under 200k" — expand to: [spicy, hot, chili] × [2-person portion, sharing size] × [budget: 100k per person].
->
 > 5. **Conversation-aware retrieval**: Use the last 3-5 messages to understand evolving preferences, not just the current query.
->
 > 6. **Metadata filtering**: Before vector search, pre-filter by: is_available=true, restaurant is open, within delivery radius, price within budget. This reduces the candidate pool and improves relevance.
 
 ### 10.1 Hybrid Search Implementation
@@ -1500,11 +1525,11 @@ After getting top-10 candidates from hybrid search:
 1. Build a re-ranking prompt for Gemini:
    'Given the user query: {query}
     User context: {budget, group_size, preferences, weather}
-    
+  
     Score each candidate item from 0-10 for relevance:
     1. {item_name} - {restaurant} - {price} - {description}
     2. ...
-    
+  
     Respond with JSON: [{index: 1, score: 8, reason: '...'}, ...]'
 
 2. Parse LLM response, sort by score
@@ -1526,6 +1551,7 @@ Add configurable toggle: 'ai.chat.reranking.enabled' in SystemParameter
 ## Phase 12: Seed Data Enhancement for RAG
 
 > **WHY fix seeds**: The RAG system is only as good as its knowledge base. Current seeds lack:
+>
 > 1. Rich Vietnamese descriptions (the LLM needs context about Vietnamese dishes)
 > 2. English translations (for bilingual users or English-language queries)
 > 3. Ingredient lists (for dietary filtering)
@@ -1836,13 +1862,13 @@ Create widgets:
 
 For each phase, the test approach should be:
 
-| Layer | Test Type | Coverage Target |
-|-------|-----------|----------------|
-| Domain entities | Unit tests | 100% of state transitions, invariants |
-| Application services | Unit tests with mocks | Happy path + 2-3 error cases per method |
-| Adapters | Integration tests | External API contract verification |
-| Controllers | MockMvc integration tests | Request validation, auth, response format |
-| E2E flows | Full integration | Critical paths (assign driver, pay, track) |
+| Layer                | Test Type                 | Coverage Target                            |
+| -------------------- | ------------------------- | ------------------------------------------ |
+| Domain entities      | Unit tests                | 100% of state transitions, invariants      |
+| Application services | Unit tests with mocks     | Happy path + 2-3 error cases per method    |
+| Adapters             | Integration tests         | External API contract verification         |
+| Controllers          | MockMvc integration tests | Request validation, auth, response format  |
+| E2E flows            | Full integration          | Critical paths (assign driver, pay, track) |
 
 ### System Parameters to Add
 
@@ -1883,6 +1909,7 @@ ai.chat.max_history_messages = 10
 ### Docker Compose Updates
 
 The final docker-compose.yml should include:
+
 ```yaml
 services:
   postgres:
@@ -1951,15 +1978,15 @@ After Phase 0 + Phase 1 (foundation), these tracks can run in parallel:
 
 ## Part 5: Risk Assessment
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| H3 Java library compatibility with GraalVM/ARM | 🟡 MEDIUM | Test on target platform early in Phase 3 |
-| VNPAY sandbox availability/documentation | 🟡 MEDIUM | Get sandbox credentials early, test in Phase 8 |
-| Redis operational complexity | 🟢 LOW | Redis is battle-tested, use managed service in prod |
-| pgvector performance at scale | 🟡 MEDIUM | Add HNSW index with appropriate ef_construction |
-| Goong Maps API v2 migration breaks | 🟢 LOW | Phase 1 migrates early, run all existing tests to catch issues |
-| Background location tracking battery drain | 🔴 HIGH | Use significant motion detection, reduce update frequency when stationary |
-| WebSocket connection stability on mobile | 🟡 MEDIUM | Implement reconnection with exponential backoff |
+| Risk                                           | Impact    | Mitigation                                                                |
+| ---------------------------------------------- | --------- | ------------------------------------------------------------------------- |
+| H3 Java library compatibility with GraalVM/ARM | 🟡 MEDIUM | Test on target platform early in Phase 3                                  |
+| VNPAY sandbox availability/documentation       | 🟡 MEDIUM | Get sandbox credentials early, test in Phase 8                            |
+| Redis operational complexity                   | 🟢 LOW    | Redis is battle-tested, use managed service in prod                       |
+| pgvector performance at scale                  | 🟡 MEDIUM | Add HNSW index with appropriate ef_construction                           |
+| Goong Maps API v2 migration breaks             | 🟢 LOW    | Phase 1 migrates early, run all existing tests to catch issues            |
+| Background location tracking battery drain     | 🔴 HIGH   | Use significant motion detection, reduce update frequency when stationary |
+| WebSocket connection stability on mobile       | 🟡 MEDIUM | Implement reconnection with exponential backoff                           |
 
 ---
 
