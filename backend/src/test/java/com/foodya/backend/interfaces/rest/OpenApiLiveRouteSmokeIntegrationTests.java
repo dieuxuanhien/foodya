@@ -209,6 +209,13 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "POST /api/v1/delivery/orders/{orderId}/locations" -> assertNot5xx(request("POST", "/api/v1/delivery/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/locations", auth.deliveryAccess,
                     "{\"lat\":10.777,\"lng\":106.702,\"recordedAt\":\"2026-03-31T10:05:00Z\"}"));
 
+            // Phase 2: Driver Lifecycle (Grab-style toggle)
+            case "POST /api/v1/delivery/status/online" -> assertNot5xx(request("POST", "/api/v1/delivery/status/online", auth.deliveryAccess, null));
+            case "POST /api/v1/delivery/status/offline" -> assertNot5xx(request("POST", "/api/v1/delivery/status/offline", auth.deliveryAccess, null));
+            case "GET /api/v1/delivery/status" -> assertNot5xx(request("GET", "/api/v1/delivery/status", auth.deliveryAccess, null));
+            case "PUT /api/v1/delivery/status/location" -> assertNot5xx(request("PUT", "/api/v1/delivery/status/location", auth.deliveryAccess,
+                    "{\"lat\":10.776,\"lng\":106.701}"));
+
             case "GET /api/v1/admin/restaurants" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants", auth.adminAccess, null));
             case "GET /api/v1/admin/restaurants/{id}" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID, auth.adminAccess, null));
             case "POST /api/v1/admin/restaurants" -> assertNot5xx(request("POST", "/api/v1/admin/restaurants", auth.adminAccess,

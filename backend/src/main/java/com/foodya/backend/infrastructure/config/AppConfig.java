@@ -2,6 +2,9 @@ package com.foodya.backend.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodya.backend.application.ports.in.CatalogUseCase;
+import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
+import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
+import com.foodya.backend.application.usecases.DriverLifecycleService;
 import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.application.usecases.*;
 import com.foodya.backend.application.usecases.policy.BackupPolicyEnforcementService;
@@ -237,4 +240,10 @@ public class AppConfig {
 	public IntegrationStatusService integrationStatusService(IntegrationSecretPort integrationSecretPort) {
 		return new IntegrationStatusService(integrationSecretPort);
 	}
+
+	@Bean
+	public DriverLifecycleUseCase driverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort) {
+		return new DriverLifecycleService(driverOnlineSessionPort);
+	}
 }
+
