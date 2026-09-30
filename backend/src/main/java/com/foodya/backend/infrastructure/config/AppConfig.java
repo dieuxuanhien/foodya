@@ -242,8 +242,9 @@ public class AppConfig {
 	}
 
 	@Bean
-	public DriverLifecycleUseCase driverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort) {
-		return new DriverLifecycleService(driverOnlineSessionPort);
+	public DriverLifecycleUseCase driverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort,
+			GeoPort geoPort) {
+		return new DriverLifecycleService(driverOnlineSessionPort, geoPort);
 	}
 }
 

@@ -84,24 +84,26 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
 
         CartCheckoutQuote quote = buildCartCheckoutQuote(customerUserId, request);
 
-        Order order = new Order();
-        order.setOrderCode(OrderCodeGenerator.generateOrderCode());
-        order.setCustomerUserId(customerUserId);
-        order.setIdempotencyKey(normalizedIdempotencyKey);
-        order.setRestaurantId(quote.restaurant.getId());
-        order.setStatus(OrderStatus.PENDING);
-        order.setDeliveryAddress(request.deliveryAddress().trim());
-        order.setDeliveryLatitude(request.deliveryLatitude());
-        order.setDeliveryLongitude(request.deliveryLongitude());
-        order.setCustomerNote(request.customerNote());
-        order.setSubtotalAmount(quote.subtotal);
-        order.setDeliveryFee(quote.deliveryFee);
-        order.setTotalAmount(quote.total);
-        order.setPaymentMethod(PaymentMethod.COD);
-        order.setPaymentStatus(PaymentStatus.UNPAID);
-        order.setCommissionAmount(quote.commissionAmount);
-        order.setShippingFeeMarginAmount(quote.shippingFeeMarginAmount);
-        order.setPlatformProfitAmount(quote.platformProfitAmount);
+        Order order = Order.builder()
+                .orderCode(OrderCodeGenerator.generateOrderCode())
+                .customerUserId(customerUserId)
+                .idempotencyKey(normalizedIdempotencyKey)
+                .restaurantId(quote.restaurant.getId())
+                .status(OrderStatus.PENDING)
+                .deliveryAddress(request.deliveryAddress().trim())
+                .deliveryLatitude(request.deliveryLatitude())
+                .deliveryLongitude(request.deliveryLongitude())
+                .customerNote(request.customerNote())
+                .subtotalAmount(quote.subtotal)
+                .deliveryFee(quote.deliveryFee)
+                .totalAmount(quote.total)
+                .paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.UNPAID)
+                .commissionAmount(quote.commissionAmount)
+                .shippingFeeMarginAmount(quote.shippingFeeMarginAmount)
+                .platformProfitAmount(quote.platformProfitAmount)
+                .build();
+
 
         Order savedOrder = orderCheckoutPort.saveOrder(order);
 

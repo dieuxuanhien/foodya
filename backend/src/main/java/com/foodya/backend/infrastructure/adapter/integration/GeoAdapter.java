@@ -38,10 +38,16 @@ public class GeoAdapter implements GeoPort {
         return h3Core.geoToH3Address(lat, lng, H3_RESTAURANT_RES);
     }
 
+    // H3 resolution 9: average edge length = 174.375 m
+    // k rings cover approx k * 174.375 * sqrt(3) metres radius
+    // → k = ceil(radiusKm * 1000 / (174.375 * 1.7321)) ≈ ceil(radiusKm * 3.317)
+    private static final double H3_RES9_EDGE_M = 174.375;
+    private static final double SQRT3 = 1.7320508;
+
     @Override
     public Set<String> h3KRingRes9(double lat, double lng, double radiusKm) {
         String center = h3Res9(lat, lng);
-        int ringSize = Math.max(1, (int) Math.ceil(radiusKm / 0.5));
+        int ringSize = Math.max(1, (int) Math.ceil(radiusKm * 1000.0 / (H3_RES9_EDGE_M * SQRT3)));
         return new HashSet<>(h3Core.kRing(center, ringSize));
     }
 

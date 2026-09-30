@@ -4,6 +4,7 @@ import com.foodya.backend.application.dto.DriverSessionView;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
+import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.domain.entities.DriverOnlineSession;
 import com.foodya.backend.domain.value_objects.DriverSessionStatus;
 import org.slf4j.Logger;
@@ -20,11 +21,15 @@ import java.util.UUID;
 public class DriverLifecycleService implements DriverLifecycleUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(DriverLifecycleService.class);
+    private static final int H3_DRIVER_RESOLUTION = 9;
 
     private final DriverOnlineSessionPort driverOnlineSessionPort;
+    private final GeoPort geoPort;
 
-    public DriverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort) {
+    public DriverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort,
+                                  GeoPort geoPort) {
         this.driverOnlineSessionPort = driverOnlineSessionPort;
+        this.geoPort = geoPort;
     }
 
     // -------------------------------------------------------------------------
@@ -95,10 +100,7 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
                     Map.of("status", "current status is " + session.getStatus().name()));
         }
 
-        // Compute a simple H3 res9 placeholder string.
-        // NOTE: In Phase 3, this will be replaced by a real H3IndexPort call.
-        // For now we use a placeholder format that will be replaced.
-        String h3Index = computeH3Placeholder(lat, lng);
+        String h3Index = geoPort.geoToH3Index(lat, lng, H3_DRIVER_RESOLUTION);
         session.updateLocation(lat, lng, h3Index);
 
         DriverOnlineSession saved = driverOnlineSessionPort.save(session);
@@ -125,17 +127,6 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
                 .orElseThrow(() -> new ValidationException(
                         "no active session found for driver",
                         Map.of("driverUserId", driverUserId.toString())));
-    }
-
-    /**
-     * Temporary H3 placeholder until the H3IndexPort (Phase 3) is wired.
-     * Encodes lat/lng as a bucketed string at ~res9 granularity (~100m cells).
-     * This will be replaced by {@code h3IndexPort.latLngToCell(lat, lng, 9)} in Phase 3.
-     */
-    private String computeH3Placeholder(double lat, double lng) {
-        long latBucket = Math.round(lat * 1000);
-        long lngBucket = Math.round(lng * 1000);
-        return String.format("h3_%d_%d", latBucket, lngBucket);
     }
 
     private DriverSessionView toView(DriverOnlineSession session) {

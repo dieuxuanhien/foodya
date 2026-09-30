@@ -3,6 +3,9 @@ package com.foodya.backend.domain.entities;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -25,6 +28,10 @@ import java.util.UUID;
  * This separation follows Clean Architecture's inward dependency principle:
  * Domain → no outer layer (framework) dependencies.
  */
+
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Order {
 
     private static final List<OrderStatus> CANCELLABLE_BY_CUSTOMER = List.of(
