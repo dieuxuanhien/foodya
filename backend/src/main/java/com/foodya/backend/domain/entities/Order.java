@@ -50,6 +50,8 @@ public class Order {
 
     private UUID restaurantId;
 
+    private UUID driverUserId;
+
     private OrderStatus status;
 
     private String deliveryAddress;
@@ -140,6 +142,14 @@ public class Order {
         this.restaurantId = restaurantId;
     }
 
+    public UUID getDriverUserId() {
+        return driverUserId;
+    }
+
+    public void setDriverUserId(UUID driverUserId) {
+        this.driverUserId = driverUserId;
+    }
+
     public OrderStatus getStatus() {
         return status;
     }
@@ -166,6 +176,16 @@ public class Order {
     public void merchantMarkPreparing() {
         requireStatus(OrderStatus.ASSIGNED, "merchant mark preparing");
         status = OrderStatus.PREPARING;
+    }
+
+    /**
+     * Auto-assigns a driver to this order (called by the matching algorithm).
+     * Transitions ACCEPTED → ASSIGNED and records the driver.
+     */
+    public void assignDriver(UUID driverUserId) {
+        requireStatus(OrderStatus.ACCEPTED, "assign driver");
+        this.driverUserId = driverUserId;
+        this.status = OrderStatus.ASSIGNED;
     }
 
     public void deliveryAcceptAssignment() {

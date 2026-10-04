@@ -11,6 +11,8 @@ import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
+import com.foodya.backend.application.ports.out.DriverMatchingPort;
+import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
 import com.foodya.backend.application.ports.out.OrderPaymentPort;
@@ -19,10 +21,13 @@ import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
+import com.foodya.backend.domain.entities.DriverOnlineSession;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.application.support.PaginationPolicy;
+import com.foodya.backend.domain.value_objects.DriverMatchRequest;
+import com.foodya.backend.domain.value_objects.DriverMatchResult;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +36,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class OrderLifecycleService implements OrderLifecycleUseCase {
@@ -45,6 +51,8 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     private final OrderPaymentPort orderPaymentPort;
     private final OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort;
     private final PaginationPolicy paginationPolicy;
+    private final DriverMatchingPort driverMatchingPort;
+    private final DriverOnlineSessionPort driverOnlineSessionPort;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
@@ -53,7 +61,9 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                                  UserAccountPort userAccountPort,
                                  OrderPaymentPort orderPaymentPort,
                                  OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
-                                 PaginationPolicy paginationPolicy) {
+                                 PaginationPolicy paginationPolicy,
+                                 DriverMatchingPort driverMatchingPort,
+                                 DriverOnlineSessionPort driverOnlineSessionPort) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
@@ -62,6 +72,8 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         this.orderPaymentPort = orderPaymentPort;
         this.orderTrackingUpdatePublisherPort = orderTrackingUpdatePublisherPort;
         this.paginationPolicy = paginationPolicy;
+        this.driverMatchingPort = driverMatchingPort;
+        this.driverOnlineSessionPort = driverOnlineSessionPort;
     }
 
     public PaginatedResult<OrderSummaryView> customerOrders(UUID customerUserId, Integer page, Integer size) {
@@ -136,6 +148,10 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
             }
             Order saved = orderManagementPort.save(order);
             publishOrderEvent(saved, "ORDER_ACCEPTED", "Order " + saved.getOrderCode() + " accepted");
+
+            // Auto-assign a driver after merchant acceptance
+            tryAutoAssignDriver(saved);
+
             return toDetail(saved);
         }
         if (targetStatus == OrderStatus.PREPARING) {
@@ -241,6 +257,57 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .stream()
                 .map(point -> new OrderTrackingPointView(point.getLat(), point.getLng(), point.getRecordedAt()))
                 .toList();
+    }
+
+    // -------------------------------------------------------------------------
+    // Auto-assign driver after merchant acceptance
+    // -------------------------------------------------------------------------
+
+    private void tryAutoAssignDriver(Order order) {
+        try {
+            Restaurant restaurant = restaurantPort.findById(order.getRestaurantId()).orElse(null);
+            if (restaurant == null || restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
+                log.warn("Cannot auto-assign driver for order {}: restaurant location unavailable", order.getId());
+                return;
+            }
+
+            DriverMatchRequest matchRequest = new DriverMatchRequest(
+                    restaurant.getLatitude().doubleValue(),
+                    restaurant.getLongitude().doubleValue(),
+                    order.getDeliveryLatitude() != null ? order.getDeliveryLatitude().doubleValue() : 0.0,
+                    order.getDeliveryLongitude() != null ? order.getDeliveryLongitude().doubleValue() : 0.0,
+                    order.getTotalAmount()
+            );
+
+            Optional<DriverMatchResult> matchResult = driverMatchingPort.findBestDriver(matchRequest);
+            if (matchResult.isEmpty()) {
+                log.warn("No driver available for order {} — order stays in ACCEPTED", order.getOrderCode());
+                return;
+            }
+
+            DriverMatchResult match = matchResult.get();
+
+            // Transition order: ACCEPTED → ASSIGNED with driver
+            order.assignDriver(match.driverUserId());
+            Order saved = orderManagementPort.save(order);
+
+            // Update driver session: increment active order count
+            driverOnlineSessionPort.findActiveSession(match.driverUserId())
+                    .ifPresent(session -> {
+                        session.startDelivery();
+                        driverOnlineSessionPort.save(session);
+                    });
+
+            log.info("Auto-assigned driver {} to order {} (distance={}km, score={})",
+                    match.driverUserId(), saved.getOrderCode(),
+                    String.format("%.2f", match.distanceKm()),
+                    String.format("%.3f", match.score()));
+
+            publishOrderEvent(saved, "ORDER_ASSIGNED", "Driver assigned to order " + saved.getOrderCode());
+        } catch (Exception ex) {
+            // Non-fatal: order stays in ACCEPTED, can be retried or manually assigned
+            log.error("Failed to auto-assign driver for order {}: {}", order.getOrderCode(), ex.getMessage(), ex);
+        }
     }
 
     private void assertMerchantOwnsOrder(UUID merchantUserId, UUID restaurantId) {

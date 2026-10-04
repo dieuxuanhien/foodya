@@ -48,6 +48,9 @@ public class OrderPersistenceModel {
     @Column(name = "restaurant_id", nullable = false)
     private UUID restaurantId;
 
+    @Column(name = "driver_user_id")
+    private UUID driverUserId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private OrderStatus status;
@@ -157,6 +160,14 @@ public class OrderPersistenceModel {
 
     public void setRestaurantId(UUID restaurantId) {
         this.restaurantId = restaurantId;
+    }
+
+    public UUID getDriverUserId() {
+        return driverUserId;
+    }
+
+    public void setDriverUserId(UUID driverUserId) {
+        this.driverUserId = driverUserId;
     }
 
     public OrderStatus getStatus() {
