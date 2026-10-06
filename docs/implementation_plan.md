@@ -740,101 +740,32 @@ Run OrderLifecycleIntegrationTests to verify no regression."
 
 ---
 
-## Phase 5: Multi-Order Batching
+## Phase 5: Order Batching (VRPPD-TW)
 
-> **WHY batch multiple orders to one driver**: In dense urban areas (HCMC, Hanoi), multiple orders from nearby restaurants going to nearby customers can be efficiently combined. This:
+> [!IMPORTANT]
+> **This phase has been superseded by a comprehensive standalone specification.**
 >
-> 1. Reduces driver idle time between deliveries
-> 2. Reduces total distance driven (shared route segments)
-> 3. Increases driver earnings per hour
-> 4. Reduces platform cost per delivery
+> Full design, requirements (SEI format), DoD, architecture, database changes, and acceptance criteria are documented in:
 >
-> **Algorithm choice: Greedy Nearest-Neighbor with constraints** instead of full VRP solver:
->
-> - Full Vehicle Routing Problem (VRP) is NP-hard. For real-time assignment (< 1 second), we need a heuristic.
-> - Google OR-Tools or VROOM are overkill for 2-3 order batches.
-> - Greedy nearest-neighbor with max detour constraint gives 85-90% of optimal with O(n²) complexity.
-> - **Key constraint**: Maximum detour for any customer ≤ 15 minutes. If batching adds more than 15 min to any customer's delivery, don't batch.
+> 📄 **[ORDER_BATCHING_SPEC.md](file:///home/xuanhien/Documents/repo/foodya/docs/ORDER_BATCHING_SPEC.md)**
 
-### 4.1 Batching Data Model
+**Summary of changes from original Phase 5**:
 
-```
-Agent Prompt 4.1:
-"Create Flyway migration V21__create_order_batches_table.sql:
+| Aspect | Original (Greedy) | New (VRPPD-TW) |
+|--------|-------------------|----------------|
+| Algorithm | Greedy nearest-neighbor | Google OR-Tools RoutingModel |
+| Optimality | ~85% optimal | ~95-98% optimal |
+| Distance Data | Haversine (đường chim bay) | Goong Distance Matrix v2 (đường thực tế) |
+| Batch Timing | Real-time per order (ghép vào đơn đang giao) | Batch window (collect → solve → assign trọn gói) |
+| Key Principle | — | **Batch hoàn toàn trước khi hiện lên tài xế** |
 
-CREATE TABLE order_batches (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    driver_user_id  UUID NOT NULL REFERENCES user_accounts(id),
-    shift_id        UUID NOT NULL REFERENCES driver_shifts(id),
-    status          VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-    pickup_sequence TEXT[],      -- ordered array of order UUIDs for pickup
-    delivery_sequence TEXT[],    -- ordered array of order UUIDs for delivery
-    total_distance_km DOUBLE PRECISION,
-    estimated_duration_minutes INTEGER,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    completed_at    TIMESTAMPTZ
-);
-
-CREATE INDEX idx_order_batches_driver ON order_batches (driver_user_id, status) WHERE status = 'ACTIVE';
-
-ALTER TABLE delivery_assignments ADD COLUMN batch_id UUID REFERENCES order_batches(id);
-ALTER TABLE delivery_assignments ADD COLUMN sequence_in_batch INTEGER;
-CREATE INDEX idx_delivery_assignments_batch ON delivery_assignments (batch_id);"
-```
-
-### 4.2 Batching Algorithm
-
-```
-Agent Prompt 4.2:
-"Create BatchOrderMatchingPort in application/ports/out/ with method:
-- Optional<BatchMatchResult> findBatchOpportunity(UUID orderId, double restaurantLat, double restaurantLng, 
-  double customerLat, double customerLng)
-
-Create value object BatchMatchResult: batchId (UUID), driverUserId (UUID), 
-additionalDetourKm (double), estimatedDetourMinutes (int), 
-updatedPickupSequence (List<UUID>), updatedDeliverySequence (List<UUID>)
-
-Create BatchOrderMatchingAdapter implementing the port:
-Algorithm:
-1. Find all drivers with active_order_count > 0 AND active_order_count < max_concurrent_orders 
-   within H3 kRing(restaurant_cell, 5)
-2. For each such driver, get their current batch and existing order locations
-3. For each candidate batch, compute:
-   a. Current route distance (sum of legs in current sequence)
-   b. New route distance with the new order inserted at optimal position
-   c. Detour = new_distance - current_distance
-   d. Max additional time for any existing customer = detour / average_speed * 60
-4. Filter: max_additional_time <= 15 minutes (configurable via SystemParameter)
-5. Score: lower detour + higher driver score = better batch
-6. Return best batch opportunity, or empty if none qualifies
-
-The optimal insertion position can be found by trying all possible positions in pickup_sequence 
-and delivery_sequence (with constraint: pickup before delivery for same order) and choosing 
-the one with minimum total distance increase.
-
-For 2-3 orders, this is at most 6 positions to try — O(1) per candidate driver.
-Wire in AppConfig."
-```
-
-### 4.3 Integrate Batching into Assignment Flow
-
-```
-Agent Prompt 4.3:
-"Update the order assignment logic (from Phase 3) to try batching first:
-1. When order transitions to ACCEPTED, first call BatchOrderMatchingPort.findBatchOpportunity()
-2. If a batch opportunity exists with detour < threshold:
-   a. Add order to existing batch (update pickup/delivery sequences)
-   b. Create DeliveryAssignment with batch_id and sequence_in_batch
-   c. Notify driver of new order in batch
-   d. Notify customer with updated ETA
-3. If no batch opportunity, fall back to single-driver matching (Phase 3 logic)
-4. If neither works, order stays in ACCEPTED for retry
-
-Add system parameters:
-- 'driver.batch.max_detour_minutes' = 15
-- 'driver.batch.max_orders_per_batch' = 3
-- 'driver.batch.search_radius_km' = 2.0"
-```
+**Key deliverables** (see spec for full details):
+- `DistanceMatrixPort` + `GoongDistanceMatrixAdapter` (Goong v2 `/distancematrix`)
+- `VrpSolverPort` + `OrToolsVrpSolverAdapter` (Google OR-Tools)
+- `OrderBatchingService` with scheduled batch cycle
+- New tables: `order_batches`, `batch_order_items`, alter `orders`
+- REST APIs for driver batch view, customer ETA, admin monitoring
+- Feature toggle: `batching.enabled` via `system_parameters`
 
 ---
 
@@ -1885,11 +1816,18 @@ driver.matching.quality_weight = 0.2
 driver.matching.capacity_weight = 0.2
 driver.matching.fairness_weight = 0.1
 
--- Phase 5
-driver.batch.enabled = true
-driver.batch.max_detour_minutes = 15
-driver.batch.max_orders_per_batch = 3
-driver.batch.search_radius_km = 2
+-- Phase 5 (see docs/ORDER_BATCHING_SPEC.md Section 10 for full list)
+batching.enabled = true
+batching.interval_seconds = 30
+batching.max_batch_size = 4
+batching.max_delivery_time_minutes = 45
+batching.max_detour_minutes = 15
+batching.max_wait_for_batch_seconds = 120
+batching.search_radius_km = 10
+batching.pickup_service_time_seconds = 300
+batching.delivery_service_time_seconds = 180
+batching.solver_time_limit_ms = 3000
+batching.cooldown_seconds = 10
 
 -- Phase 10
 pricing.weather.rain_multiplier = 1.15
@@ -1932,7 +1870,7 @@ graph TD
     P1 --> P2[Phase 2: Driver Lifecycle]
     P2 --> P3[Phase 3: H3 Driver Indexing]
     P3 --> P4[Phase 4: Driver Matching]
-    P4 --> P5[Phase 5: Multi-Order Batching]
+    P4 --> P5["Phase 5: Order Batching (VRPPD-TW)"]
     P1 --> P6[Phase 6: Route Calc Goong Trip v2]
     P6 --> P7[Phase 7: Enhanced Tracking]
     P1 --> P8[Phase 8: VNPAY Payment]
@@ -1967,7 +1905,7 @@ graph TD
 
 After Phase 0 + Phase 1 (foundation), these tracks can run in parallel:
 
-1. **Driver Track**: P2 → P3 → P4 → P5 (sequential, each depends on previous)
+1. **Driver Track**: P2 → P3 → P4 → P5 (sequential, each depends on previous) — P5 spec in [ORDER_BATCHING_SPEC.md](file:///home/xuanhien/Documents/repo/foodya/docs/ORDER_BATCHING_SPEC.md)
 2. **Routing Track**: P6 → P7 (sequential, both depend on Phase 1 Goong v2)
 3. **Payment Track**: P8 (independent after Phase 1)
 4. **Pricing Track**: P9 → P10 (sequential, P10 needs P6 and P9)
