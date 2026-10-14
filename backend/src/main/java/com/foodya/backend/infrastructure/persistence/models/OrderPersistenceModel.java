@@ -102,6 +102,18 @@ public class OrderPersistenceModel {
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
+    @Column(name = "batch_id")
+    private UUID batchId;
+
+    @Column(name = "batch_pickup_index")
+    private Integer batchPickupIndex;
+
+    @Column(name = "batch_delivery_index")
+    private Integer batchDeliveryIndex;
+
+    @Column(name = "estimated_delivery_at")
+    private OffsetDateTime estimatedDeliveryAt;
+
     @PrePersist
     void onCreate() {
         if (id == null) {
@@ -296,5 +308,37 @@ public class OrderPersistenceModel {
 
     public void setCompletedAt(OffsetDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public UUID getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(UUID batchId) {
+        this.batchId = batchId;
+    }
+
+    public Integer getBatchPickupIndex() {
+        return batchPickupIndex;
+    }
+
+    public void setBatchPickupIndex(Integer batchPickupIndex) {
+        this.batchPickupIndex = batchPickupIndex;
+    }
+
+    public Integer getBatchDeliveryIndex() {
+        return batchDeliveryIndex;
+    }
+
+    public void setBatchDeliveryIndex(Integer batchDeliveryIndex) {
+        this.batchDeliveryIndex = batchDeliveryIndex;
+    }
+
+    public OffsetDateTime getEstimatedDeliveryAt() {
+        return estimatedDeliveryAt;
+    }
+
+    public void setEstimatedDeliveryAt(OffsetDateTime estimatedDeliveryAt) {
+        this.estimatedDeliveryAt = estimatedDeliveryAt;
     }
 }

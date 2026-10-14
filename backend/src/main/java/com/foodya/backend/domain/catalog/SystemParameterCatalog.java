@@ -49,6 +49,16 @@ public final class SystemParameterCatalog {
         rules.put("retention.ai_chat_days", ParameterRule.number("90", false, new NumberConstraint(BigDecimal.valueOf(30), null)));
         rules.put("ops.backup.rpo_minutes", ParameterRule.number("15", false, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(15))));
         rules.put("ops.backup.rto_minutes", ParameterRule.number("60", false, new NumberConstraint(BigDecimal.ONE, BigDecimal.valueOf(60))));
+
+        // Order batching (Phase 5) — read at runtime by OrderBatchingService.
+        rules.put("batching.enabled", ParameterRule.bool("true", true));
+        rules.put("batching.cooldown_seconds", ParameterRule.number("10", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        rules.put("batching.max_wait_for_batch_seconds", ParameterRule.number("120", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("batching.search_radius_km", ParameterRule.number("10.0", true, new NumberConstraint(BigDecimal.ZERO, null, true)));
+        rules.put("batching.pickup_service_time_seconds", ParameterRule.number("300", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        rules.put("batching.delivery_service_time_seconds", ParameterRule.number("180", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        rules.put("batching.max_delivery_time_minutes", ParameterRule.number("45", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("batching.solver_time_limit_ms", ParameterRule.number("3000", true, new NumberConstraint(BigDecimal.valueOf(100), null)));
         return rules;
     }
 
@@ -64,6 +74,14 @@ public final class SystemParameterCatalog {
 
         public static ParameterRule string(String defaultValue, boolean runtimeApplicable, ValueValidator validator) {
             return new ParameterRule(ParameterValueType.STRING, defaultValue, runtimeApplicable, validator);
+        }
+
+        public static ParameterRule bool(String defaultValue, boolean runtimeApplicable) {
+            return new ParameterRule(ParameterValueType.BOOLEAN, defaultValue, runtimeApplicable, value -> {
+                if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                    throw new IllegalArgumentException("must be true or false");
+                }
+            });
         }
     }
 

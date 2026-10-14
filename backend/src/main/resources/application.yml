@@ -57,3 +57,7 @@ foodya:
   rate-limit:
     auth-requests-per-minute: ${FOODYA_AUTH_RATE_LIMIT_PER_MINUTE:60}
     ai-requests-per-minute: ${FOODYA_AI_RATE_LIMIT_PER_MINUTE:30}
+  batching:
+    # Fixed tick for the batch scheduler. The effective assignment cadence is
+    # governed by the runtime system parameter `batching.cooldown_seconds`.
+    cycle-interval-ms: ${FOODYA_BATCHING_CYCLE_INTERVAL_MS:10000}

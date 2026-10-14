@@ -216,6 +216,16 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "PUT /api/v1/delivery/status/location" -> assertNot5xx(request("PUT", "/api/v1/delivery/status/location", auth.deliveryAccess,
                     "{\"lat\":10.776,\"lng\":106.701}"));
 
+            // Phase 5: Order Batching
+            case "GET /api/v1/delivery/batches/active" -> assertNot5xx(request("GET", "/api/v1/delivery/batches/active", auth.deliveryAccess, null));
+            case "GET /api/v1/delivery/batches/{batchId}" -> assertNot5xx(request("GET", "/api/v1/delivery/batches/" + randomId, auth.deliveryAccess, null));
+            case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/pickup" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/pickup", auth.deliveryAccess, null));
+            case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/delivery" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/delivery", auth.deliveryAccess, null));
+            case "GET /api/v1/customer/orders/{orderId}/batch-info" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/batch-info", auth.customerAccess, null));
+            case "GET /api/v1/admin/batches" -> assertNot5xx(request("GET", "/api/v1/admin/batches", auth.adminAccess, null));
+            case "GET /api/v1/admin/batches/{batchId}" -> assertNot5xx(request("GET", "/api/v1/admin/batches/" + randomId, auth.adminAccess, null));
+            case "POST /api/v1/admin/batches/trigger-cycle" -> assertNot5xx(request("POST", "/api/v1/admin/batches/trigger-cycle", auth.adminAccess, null));
+
             case "GET /api/v1/admin/restaurants" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants", auth.adminAccess, null));
             case "GET /api/v1/admin/restaurants/{id}" -> assertNot5xx(request("GET", "/api/v1/admin/restaurants/" + SEEDED_RESTAURANT_ID, auth.adminAccess, null));
             case "POST /api/v1/admin/restaurants" -> assertNot5xx(request("POST", "/api/v1/admin/restaurants", auth.adminAccess,

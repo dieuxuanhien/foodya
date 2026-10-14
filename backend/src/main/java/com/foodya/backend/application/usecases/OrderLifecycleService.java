@@ -149,8 +149,11 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
             Order saved = orderManagementPort.save(order);
             publishOrderEvent(saved, "ORDER_ACCEPTED", "Order " + saved.getOrderCode() + " accepted");
 
-            // Auto-assign a driver after merchant acceptance
-            tryAutoAssignDriver(saved);
+            // Phase 5: Driver assignment is now handled by the batch scheduler
+            // (OrderBatchingService → BatchSchedulerJob). The scheduler collects all
+            // ACCEPTED orders and runs VRPPD-TW optimization for batched assignment.
+            // Immediate single-assignment fallback is also handled by the scheduler
+            // for urgent orders that have waited too long.
 
             return toDetail(saved);
         }
@@ -331,6 +334,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 order.getOrderCode(),
                 order.getCustomerUserId(),
                 restaurant.getOwnerUserId(),
+                order.getDriverUserId(),
                 order.getStatus(),
                 eventType,
                 "Order update " + order.getOrderCode(),

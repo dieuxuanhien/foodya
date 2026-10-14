@@ -76,6 +76,14 @@ public class OrderManagementAdapter implements OrderManagementPort {
     }
 
     @Override
+    public List<Order> findEligibleForBatching() {
+        return repository.findEligibleForBatching()
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     @SuppressWarnings("null")
     public Order save(Order order) {
         OrderPersistenceModel model = mapper.toPersistence(Objects.requireNonNull(order));

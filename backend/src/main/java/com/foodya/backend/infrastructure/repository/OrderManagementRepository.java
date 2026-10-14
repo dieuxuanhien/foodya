@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -26,4 +28,7 @@ public interface OrderManagementRepository extends JpaRepository<OrderPersistenc
     Page<OrderPersistenceModel> findByRestaurantIdOrderByPlacedAtDesc(UUID restaurantId, Pageable pageable);
 
     List<OrderPersistenceModel> findByStatusInOrderByPlacedAtAsc(Collection<OrderStatus> statuses);
+
+    @Query("SELECT o FROM OrderPersistenceModel o WHERE o.status = 'ACCEPTED' AND o.driverUserId IS NULL AND o.batchId IS NULL ORDER BY o.placedAt ASC")
+    List<OrderPersistenceModel> findEligibleForBatching();
 }

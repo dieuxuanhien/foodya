@@ -9,6 +9,7 @@ public record OrderNotificationEvent(
         String orderCode,
         UUID customerUserId,
         UUID merchantUserId,
+        UUID driverUserId,
         OrderStatus status,
         String eventType,
         String title,

@@ -85,6 +85,22 @@ public class GoongMapsClient {
                 .body(String.class));
     }
 
+    public String distanceMatrixRaw(String origins, String destinations, String vehicle) {
+        String apiKey = apiSecretsProvider.get(IntegrationKeyCatalog.GOONG_API_KEY)
+                .orElseThrow(() -> new IllegalStateException("Missing Goong API key"));
+
+        return executeWithRetry(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/v2/distancematrix")
+                        .queryParam("origins", origins)
+                        .queryParam("destinations", destinations)
+                        .queryParam("vehicle", vehicle == null ? "bike" : vehicle)
+                        .queryParam("api_key", apiKey)
+                        .build())
+                .retrieve()
+                .body(String.class));
+    }
+
     private String executeWithRetry(java.util.function.Supplier<String> request) {
         RestClientException lastFailure = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {

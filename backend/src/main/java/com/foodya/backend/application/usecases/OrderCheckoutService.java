@@ -124,6 +124,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             savedOrder.getOrderCode(),
             savedOrder.getCustomerUserId(),
             quote.restaurant.getOwnerUserId(),
+            null,
             savedOrder.getStatus(),
             "ORDER_CREATED",
             "New order " + savedOrder.getOrderCode(),

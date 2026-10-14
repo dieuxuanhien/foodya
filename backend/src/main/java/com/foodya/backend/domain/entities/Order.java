@@ -84,6 +84,14 @@ public class Order {
 
     private OffsetDateTime completedAt;
 
+    private UUID batchId;
+
+    private Integer batchPickupIndex;
+
+    private Integer batchDeliveryIndex;
+
+    private OffsetDateTime estimatedDeliveryAt;
+
     void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
@@ -370,6 +378,38 @@ public class Order {
 
     public void setCompletedAt(OffsetDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public UUID getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(UUID batchId) {
+        this.batchId = batchId;
+    }
+
+    public Integer getBatchPickupIndex() {
+        return batchPickupIndex;
+    }
+
+    public void setBatchPickupIndex(Integer batchPickupIndex) {
+        this.batchPickupIndex = batchPickupIndex;
+    }
+
+    public Integer getBatchDeliveryIndex() {
+        return batchDeliveryIndex;
+    }
+
+    public void setBatchDeliveryIndex(Integer batchDeliveryIndex) {
+        this.batchDeliveryIndex = batchDeliveryIndex;
+    }
+
+    public OffsetDateTime getEstimatedDeliveryAt() {
+        return estimatedDeliveryAt;
+    }
+
+    public void setEstimatedDeliveryAt(OffsetDateTime estimatedDeliveryAt) {
+        this.estimatedDeliveryAt = estimatedDeliveryAt;
     }
 
     private void requireStatus(OrderStatus expected, String action) {

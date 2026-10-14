@@ -61,6 +61,10 @@ public class OrderMapper {
         domain.setCancelReason(model.getCancelReason());
         domain.setPlacedAt(model.getPlacedAt());
         domain.setCompletedAt(model.getCompletedAt());
+        domain.setBatchId(model.getBatchId());
+        domain.setBatchPickupIndex(model.getBatchPickupIndex());
+        domain.setBatchDeliveryIndex(model.getBatchDeliveryIndex());
+        domain.setEstimatedDeliveryAt(model.getEstimatedDeliveryAt());
 
         return domain;
     }
@@ -99,6 +103,10 @@ public class OrderMapper {
         model.setCancelReason(domain.getCancelReason());
         model.setPlacedAt(domain.getPlacedAt());
         model.setCompletedAt(domain.getCompletedAt());
+        model.setBatchId(domain.getBatchId());
+        model.setBatchPickupIndex(domain.getBatchPickupIndex());
+        model.setBatchDeliveryIndex(domain.getBatchDeliveryIndex());
+        model.setEstimatedDeliveryAt(domain.getEstimatedDeliveryAt());
 
         return model;
     }

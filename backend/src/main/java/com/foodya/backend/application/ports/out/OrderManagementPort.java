@@ -19,5 +19,10 @@ public interface OrderManagementPort {
 
     List<Order> findByStatusInOrderByPlacedAtAsc(Collection<OrderStatus> statuses);
 
+    /**
+     * Finds orders eligible for batching: status = ACCEPTED, no driver assigned, no batch assigned.
+     */
+    List<Order> findEligibleForBatching();
+
     Order save(Order order);
 }

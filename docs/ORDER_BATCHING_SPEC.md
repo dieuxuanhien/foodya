@@ -399,12 +399,26 @@ Thay đổi `OrderLifecycleService.merchantUpdateStatus()`:
 
 ## 5. Database Changes
 
+> **Note on SQL dialect**: The migration `V32__order_batching_tables.sql` must run on **both**
+> PostgreSQL and H2 (PostgreSQL mode), because the integration test suite boots the schema on H2 and
+> Hibernate then validates it (`ddl-auto: validate`). Therefore the committed SQL deliberately avoids
+> Postgres-only constructs:
+> - Primary keys are plain `UUID PRIMARY KEY` — the value is assigned in Java (`@PrePersist`), not by
+>   `gen_random_uuid()` (which H2 cannot parse).
+> - JSON payloads are stored as `TEXT` (H2 has no `JSONB` type); the JPA models declare
+>   `columnDefinition = "text"`.
+> - Timestamps use `TIMESTAMP WITH TIME ZONE` (not the `TIMESTAMPTZ` shorthand).
+> - No partial indexes (H2 rejects a `WHERE` clause on `CREATE INDEX`).
+>
+> All application-layer tables reference `users(id)` — the JPA `UserAccount` entity maps to the
+> `users` table, created in `V2__auth_identity_and_sessions.sql`. There is no `user_accounts` table.
+
 ### 5.1 New Table: `order_batches`
 
 ```sql
 CREATE TABLE order_batches (
-    id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    driver_user_id           UUID NOT NULL REFERENCES user_accounts(id),
+    id                       UUID PRIMARY KEY,
+    driver_user_id           UUID NOT NULL REFERENCES users(id),
     session_id               UUID NOT NULL REFERENCES driver_online_sessions(id),
     status                   VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     -- PENDING: batch created, not yet accepted by driver
@@ -412,60 +426,56 @@ CREATE TABLE order_batches (
     -- COMPLETED: all orders in batch delivered
     -- CANCELLED: batch cancelled (e.g., driver went offline)
     -- PARTIAL: some orders completed, some failed
-    
-    pickup_sequence          JSONB NOT NULL,
-    -- [{orderId, restaurantId, lat, lng, estimatedArrivalSec, serviceTimeSec}]
-    
-    delivery_sequence        JSONB NOT NULL,
-    -- [{orderId, customerId, lat, lng, estimatedArrivalSec, serviceTimeSec}]
-    
+
+    pickup_sequence          TEXT NOT NULL,
+    -- [{orderId, lat, lng, estimatedArrivalSec, serviceTimeSec}]
+
+    delivery_sequence        TEXT NOT NULL,
+    -- [{orderId, lat, lng, estimatedArrivalSec, serviceTimeSec}]
+
     total_distance_meters    INTEGER,
     total_duration_seconds   INTEGER,
-    
-    optimized_route_polyline TEXT,  -- encoded polyline from Goong Trip API
-    
-    solver_metadata          JSONB,
-    -- {solver_time_ms, objective_value, num_orders, batch_interval_id}
-    
-    created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
-    started_at               TIMESTAMPTZ,
-    completed_at             TIMESTAMPTZ,
-    
+
+    optimized_route_polyline TEXT,  -- encoded polyline from Goong Trip API (Phase 6; NULL until then)
+
+    solver_metadata          TEXT,
+    -- {solver_time_ms, objective_value, num_orders}
+
+    created_at               TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at               TIMESTAMP WITH TIME ZONE,
+    completed_at             TIMESTAMP WITH TIME ZONE,
+
     CONSTRAINT chk_batch_status CHECK (
         status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'PARTIAL')
     )
 );
 
-CREATE INDEX idx_batch_driver_active 
-    ON order_batches (driver_user_id, status) 
-    WHERE status IN ('PENDING', 'ACTIVE');
-
-CREATE INDEX idx_batch_created 
-    ON order_batches (created_at) 
-    WHERE status = 'PENDING';
+-- Plain (non-partial) indexes, matching V29.
+CREATE INDEX idx_batch_driver_active ON order_batches (driver_user_id, status);
+CREATE INDEX idx_batch_created ON order_batches (created_at);
 ```
 
 ### 5.2 New Table: `batch_order_items`
 
 ```sql
 CREATE TABLE batch_order_items (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id              UUID PRIMARY KEY,
     batch_id        UUID NOT NULL REFERENCES order_batches(id) ON DELETE CASCADE,
     order_id        UUID NOT NULL REFERENCES orders(id),
-    
+
     pickup_index    INTEGER NOT NULL,   -- position in pickup_sequence (0-based)
     delivery_index  INTEGER NOT NULL,   -- position in delivery_sequence (0-based)
-    
-    estimated_pickup_at     TIMESTAMPTZ,
-    estimated_delivery_at   TIMESTAMPTZ,
-    actual_pickup_at        TIMESTAMPTZ,
-    actual_delivery_at      TIMESTAMPTZ,
-    
+
+    estimated_pickup_at     TIMESTAMP WITH TIME ZONE,
+    estimated_delivery_at   TIMESTAMP WITH TIME ZONE,
+    actual_pickup_at        TIMESTAMP WITH TIME ZONE,
+    actual_delivery_at      TIMESTAMP WITH TIME ZONE,
+
     item_status     VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     -- PENDING, PICKED_UP, DELIVERING, DELIVERED, FAILED
-    
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    
+
+    created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT uq_batch_order UNIQUE (batch_id, order_id),
     CONSTRAINT chk_item_status CHECK (
         item_status IN ('PENDING', 'PICKED_UP', 'DELIVERING', 'DELIVERED', 'FAILED')
@@ -479,33 +489,35 @@ CREATE INDEX idx_batch_items_order ON batch_order_items (order_id);
 ### 5.3 Alter Table: `orders`
 
 ```sql
-ALTER TABLE orders ADD COLUMN batch_id UUID REFERENCES order_batches(id);
+ALTER TABLE orders ADD COLUMN batch_id UUID;
 ALTER TABLE orders ADD COLUMN batch_pickup_index INTEGER;
 ALTER TABLE orders ADD COLUMN batch_delivery_index INTEGER;
-ALTER TABLE orders ADD COLUMN estimated_delivery_at TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN estimated_delivery_at TIMESTAMP WITH TIME ZONE;
 
-CREATE INDEX idx_orders_batch ON orders (batch_id) WHERE batch_id IS NOT NULL;
-CREATE INDEX idx_orders_accepted_unbatched 
-    ON orders (status, placed_at) 
-    WHERE status = 'ACCEPTED' AND batch_id IS NULL AND driver_user_id IS NULL;
+CREATE INDEX idx_orders_batch ON orders (batch_id);
+CREATE INDEX idx_orders_accepted_unbatched ON orders (status, placed_at);
 ```
 
 ### 5.4 New Table: `distance_matrix_cache`
 
+> **Currently a future hook.** The committed `GoongDistanceMatrixAdapter` performs live calls and
+> falls back to Haversine estimates; it does not yet read/write this table. The schema exists so a
+> cache layer can be added without a further migration.
+
 ```sql
 CREATE TABLE distance_matrix_cache (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id              UUID PRIMARY KEY,
     origin_h3_res8  VARCHAR(20) NOT NULL,
     dest_h3_res8    VARCHAR(20) NOT NULL,
     distance_meters INTEGER NOT NULL,
     duration_seconds INTEGER NOT NULL,
     vehicle_type    VARCHAR(10) NOT NULL DEFAULT 'bike',
-    fetched_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    
+    fetched_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT uq_dm_cache UNIQUE (origin_h3_res8, dest_h3_res8, vehicle_type)
 );
 
-CREATE INDEX idx_dm_cache_lookup 
+CREATE INDEX idx_dm_cache_lookup
     ON distance_matrix_cache (origin_h3_res8, dest_h3_res8, vehicle_type);
 ```
 
@@ -911,8 +923,8 @@ public class BatchSchedulerJob {
 |--------|------|-------------|
 | `GET` | `/api/v1/delivery/batches/active` | Lấy batch đang active của driver |
 | `GET` | `/api/v1/delivery/batches/{batchId}` | Chi tiết batch (pickup/delivery sequence, ETA) |
-| `POST` | `/api/v1/delivery/batches/{batchId}/pickup/{orderId}` | Mark pickup complete cho 1 order |
-| `POST` | `/api/v1/delivery/batches/{batchId}/deliver/{orderId}` | Mark delivery complete cho 1 order |
+| `POST` | `/api/v1/delivery/batches/{batchId}/orders/{orderId}/pickup` | Mark pickup complete cho 1 order |
+| `POST` | `/api/v1/delivery/batches/{batchId}/orders/{orderId}/delivery` | Mark delivery complete cho 1 order |
 
 ### 9.2 Customer Batch Endpoints
 
@@ -981,21 +993,24 @@ record CustomerBatchInfoResponse(
 
 ## 10. Configuration Parameters
 
-Thêm vào `system_parameters`:
+Các key `batching.*` phải được khai báo trong `SystemParameterCatalog.defaults()`
+(`domain/catalog/SystemParameterCatalog.java`) — đây là source of truth. `SystemParameterService.bootstrapDefaults()`
+tự seed chúng vào bảng `system_parameters` khi khởi động, và cũng cho phép admin chỉnh sửa runtime qua API.
+Key không có trong catalog sẽ bị từ chối với lỗi "unknown parameter key".
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `batching.enabled` | `true` | Master switch cho batching |
-| `batching.interval_seconds` | `30` | Tần suất chạy batch cycle |
-| `batching.max_batch_size` | `4` | Max đơn per batch |
-| `batching.max_delivery_time_minutes` | `45` | Max time window (phút từ placed_at) |
-| `batching.max_detour_minutes` | `15` | Max thời gian chậm hơn so với giao riêng |
-| `batching.max_wait_for_batch_seconds` | `120` | Max thời gian chờ batch trước khi fallback single |
-| `batching.search_radius_km` | `10` | Bán kính tìm driver |
-| `batching.pickup_service_time_seconds` | `300` | Thời gian chờ tại nhà hàng (5 phút) |
-| `batching.delivery_service_time_seconds` | `180` | Thời gian giao tại nhà khách (3 phút) |
-| `batching.solver_time_limit_ms` | `3000` | OR-Tools solver time limit |
-| `batching.cooldown_seconds` | `10` | Thời gian tối thiểu sau khi đơn ACCEPTED trước khi eligible for batch |
+| Key | Default | Implemented? | Description |
+|-----|---------|--------------|-------------|
+| `batching.enabled` | `true` | ✅ | Master switch cho batching |
+| `batching.cooldown_seconds` | `10` | ✅ | Thời gian tối thiểu sau khi đơn ACCEPTED trước khi eligible for batch |
+| `batching.max_wait_for_batch_seconds` | `120` | ✅ | Max thời gian chờ batch trước khi fallback single |
+| `batching.search_radius_km` | `10` | ✅ | Bán kính tìm driver (H3 k-ring expansion) |
+| `batching.pickup_service_time_seconds` | `300` | ✅ | Thời gian chờ tại nhà hàng (5 phút) |
+| `batching.delivery_service_time_seconds` | `180` | ✅ | Thời gian giao tại nhà khách (3 phút) |
+| `batching.max_delivery_time_minutes` | `45` | ✅ | Max time window (phút từ route start) |
+| `batching.solver_time_limit_ms` | `3000` | ✅ | OR-Tools solver time limit |
+| `batching.interval_seconds` | `30` | ⚠️ Aspirational | Tần suất batch cycle — hiện dùng tick cố định `foodya.batching.cycle-interval-ms` (mặc định 10s); cadence thực tế điều khiển bằng `batching.cooldown_seconds` |
+| `batching.max_batch_size` | `4` | ⚠️ Aspirational | Max đơn per batch — chưa được enforce trong service |
+| `batching.max_detour_minutes` | `15` | ⚠️ Aspirational | Max detour — chưa được enforce |
 
 ---
 
@@ -1115,7 +1130,7 @@ Thêm vào `system_parameters`:
 | **Title** | Batch Progress Tracking |
 | **Priority** | SHOULD HAVE |
 | **Description** | Driver có thể mark từng stop hoàn thành (pickup complete, delivery complete), cập nhật ETA cho các stop còn lại. |
-| **Acceptance Criteria** | <ul><li>AC1: API `POST /batches/{batchId}/pickup/{orderId}` marks pickup complete</li><li>AC2: API `POST /batches/{batchId}/deliver/{orderId}` marks delivery complete</li><li>AC3: Khi pickup complete, `batch_order_items.actual_pickup_at` được set</li><li>AC4: Khi delivery complete, order chuyển `DELIVERING → SUCCESS`</li><li>AC5: Khi tất cả orders trong batch SUCCESS/FAILED, batch.status → COMPLETED/PARTIAL</li></ul> |
+| **Acceptance Criteria** | <ul><li>AC1: API `POST /delivery/batches/{batchId}/orders/{orderId}/pickup` marks pickup complete</li><li>AC2: API `POST /delivery/batches/{batchId}/orders/{orderId}/delivery` marks delivery complete</li><li>AC3: Khi pickup complete, `batch_order_items.actual_pickup_at` được set</li><li>AC4: Khi delivery complete, order chuyển `DELIVERING → SUCCESS`</li><li>AC5: Khi tất cả orders trong batch SUCCESS/FAILED, batch.status → COMPLETED/PARTIAL</li></ul> |
 
 ### 11.2 Non-Functional Requirements
 
@@ -1147,7 +1162,7 @@ Thêm vào `system_parameters`:
 | **Title** | Monitoring and Logging |
 | **Priority** | SHOULD HAVE |
 | **Description** | Batch system phải có đủ logging và metrics để monitor performance và debug issues. |
-| **Acceptance Criteria** | <ul><li>AC1: Log mỗi batch cycle: eligible count, driver count, solver time, batches created, fallbacks</li><li>AC2: Lưu `solver_metadata` JSONB chứa solver_time_ms, objective_value, num_nodes</li><li>AC3: Admin stats API trả về: avg batch size, avg solver time, batch/single ratio, avg delivery time</li></ul> |
+| **Acceptance Criteria** | <ul><li>AC1: Log mỗi batch cycle: eligible count, driver count, solver time, batches created, fallbacks</li><li>AC2: Lưu `solver_metadata` (TEXT chứa JSON) gồm solver_time_ms, objective_value, num_orders</li><li>AC3: Admin stats API trả về: avg batch size, avg solver time, batch/single ratio, avg delivery time</li></ul> |
 
 #### NFR-BATCH-004: Configurability
 

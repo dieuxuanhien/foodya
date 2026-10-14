@@ -15,15 +15,12 @@ import com.foodya.backend.domain.entities.DriverOnlineSession;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.domain.value_objects.DriverMatchRequest;
-import com.foodya.backend.domain.value_objects.DriverMatchResult;
-import com.foodya.backend.domain.value_objects.DriverSessionStatus;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -77,13 +74,11 @@ class OrderLifecycleServiceTest {
     }
 
     @Test
-    @DisplayName("Merchant updates status to ACCEPTED and auto-assigns matching driver")
-    void testMerchantAccept_WithDriverMatch() {
+    @DisplayName("Merchant accept leaves order ACCEPTED — driver assignment is deferred to the batch scheduler")
+    void testMerchantAccept_DefersDriverAssignmentToBatchScheduler() {
         UUID merchantId = UUID.randomUUID();
         UUID restaurantId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
-        UUID driverUserId = UUID.randomUUID();
-        UUID sessionId = UUID.randomUUID();
 
         Restaurant restaurant = new Restaurant();
         restaurant.setId(restaurantId);
@@ -107,28 +102,16 @@ class OrderLifecycleServiceTest {
         when(restaurantPort.findById(restaurantId)).thenReturn(Optional.of(restaurant));
         when(orderManagementPort.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        DriverMatchResult matchResult = new DriverMatchResult(driverUserId, sessionId, 0.5, 0.85);
-        when(driverMatchingPort.findBestDriver(any(DriverMatchRequest.class))).thenReturn(Optional.of(matchResult));
-
-        DriverOnlineSession session = new DriverOnlineSession();
-        session.setId(sessionId);
-        session.setDriverUserId(driverUserId);
-        session.setStatus(DriverSessionStatus.ONLINE);
-        session.setMaxConcurrentOrders(2);
-        session.setActiveOrderCount(0);
-        session.setLastHeartbeat(Instant.now());
-
-        when(driverOnlineSessionPort.findActiveSession(driverUserId)).thenReturn(Optional.of(session));
-
         OrderDetailView detailView = service.merchantUpdateStatus(merchantId, orderId, OrderStatus.ACCEPTED);
 
         assertThat(detailView).isNotNull();
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.ASSIGNED);
-        assertThat(order.getDriverUserId()).isEqualTo(driverUserId);
-        assertThat(session.getActiveOrderCount()).isEqualTo(1);
-        assertThat(session.getStatus()).isEqualTo(DriverSessionStatus.ON_DELIVERY);
-
-        verify(driverOnlineSessionPort).save(session);
+        // Phase 5: the accept path no longer assigns a driver inline; the order stays
+        // ACCEPTED and OrderBatchingService assigns a driver on the next batch cycle.
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        assertThat(order.getDriverUserId()).isNull();
+        verify(driverMatchingPort, org.mockito.Mockito.never()).findBestDriver(any(DriverMatchRequest.class));
+        verify(driverOnlineSessionPort, org.mockito.Mockito.never())
+                .save(any(com.foodya.backend.domain.entities.DriverOnlineSession.class));
     }
 
     @Test

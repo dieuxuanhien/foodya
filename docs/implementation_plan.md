@@ -14,7 +14,7 @@ The current v1 data model is **well-structured** for a clean architecture monoli
 
 | Entity                    | Table                        | Status   | Notes                                                            |
 | ------------------------- | ---------------------------- | -------- | ---------------------------------------------------------------- |
-| `UserAccount`           | `user_accounts`            | ✅ Solid | UUID PK, role-based (CUSTOMER, MERCHANT, DELIVERY, ADMIN)        |
+| `UserAccount`           | `users`                    | ✅ Solid | UUID PK, role-based (CUSTOMER, MERCHANT, DELIVERY, ADMIN)        |
 | `Restaurant`            | `restaurants`              | ✅ Solid | Has`h3_index_res9`, `geo_point` geography column, GIST index |
 | `MenuCategory`          | `menu_categories`          | ✅ Solid | Linked to taxonomy system                                        |
 | `MenuItem`              | `menu_items`               | ✅ Solid | Soft-delete with`deleted_at`, `is_active`                    |
@@ -481,7 +481,7 @@ New table `driver_online_sessions` (internal name — driver never sees "session
 ```sql
 CREATE TABLE driver_online_sessions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    driver_user_id  UUID NOT NULL REFERENCES user_accounts(id),
+    driver_user_id  UUID NOT NULL REFERENCES users(id),
     status          VARCHAR(20) NOT NULL DEFAULT 'ONLINE',
     -- ONLINE: accepting orders (driver toggled ON)
     -- ON_DELIVERY: currently delivering
@@ -514,7 +514,7 @@ CREATE INDEX idx_driver_sessions_h3 ON driver_online_sessions (h3_index_res9) WH
 Agent Prompt 1.1:
 "Create a new Flyway migration file V20__create_driver_online_sessions_table.sql in 
 backend/src/main/resources/db/migration/. Create the driver_online_sessions table with columns:
-id (UUID PK), driver_user_id (UUID FK to user_accounts), status (VARCHAR(20) DEFAULT 'ONLINE'), 
+id (UUID PK), driver_user_id (UUID FK to users), status (VARCHAR(20) DEFAULT 'ONLINE'), 
 started_at (TIMESTAMPTZ DEFAULT now()), ended_at (TIMESTAMPTZ nullable), 
 last_heartbeat (TIMESTAMPTZ DEFAULT now()), h3_index_res9 (VARCHAR(20) nullable), 
 current_lat (DOUBLE PRECISION nullable), current_lng (DOUBLE PRECISION nullable),
@@ -766,6 +766,26 @@ Run OrderLifecycleIntegrationTests to verify no regression."
 - New tables: `order_batches`, `batch_order_items`, alter `orders`
 - REST APIs for driver batch view, customer ETA, admin monitoring
 - Feature toggle: `batching.enabled` via `system_parameters`
+
+> [!NOTE]
+> **Implementation status (Phase 5 — done).** The backend for this phase is implemented on
+> `v2-backend`. Key files: `application/ports/in/OrderBatchingUseCase.java`,
+> `application/usecases/OrderBatchingService.java`, `application/ports/out/{DistanceMatrixPort,
+> VrpSolverPort, OrderBatchPort}.java`, `infrastructure/adapter/OrToolsVrpSolverAdapter.java`,
+> `infrastructure/adapter/integration/GoongDistanceMatrixAdapter.java`,
+> `infrastructure/scheduling/BatchSchedulerJob.java`, migration
+> `V32__order_batching_tables.sql`, and REST controllers
+> `DeliveryBatchController` / `CustomerBatchInfoController` / `AdminBatchController`.
+> `OrderLifecycleService` no longer auto-assigns on merchant accept — the batch scheduler does.
+>
+> **Not yet implemented** (deferred): route polyline generation (needs Phase 6 Goong Trip v2),
+> `distance_matrix_cache` read/write (table created, adapter currently calls live), Redis cache,
+> and the mobile screens (Phase 13). `batching.interval_seconds` / `max_batch_size` /
+> `max_detour_minutes` are declared in the spec but not yet enforced — see
+> [ORDER_BATCHING_SPEC.md §10](file:///home/xuanhien/Documents/repo/foodya/docs/ORDER_BATCHING_SPEC.md).
+>
+> **DoD testing gap**: no dedicated unit tests for the batching components were added
+> (spec §12.3). The existing suite (112 tests) passes.
 
 ---
 

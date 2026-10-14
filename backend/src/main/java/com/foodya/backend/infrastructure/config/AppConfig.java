@@ -3,6 +3,7 @@ package com.foodya.backend.infrastructure.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodya.backend.application.ports.in.CatalogUseCase;
 import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
+import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
 import com.foodya.backend.application.usecases.DriverLifecycleService;
 import com.foodya.backend.application.support.PaginationPolicy;
@@ -247,6 +248,23 @@ public class AppConfig {
 	public DriverLifecycleUseCase driverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort,
 			GeoPort geoPort) {
 		return new DriverLifecycleService(driverOnlineSessionPort, geoPort);
+	}
+
+	@Bean
+	public OrderBatchingUseCase orderBatchingService(
+			OrderManagementPort orderManagementPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			DistanceMatrixPort distanceMatrixPort,
+			VrpSolverPort vrpSolverPort,
+			OrderBatchPort orderBatchPort,
+			GeoPort geoPort,
+			OrderEventPublisherPort orderEventPublisherPort,
+			SystemParameterPort systemParameterPort,
+			DriverMatchingPort driverMatchingPort,
+			RestaurantPort restaurantPort) {
+		return new OrderBatchingService(orderManagementPort, driverOnlineSessionPort,
+				distanceMatrixPort, vrpSolverPort, orderBatchPort, geoPort,
+				orderEventPublisherPort, systemParameterPort, driverMatchingPort, restaurantPort);
 	}
 }
 
