@@ -13,10 +13,15 @@ import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.mapper.OrderLifecycleApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -33,6 +38,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/merchant")
+@Tag(name = "Merchant Orders", description = "Merchant order listing and status management")
 public class MerchantOrderController {
 
     private final OrderLifecycleUseCase orderLifecycleService;
@@ -42,7 +48,13 @@ public class MerchantOrderController {
     }
 
     @GetMapping("/restaurants/{restaurantId}/orders")
-    public ApiSuccessResponse<List<OrderSummaryResponse>> restaurantOrders(Authentication authentication,
+    @Operation(summary = "List restaurant orders", description = "Returns a paginated list of orders for a merchant restaurant")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Orders listed"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
+    public ResponseEntity<ApiSuccessResponse<List<OrderSummaryResponse>>> restaurantOrders(Authentication authentication,
                                                                            @PathVariable UUID restaurantId,
                                                                            @RequestParam(required = false) @Min(0) Integer page,
                                                                            @RequestParam(required = false) @Min(1) @Max(200) Integer size,
@@ -51,25 +63,37 @@ public class MerchantOrderController {
         List<OrderSummaryResponse> data = result.items().stream()
                 .map(OrderLifecycleApiMapper::toSummary)
                 .toList();
-        return ApiSuccessResponse.of(
+        return ResponseEntity.ok(ApiSuccessResponse.of(
                 data,
                 new PageMetadata(result.page(), result.size(), result.totalElements(), result.totalPages()),
                 RequestTrace.from(request)
-        );
+        ));
     }
 
     @GetMapping("/orders/{orderId}")
-    public ApiSuccessResponse<OrderDetailResponse> orderDetail(Authentication authentication,
+    @Operation(summary = "Get merchant order detail", description = "Returns full detail for a single merchant order")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Order detail returned"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Order not found")
+    })
+    public ResponseEntity<ApiSuccessResponse<OrderDetailResponse>> orderDetail(Authentication authentication,
                                                                @PathVariable UUID orderId,
                                                                HttpServletRequest request) {
         OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
                 orderLifecycleService.merchantOrder(CurrentUser.userId(authentication), orderId)
         );
-        return ApiSuccessResponse.of(data, RequestTrace.from(request));
+        return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(request)));
     }
 
     @PatchMapping("/orders/{orderId}/status")
-    public ApiSuccessResponse<OrderDetailResponse> updateOrderStatus(Authentication authentication,
+    @Operation(summary = "Update merchant order status", description = "Transitions a merchant order to the requested status")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status updated"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "422", description = "Invalid status transition")
+    })
+    public ResponseEntity<ApiSuccessResponse<OrderDetailResponse>> updateOrderStatus(Authentication authentication,
                                                                      @PathVariable UUID orderId,
                                                                      @Valid @RequestBody OrderStatusUpdateApiRequest statusUpdate,
                                                                      HttpServletRequest request) {
@@ -77,7 +101,7 @@ public class MerchantOrderController {
         OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
                 orderLifecycleService.merchantUpdateStatus(CurrentUser.userId(authentication), orderId, targetStatus)
         );
-        return ApiSuccessResponse.of(data, RequestTrace.from(request));
+        return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(request)));
     }
 
     private static OrderStatus parseStatus(String rawStatus) {

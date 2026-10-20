@@ -191,6 +191,18 @@ gantt
 
 > **WHY FIRST**: Technical debt compounds. Fixing anti-patterns before adding features prevents the new code from inheriting bad patterns. Every subsequent phase builds on clean foundations.
 
+> [!NOTE]
+> **Implementation status (Phase 0 — done).** All eight sub-tasks are complete on `v2-backend`:
+> - **0.1** `AdminSystemParameterController` uses `CurrentUser.userId(authentication)` (no `X-User-Role`/`X-Actor-Id` headers).
+> - **0.2** Duplicate endpoints removed — `DeliveryOrderController` exposes only `GET /assignments` and `POST /{orderId}/tracking-points` (201); review responses live on `POST /reviews/{id}/replies` + `PATCH /review-replies/{id}` (no `/response` duplicate).
+> - **0.3** Admin create endpoints return `201 Created` (`AdminGovernanceController.createRestaurant`/`createMenuItem`, `AdminUserController.create`).
+> - **0.4** PATCH DTOs (`UpdateMenuCategoryApiRequest`, `UpdateMenuItemApiRequest`) use nullable fields for true partial update.
+> - **0.5** `GET /customer/orders` and `GET /merchant/restaurants/{id}/orders` accept `page`/`size` and return `PageMetadata`.
+> - **0.6** `AdminUserCreateRequest.password` carries `@StrongPassword`.
+> - **0.7** All controllers return `ResponseEntity<ApiSuccessResponse<T>>` — the final four (`CustomerAiChatController`, `CustomerOrderLifecycleController`, `MerchantOrderController`, `RestaurantReviewController`) were standardized and given `@Tag`/`@Operation` Swagger annotations.
+>
+> Verified with `mvn test` (112 tests, green) including `OpenApiLiveRouteSmokeIntegrationTests`, which invokes every route in the live `/v3/api-docs` — confirming the Swagger surface is complete and in sync with the implementation.
+
 ### 0.1 Fix Header Injection Vulnerability
 
 **Problem**: `AdminSystemParameterController` reads actor identity from HTTP headers (`X-User-Role`, `X-Actor-Id`) instead of the authenticated JWT principal. An attacker who can reach the endpoint could spoof any user/role.
