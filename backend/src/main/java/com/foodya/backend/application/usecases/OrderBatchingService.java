@@ -3,10 +3,12 @@ package com.foodya.backend.application.usecases;
 import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
+import com.foodya.backend.application.ports.in.DeliveryRouteUseCase;
 import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
 import com.foodya.backend.application.ports.out.*;
 import com.foodya.backend.domain.entities.*;
 import com.foodya.backend.domain.value_objects.*;
+import com.foodya.backend.domain.value_objects.RouteWaypoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +54,7 @@ public class OrderBatchingService implements OrderBatchingUseCase {
     private final SystemParameterPort systemParameterPort;
     private final DriverMatchingPort driverMatchingPort;
     private final RestaurantPort restaurantPort;
+    private final DeliveryRouteUseCase deliveryRouteUseCase;
 
     public OrderBatchingService(OrderManagementPort orderManagementPort,
                                 DriverOnlineSessionPort driverOnlineSessionPort,
@@ -62,7 +65,8 @@ public class OrderBatchingService implements OrderBatchingUseCase {
                                 OrderEventPublisherPort orderEventPublisherPort,
                                 SystemParameterPort systemParameterPort,
                                 DriverMatchingPort driverMatchingPort,
-                                RestaurantPort restaurantPort) {
+                                RestaurantPort restaurantPort,
+                                DeliveryRouteUseCase deliveryRouteUseCase) {
         this.orderManagementPort = orderManagementPort;
         this.driverOnlineSessionPort = driverOnlineSessionPort;
         this.distanceMatrixPort = distanceMatrixPort;
@@ -73,6 +77,7 @@ public class OrderBatchingService implements OrderBatchingUseCase {
         this.systemParameterPort = systemParameterPort;
         this.driverMatchingPort = driverMatchingPort;
         this.restaurantPort = restaurantPort;
+        this.deliveryRouteUseCase = deliveryRouteUseCase;
     }
 
     @Override
@@ -310,6 +315,16 @@ public class OrderBatchingService implements OrderBatchingUseCase {
                         driverOnlineSessionPort.save(session);
                     });
 
+            final UUID plannedBatchId = batch.getId();
+            generateRouteSafely("batch " + plannedBatchId, () ->
+                    deliveryRouteUseCase.planBatchRoute(plannedBatchId, route.driverUserId(),
+                            route.stops().stream()
+                                    .map(stop -> new RouteWaypoint(stop.lat(), stop.lng(),
+                                            stop.type() == VrpRouteStop.StopType.PICKUP
+                                                    ? RouteWaypoint.PICKUP : RouteWaypoint.DROPOFF,
+                                            stop.orderId()))
+                                    .toList()));
+
             batchesCreated++;
             log.info("Created batch {} with {} orders for driver {}",
                     batch.getId(), batchOrderCount, route.driverUserId());
@@ -527,6 +542,9 @@ public class OrderBatchingService implements OrderBatchingUseCase {
             order.assignDriver(match.get().driverUserId());
             orderManagementPort.save(order);
 
+            generateRouteSafely(order.getOrderCode(), () ->
+                    deliveryRouteUseCase.planOrderRoute(order.getId(), match.get().driverUserId()));
+
             driverOnlineSessionPort.findActiveSession(match.get().driverUserId())
                     .ifPresent(session -> {
                         session.startDelivery();
@@ -539,6 +557,15 @@ public class OrderBatchingService implements OrderBatchingUseCase {
         } catch (Exception ex) {
             log.error("Single assign failed for order {}", order.getOrderCode(), ex);
             return false;
+        }
+    }
+
+    /** Route planning must never break the assignment that already happened. */
+    private void generateRouteSafely(String subject, java.util.function.Supplier<?> routeGeneration) {
+        try {
+            routeGeneration.get();
+        } catch (Exception ex) {
+            log.error("Route calculation failed for {}", subject, ex);
         }
     }
 

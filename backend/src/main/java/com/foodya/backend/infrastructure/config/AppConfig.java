@@ -2,9 +2,11 @@ package com.foodya.backend.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodya.backend.application.ports.in.CatalogUseCase;
+import com.foodya.backend.application.ports.in.DeliveryRouteUseCase;
 import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
 import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
+import com.foodya.backend.infrastructure.integration.GoongMapsClient;
 import com.foodya.backend.application.usecases.DriverLifecycleService;
 import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.application.usecases.*;
@@ -261,10 +263,37 @@ public class AppConfig {
 			OrderEventPublisherPort orderEventPublisherPort,
 			SystemParameterPort systemParameterPort,
 			DriverMatchingPort driverMatchingPort,
-			RestaurantPort restaurantPort) {
+			RestaurantPort restaurantPort,
+			DeliveryRouteUseCase deliveryRouteUseCase) {
 		return new OrderBatchingService(orderManagementPort, driverOnlineSessionPort,
 				distanceMatrixPort, vrpSolverPort, orderBatchPort, geoPort,
-				orderEventPublisherPort, systemParameterPort, driverMatchingPort, restaurantPort);
+				orderEventPublisherPort, systemParameterPort, driverMatchingPort, restaurantPort,
+				deliveryRouteUseCase);
+	}
+
+	@Bean
+	public RouteCalculationPort goongTripAdapter(GoongMapsClient goongMapsClient, ObjectMapper objectMapper) {
+		return new com.foodya.backend.infrastructure.adapter.integration.GoongTripAdapter(goongMapsClient, objectMapper);
+	}
+
+	@Bean
+	public DeliveryRoutePort deliveryRoutePort(
+			com.foodya.backend.infrastructure.repository.DeliveryRouteRepository repository,
+			ObjectMapper objectMapper) {
+		return new com.foodya.backend.infrastructure.adapter.DeliveryRoutePersistenceAdapter(repository, objectMapper);
+	}
+
+	@Bean
+	public DeliveryRouteUseCase deliveryRouteService(
+			RouteCalculationPort routeCalculationPort,
+			DeliveryRoutePort deliveryRoutePort,
+			OrderManagementPort orderManagementPort,
+			RestaurantPort restaurantPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			OrderBatchPort orderBatchPort) {
+		return new com.foodya.backend.application.usecases.DeliveryRouteService(
+				routeCalculationPort, deliveryRoutePort, orderManagementPort,
+				restaurantPort, driverOnlineSessionPort, orderBatchPort);
 	}
 }
 
