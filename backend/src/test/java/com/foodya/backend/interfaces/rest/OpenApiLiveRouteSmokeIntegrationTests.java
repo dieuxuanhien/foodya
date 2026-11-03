@@ -223,6 +223,11 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/delivery" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/delivery", auth.deliveryAccess, null));
             case "GET /api/v1/customer/orders/{orderId}/batch-info" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/batch-info", auth.customerAccess, null));
             case "GET /api/v1/customer/orders/{orderId}/route" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/route", auth.customerAccess, null));
+            case "POST /api/v1/customer/orders/{orderId}/pay" -> assertNot5xx(request("POST", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/pay", auth.customerAccess,
+                    "{\"paymentMethod\":\"VNPAY_QR\"}"));
+            case "GET /api/v1/customer/orders/{orderId}/payment-status" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/payment-status", auth.customerAccess, null));
+            case "GET /api/v1/payments/vnpay/callback" -> assertNot5xx(request("GET", "/api/v1/payments/vnpay/callback?vnp_TxnRef=x&vnp_ResponseCode=00", null, null));
+            case "GET /api/v1/payments/vnpay/return" -> assertNot5xx(request("GET", "/api/v1/payments/vnpay/return?vnp_TxnRef=x&vnp_ResponseCode=00", null, null));
             case "GET /api/v1/delivery/orders/{orderId}/route" -> assertNot5xx(request("GET", "/api/v1/delivery/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/route", auth.deliveryAccess, null));
             case "GET /api/v1/admin/batches" -> assertNot5xx(request("GET", "/api/v1/admin/batches", auth.adminAccess, null));
             case "GET /api/v1/admin/batches/{batchId}" -> assertNot5xx(request("GET", "/api/v1/admin/batches/" + randomId, auth.adminAccess, null));

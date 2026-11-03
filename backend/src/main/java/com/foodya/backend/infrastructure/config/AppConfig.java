@@ -5,6 +5,7 @@ import com.foodya.backend.application.ports.in.CatalogUseCase;
 import com.foodya.backend.application.ports.in.DeliveryRouteUseCase;
 import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
 import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
+import com.foodya.backend.application.ports.in.PaymentUseCase;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
 import com.foodya.backend.infrastructure.integration.GoongMapsClient;
 import com.foodya.backend.application.usecases.DriverLifecycleService;
@@ -25,7 +26,8 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties({
 	SecretSourcesProperties.class,
 	SecurityProperties.class,
-	RateLimitProperties.class
+	RateLimitProperties.class,
+	VNPayProperties.class
 })
 public class AppConfig {
 
@@ -270,6 +272,15 @@ public class AppConfig {
 				distanceMatrixPort, vrpSolverPort, orderBatchPort, geoPort,
 				orderEventPublisherPort, systemParameterPort, driverMatchingPort, restaurantPort,
 				deliveryRouteUseCase);
+	}
+
+	@Bean
+	public PaymentUseCase paymentService(
+			OrderManagementPort orderManagementPort,
+			OrderPaymentPort orderPaymentPort,
+			PaymentTransactionPort paymentTransactionPort,
+			PaymentGatewayPort paymentGatewayPort) {
+		return new PaymentService(orderManagementPort, orderPaymentPort, paymentTransactionPort, paymentGatewayPort);
 	}
 
 	/**

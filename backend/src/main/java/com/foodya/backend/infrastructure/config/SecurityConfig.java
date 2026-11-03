@@ -67,7 +67,8 @@ public class SecurityConfig {
                                 "/api/v1/ws",
                                 "/api/v1/ws/**",
                                 "/api/v1/restaurants/**",
-                                "/api/v1/system/integrations/**"
+                                "/api/v1/system/integrations/**",
+                                "/api/v1/payments/vnpay/**"
                         ).permitAll()
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                     .requestMatchers("/api/v1/merchant/**").hasAnyRole("MERCHANT", "ADMIN")

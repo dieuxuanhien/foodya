@@ -321,6 +321,18 @@ public class Order {
         paymentStatus = PaymentStatus.FAILED;
     }
 
+    /** Marks a VNPAY (online gateway) order as paid. Unlike {@link #markCodPaid()} this is allowed for non-COD orders. */
+    public void markOnlinePaid() {
+        if (paymentMethod == PaymentMethod.COD) {
+            throw invalidPaymentTransition("mark online paid");
+        }
+        if (paymentStatus == PaymentStatus.PAID) {
+            return;
+        }
+        requirePaymentStatus(PaymentStatus.UNPAID, "mark online paid");
+        paymentStatus = PaymentStatus.PAID;
+    }
+
     public void syncCodPaymentStatus(PaymentStatus targetPaymentStatus) {
         if (paymentMethod != PaymentMethod.COD) {
             return;

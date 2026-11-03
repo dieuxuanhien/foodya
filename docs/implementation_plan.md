@@ -1012,6 +1012,40 @@ Update OrderTrackingPointResponse DTO to include snapped coordinates and ETA fie
 
 ## Phase 8: VNPAY Payment Gateway
 
+> [!NOTE]
+> **Implementation status (Phase 8 — backend done).** Implemented on `v2-backend`:
+> - **Schema** `V34__payment_transactions.sql` (V23 slot was taken): `payment_transactions` table with the
+>   PENDING→PROCESSING→COMPLETED/FAILED→REFUNDED lifecycle, plus widening of **both**
+>   `orders_payment_method_ck` **and** `order_payments_method_ck` to accept `VNPAY`. The second constraint is
+>   easy to miss — the plan only mentions the orders table, but `order_payments` has its own COD-only check
+>   and every VNPAY settlement writes there.
+> - `PaymentGatewayPort` + `VNPayPaymentAdapter` (HMAC-SHA512 over alphabetically sorted, US-ASCII
+>   URL-encoded params; constant-time hash comparison), `VNPaySignature` helper, `VNPayProperties`
+>   (`foodya.vnpay.*`, env-overridable).
+> - `PaymentTransaction` domain entity (idempotent `complete()` — gateways replay IPNs), `PaymentTransactionPort`
+>   + persistence adapter, `PaymentUseCase` + `PaymentService`.
+> - REST: `POST /api/v1/customer/orders/{orderId}/pay`, `GET …/payment-status`, and the two public
+>   `GET /api/v1/payments/vnpay/{callback,return}` endpoints (whitelisted in `SecurityConfig`). The IPN replies
+>   with VNPAY's contract (`{"RspCode":"00","Message":"Confirm Success"}`), returning `97` for a bad signature
+>   and `01` for an unknown order.
+>
+> **Design revisions**:
+> - **Channel selection moved to the pay call.** The plan put `COD | VNPAY_QR | VNPAY_ATM | VNPAY_CARD` on
+>   order creation. Instead the order is always created as COD/UNPAID (unchanged checkout contract) and the
+>   customer picks the channel at `POST /pay`; all VNPAY channels persist as `VNPAY` because the concrete
+>   channel is chosen on VNPAY's own page. This avoids a second code path through checkout and keeps
+>   idempotent order creation untouched.
+> - **`markOnlinePaid()` added to `Order`** — the existing `markCodPaid()` correctly refuses non-COD orders,
+>   so a gateway settlement needed its own guarded transition.
+> - **`queryTransaction` is a stub.** VNPAY QueryDR requires extra merchant configuration and signed
+>   requests; the signature-verified IPN is the source of truth. Local `payment_transactions.status` answers
+>   the status endpoint.
+> - **Mobile WebView flow (8.4) not implemented** — Flutter is a separate track (Phase 13–14).
+>
+> Verified with `mvn test` (138 tests green): `VNPaySignatureTests` (4), `PaymentServiceTest` (6, incl.
+> idempotent replay and bad-signature rejection), and `PaymentIntegrationTests` (4, initiate → signed IPN →
+> PAID, replay, tampered signature, COD rejection).
+
 > **WHY VNPAY**:
 >
 > 1. VNPAY is the most widely adopted payment gateway in Vietnam (60%+ market share for online payments)
