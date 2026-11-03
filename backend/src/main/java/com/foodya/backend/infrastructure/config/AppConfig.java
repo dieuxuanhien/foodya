@@ -108,8 +108,9 @@ public class AppConfig {
 			OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
 			PaginationPolicy paginationPolicy,
 			DriverMatchingPort driverMatchingPort,
-			DriverOnlineSessionPort driverOnlineSessionPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort, orderTrackingUpdatePublisherPort, paginationPolicy, driverMatchingPort, driverOnlineSessionPort);
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			DeliveryRouteQueryPort deliveryRouteQueryPort) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort, orderTrackingUpdatePublisherPort, paginationPolicy, driverMatchingPort, driverOnlineSessionPort, deliveryRouteQueryPort);
 	}
 
 	@Bean

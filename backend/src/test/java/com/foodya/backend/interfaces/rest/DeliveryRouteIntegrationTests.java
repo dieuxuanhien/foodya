@@ -151,6 +151,37 @@ class DeliveryRouteIntegrationTests {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void trackingPointsAreEnrichedWithSnappedPositionAndEta() throws Exception {
+        // Route running north along lng 106.66 from the restaurant to the customer.
+        String polyline = com.foodya.backend.domain.value_objects.PolylineCodec.encode(java.util.List.of(
+                new com.foodya.backend.domain.value_objects.LatLng(10.762622, 106.660172),
+                new com.foodya.backend.domain.value_objects.LatLng(10.767622, 106.660172),
+                new com.foodya.backend.domain.value_objects.LatLng(10.772622, 106.660172)));
+        deliveryRoutePort.save(com.foodya.backend.domain.entities.DeliveryRoute.create(
+                orderId, null, polyline, 1112, 240, java.util.List.of()));
+
+        String driverJwt = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+        mockMvc.perform(post("/api/v1/delivery/orders/" + orderId + "/tracking-points")
+                        .header("Authorization", "Bearer " + driverJwt)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"lat\":10.767622,\"lng\":106.660172,\"recordedAt\":\"2026-01-01T10:00:00Z\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.lat").value(10.767622))
+                .andExpect(jsonPath("$.data.snapped.lat").value(org.hamcrest.Matchers.closeTo(10.767622, 0.0001)))
+                .andExpect(jsonPath("$.data.snapped.progress").value(org.hamcrest.Matchers.closeTo(0.5, 0.05)))
+                .andExpect(jsonPath("$.data.route.remainingDistanceMeters", greaterThan(400)))
+                .andExpect(jsonPath("$.data.route.estimatedArrival").isNotEmpty());
+
+        // Customer history endpoint returns the same enrichment.
+        String customerJwt = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        mockMvc.perform(get("/api/v1/customer/orders/" + orderId + "/tracking")
+                        .header("Authorization", "Bearer " + customerJwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].snapped").isNotEmpty())
+                .andExpect(jsonPath("$.data[0].route.remainingDurationSeconds", greaterThan(0)));
+    }
+
     private UserAccount seedUser(String stem, UserRole role) {
         UserAccountPersistenceModel model = new UserAccountPersistenceModel();
         model.setUsername(stem + "-" + System.nanoTime());

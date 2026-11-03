@@ -934,6 +934,26 @@ Write integration tests."
 
 ## Phase 7: Enhanced Real-Time Tracking
 
+> [!NOTE]
+> **Implementation status (Phase 7 — backend done).** Implemented on `v2-backend`:
+> - `RouteSnapper` + `SnappedPosition` in `domain/value_objects` — pure point-to-segment projection over a
+>   decoded polyline using a local equirectangular projection (metre-accurate at these segment lengths,
+>   avoids trig in the inner loop). Returns progress (0–1), remaining metres and proportional remaining duration.
+> - `OrderTrackingPointView` / `OrderTrackingPointResponse` gained optional `snapped {lat,lng,progress}` and
+>   `route {remainingDistanceMeters, remainingDurationSeconds, estimatedArrival}` fields.
+>   The STOMP `TrackingPointMessage` carries the same enrichment.
+> - `OrderLifecycleService.addTrackingPoint` and `…customerTrackingPoints` enrich through the new
+>   `DeliveryRouteQueryPort` (adapter: `DeliveryRouteQueryAdapter`). With no planned route the point is
+>   returned raw, so tracking still works before Phase 6 has stored a route.
+>
+> **Deviations**: the snapper lives in the domain layer behind no port (it is pure computation over an
+> encoded string, so a port would add indirection without isolation value). ETA is the proportional
+> remaining route duration, not a re-query of Goong — live traffic re-routing on every GPS tick (every 3–5 s)
+> would blow the API quota; Phase 6's route duration is used as the baseline.
+>
+> Verified with `mvn test` (124 tests green): 5 `RouteSnapperTests`, an enriched STOMP payload test, and an
+> integration test posting a tracking point and reading back the snapped position + ETA.
+
 > **WHY enhance the existing STOMP-based tracking**:
 > The current system stores telemetry and publishes via STOMP. What's missing:
 >

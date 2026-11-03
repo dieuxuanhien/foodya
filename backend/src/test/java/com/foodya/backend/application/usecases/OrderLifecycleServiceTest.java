@@ -1,6 +1,7 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.OrderDetailView;
+import com.foodya.backend.application.ports.out.DeliveryRouteQueryPort;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.DriverMatchingPort;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
@@ -43,6 +44,7 @@ class OrderLifecycleServiceTest {
     private PaginationPolicy paginationPolicy;
     private DriverMatchingPort driverMatchingPort;
     private DriverOnlineSessionPort driverOnlineSessionPort;
+    private DeliveryRouteQueryPort deliveryRouteQueryPort;
 
     private OrderLifecycleService service;
 
@@ -58,6 +60,7 @@ class OrderLifecycleServiceTest {
         paginationPolicy = mock(PaginationPolicy.class);
         driverMatchingPort = mock(DriverMatchingPort.class);
         driverOnlineSessionPort = mock(DriverOnlineSessionPort.class);
+        deliveryRouteQueryPort = mock(DeliveryRouteQueryPort.class);
 
         service = new OrderLifecycleService(
                 orderManagementPort,
@@ -69,7 +72,8 @@ class OrderLifecycleServiceTest {
                 orderTrackingUpdatePublisherPort,
                 paginationPolicy,
                 driverMatchingPort,
-                driverOnlineSessionPort
+                driverOnlineSessionPort,
+                deliveryRouteQueryPort
         );
     }
 

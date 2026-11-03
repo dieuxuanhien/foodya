@@ -10,6 +10,7 @@ import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
+import com.foodya.backend.application.ports.out.DeliveryRouteQueryPort;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
 import com.foodya.backend.application.ports.out.DriverMatchingPort;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
@@ -29,6 +30,8 @@ import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.domain.value_objects.DriverMatchRequest;
 import com.foodya.backend.domain.value_objects.DriverMatchResult;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RouteSnapper;
+import com.foodya.backend.domain.value_objects.SnappedPosition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +56,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     private final PaginationPolicy paginationPolicy;
     private final DriverMatchingPort driverMatchingPort;
     private final DriverOnlineSessionPort driverOnlineSessionPort;
+    private final DeliveryRouteQueryPort deliveryRouteQueryPort;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
@@ -63,7 +67,8 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                                  OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
                                  PaginationPolicy paginationPolicy,
                                  DriverMatchingPort driverMatchingPort,
-                                 DriverOnlineSessionPort driverOnlineSessionPort) {
+                                 DriverOnlineSessionPort driverOnlineSessionPort,
+                                 DeliveryRouteQueryPort deliveryRouteQueryPort) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
@@ -74,6 +79,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         this.paginationPolicy = paginationPolicy;
         this.driverMatchingPort = driverMatchingPort;
         this.driverOnlineSessionPort = driverOnlineSessionPort;
+        this.deliveryRouteQueryPort = deliveryRouteQueryPort;
     }
 
     public PaginatedResult<OrderSummaryView> customerOrders(UUID customerUserId, Integer page, Integer size) {
@@ -241,7 +247,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         point.setRecordedAt(recordedAt);
 
         DeliveryTrackingPoint saved = deliveryTrackingPointPort.save(point);
-        OrderTrackingPointView view = new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
+        OrderTrackingPointView view = enrich(saved.getLat(), saved.getLng(), saved.getRecordedAt(), orderId);
         try {
             orderTrackingUpdatePublisherPort.publishTrackingPoint(order.getCustomerUserId(), orderId, view);
         } catch (RuntimeException ex) {
@@ -256,10 +262,39 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
             throw new ForbiddenException("order does not belong to customer");
         }
 
+        DeliveryRouteQueryPort.PlannedRoute route = deliveryRouteQueryPort.findActiveRouteForOrder(orderId).orElse(null);
         return deliveryTrackingPointPort.findByOrderIdOrderByRecordedAtAsc(orderId)
                 .stream()
-                .map(point -> new OrderTrackingPointView(point.getLat(), point.getLng(), point.getRecordedAt()))
+                .map(point -> enrichWith(route, point.getLat(), point.getLng(), point.getRecordedAt()))
                 .toList();
+    }
+
+    /**
+     * Snaps the raw GPS point onto the order's planned route (when one exists) and derives
+     * remaining distance and ETA. Without a planned route the point is returned raw.
+     */
+    private OrderTrackingPointView enrich(BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt, UUID orderId) {
+        DeliveryRouteQueryPort.PlannedRoute route = deliveryRouteQueryPort.findActiveRouteForOrder(orderId).orElse(null);
+        return enrichWith(route, lat, lng, recordedAt);
+    }
+
+    private OrderTrackingPointView enrichWith(DeliveryRouteQueryPort.PlannedRoute route,
+                                              BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt) {
+        if (route == null || lat == null || lng == null) {
+            return new OrderTrackingPointView(lat, lng, recordedAt);
+        }
+        SnappedPosition snapped = RouteSnapper.snap(
+                route.encodedPolyline(), route.durationSeconds(), lat.doubleValue(), lng.doubleValue());
+        if (snapped == null) {
+            return new OrderTrackingPointView(lat, lng, recordedAt);
+        }
+        OrderTrackingPointView.RouteProgressView progress = new OrderTrackingPointView.RouteProgressView(
+                snapped.remainingDistanceMeters(),
+                snapped.remainingDurationSeconds(),
+                recordedAt.plusSeconds(snapped.remainingDurationSeconds()));
+        return new OrderTrackingPointView(lat, lng, recordedAt,
+                new OrderTrackingPointView.SnappedPositionView(snapped.lat(), snapped.lng(), snapped.progress()),
+                progress);
     }
 
     // -------------------------------------------------------------------------
