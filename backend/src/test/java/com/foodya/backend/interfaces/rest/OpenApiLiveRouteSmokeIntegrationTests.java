@@ -222,6 +222,8 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/pickup" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/pickup", auth.deliveryAccess, null));
             case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/delivery" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/delivery", auth.deliveryAccess, null));
             case "GET /api/v1/customer/orders/{orderId}/batch-info" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/batch-info", auth.customerAccess, null));
+            case "GET /api/v1/customer/orders/{orderId}/route" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/route", auth.customerAccess, null));
+            case "GET /api/v1/delivery/orders/{orderId}/route" -> assertNot5xx(request("GET", "/api/v1/delivery/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/route", auth.deliveryAccess, null));
             case "GET /api/v1/admin/batches" -> assertNot5xx(request("GET", "/api/v1/admin/batches", auth.adminAccess, null));
             case "GET /api/v1/admin/batches/{batchId}" -> assertNot5xx(request("GET", "/api/v1/admin/batches/" + randomId, auth.adminAccess, null));
             case "POST /api/v1/admin/batches/trigger-cycle" -> assertNot5xx(request("POST", "/api/v1/admin/batches/trigger-cycle", auth.adminAccess, null));

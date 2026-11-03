@@ -271,11 +271,10 @@ public class AppConfig {
 				deliveryRouteUseCase);
 	}
 
-	@Bean
-	public RouteCalculationPort goongTripAdapter(GoongMapsClient goongMapsClient, ObjectMapper objectMapper) {
-		return new com.foodya.backend.infrastructure.adapter.integration.GoongTripAdapter(goongMapsClient, objectMapper);
-	}
-
+	/**
+	 * RouteCalculationPort is provided by @Component GoongTripAdapter (component scanning);
+	 * only non-annotated services are wired here.
+	 */
 	@Bean
 	public DeliveryRoutePort deliveryRoutePort(
 			com.foodya.backend.infrastructure.repository.DeliveryRouteRepository repository,

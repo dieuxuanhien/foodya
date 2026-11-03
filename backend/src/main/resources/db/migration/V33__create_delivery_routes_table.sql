@@ -2,8 +2,8 @@
 -- Written to run on PostgreSQL and H2 (see V32 notes): app-assigned UUIDs, TEXT JSON, no partial indexes.
 CREATE TABLE IF NOT EXISTS delivery_routes (
     id               UUID PRIMARY KEY,
-    order_id         UUID NOT NULL REFERENCES orders(id),
-    batch_id         UUID REFERENCES order_batches(id),
+    order_id         UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    batch_id         UUID REFERENCES order_batches(id) ON DELETE CASCADE,
     encoded_polyline TEXT NOT NULL,
     distance_meters  INTEGER NOT NULL,
     duration_seconds INTEGER NOT NULL,

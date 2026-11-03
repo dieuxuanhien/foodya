@@ -790,9 +790,10 @@ Run OrderLifecycleIntegrationTests to verify no regression."
 > `DeliveryBatchController` / `CustomerBatchInfoController` / `AdminBatchController`.
 > `OrderLifecycleService` no longer auto-assigns on merchant accept — the batch scheduler does.
 >
-> **Not yet implemented** (deferred): route polyline generation (needs Phase 6 Goong Trip v2),
-> `distance_matrix_cache` read/write (table created, adapter currently calls live), Redis cache,
-> and the mobile screens (Phase 13). `batching.interval_seconds` / `max_batch_size` /
+> **Not yet implemented** (deferred): route polyline generation ~~(needs Phase 6 Goong Trip v2)~~ —
+> **now delivered by Phase 6**, which stores the optimized batch polyline on `order_batches` and per-order
+> `delivery_routes` rows. Still deferred: `distance_matrix_cache` read/write (table created, adapter currently
+> calls live), Redis cache, and the mobile screens (Phase 13). `batching.interval_seconds` / `max_batch_size` /
 > `max_detour_minutes` are declared in the spec but not yet enforced — see
 > [ORDER_BATCHING_SPEC.md §10](file:///home/xuanhien/Documents/repo/foodya/docs/ORDER_BATCHING_SPEC.md).
 >
@@ -802,6 +803,32 @@ Run OrderLifecycleIntegrationTests to verify no regression."
 ---
 
 ## Phase 6: Route Calculation & Storage (Goong Trip API v2)
+
+> [!NOTE]
+> **Implementation status (Phase 6 — done).** Implemented on `v2-backend`:
+> - **Schema** `V33__create_delivery_routes_table.sql` (the plan's `V22` slot was already taken by existing migrations).
+> - `RouteCalculationPort` + `GoongTripAdapter` (`calculateRoute`, `calculateOptimizedRoute`), `PolylineCodec`,
+>   `DeliveryRouteService`, `DeliveryRoutePort` + `DeliveryRoutePersistenceAdapter`, and
+>   `DeliveryRouteController` (`GET /api/v1/delivery/orders/{orderId}/route`, `GET /api/v1/customer/orders/{orderId}/route`).
+> - Route generation is wired into automatic assignment: `OrderBatchingService` calls
+>   `planOrderRoute` after single assignment and `planBatchRoute` after each batch is persisted.
+>   Failure is logged and swallowed so a route error never rolls back an assignment.
+>
+> **Design revisions vs. the original text below**:
+> - **Ordered routing is emulated, not delegated.** Goong Trip v2 reorders waypoints, which would break the
+>   solver's pickup/delivery sequence. `calculateRoute` therefore issues one A→B `/v2/trip` call per
+>   consecutive leg and stitches the decoded polylines; only `calculateOptimizedRoute` passes waypoints to Goong.
+> - **One row per order, shared polyline per batch.** `delivery_routes` is keyed by `order_id` so both
+>   customer and driver endpoints can look up a route for their order; batch routes store the same
+>   polyline on every member order and on `order_batches.optimized_route_polyline`.
+> - **`LatLng` was not introduced** — the codebase already had `domain.value_objects.LatLng` (used by Phase 5);
+>   `RouteResult`, `RouteLeg`, and a new `RouteWaypoint` (lat, lng, type, orderId) were added instead.
+> - **Waypoints are stored as JSON text**, not `JSONB`, matching the H2-compatible convention established in V32.
+> - **`ON DELETE CASCADE`** on `order_id`/`batch_id`, consistent with every other order child table
+>   (otherwise the shared H2 test database cannot clear `orders` between tests).
+>
+> Verified with `mvn test` (117 tests, green), including 5 new route integration tests and the
+> OpenAPI live-route smoke test covering both new endpoints.
 
 > **WHY Goong Trip API v2** (not Directions API, not OSRM):
 >
