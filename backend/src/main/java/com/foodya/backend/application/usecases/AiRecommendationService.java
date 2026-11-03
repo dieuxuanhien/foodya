@@ -713,8 +713,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         if (data == null) {
             return WeatherSignal.UNKNOWN;
         }
-        String main = data.weatherMain() == null ? "" : data.weatherMain().toLowerCase(Locale.ROOT);
-        if (main.contains("rain") || main.contains("drizzle") || main.contains("thunder")) {
+        if (data.isRaining()) {
             return WeatherSignal.RAINY;
         }
         Double tempC = data.temperatureCelsius();
@@ -739,6 +738,12 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                 ? BigDecimal.valueOf(data.temperatureCelsius()).setScale(1, RoundingMode.HALF_UP) + "C"
                 : "n/a";
         String summary = weatherMain + (weatherDesc.isBlank() ? "" : " (" + weatherDesc + ")") + ", temp=" + temp;
+        if (data.windSpeedMs() != null) {
+            summary += ", wind=" + BigDecimal.valueOf(data.windSpeedMs()).setScale(1, RoundingMode.HALF_UP) + "m/s";
+        }
+        if (data.precipitationMm() != null && data.precipitationMm() > 0) {
+            summary += ", precip=" + BigDecimal.valueOf(data.precipitationMm()).setScale(1, RoundingMode.HALF_UP) + "mm";
+        }
         return truncate(summary, 120);
     }
 

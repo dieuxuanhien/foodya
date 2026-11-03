@@ -6,7 +6,7 @@ Spring Boot backend scaffold for Foodya with integration-ready configuration for
 - Supabase PostgreSQL and Storage S3 credentials
 - Goong Maps
 - Firebase config
-- OpenWeather
+- Open-Meteo (no API key required)
 
 ## Prerequisites
 

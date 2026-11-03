@@ -122,7 +122,7 @@ class WeatherCachingIntegrationTests {
                 .willReturn("8828308281fffff");
 
         given(weatherContextPort.getCurrentWeather(anyDouble(), anyDouble()))
-                .willReturn(Optional.of(new WeatherData("Rain", "light rain", 28.1)));
+                .willReturn(Optional.of(WeatherData.of("Rain", "light rain", 28.1)));
 
         given(aiDraftPort.generateRecommendationDraft(anyString()))
                 .willReturn("Try Pho Bo nearby");

@@ -28,7 +28,8 @@ public class IntegrationStatusService {
             statusOf(IntegrationKeyCatalog.FIREBASE_MESSAGING_SENDER_ID),
             statusOf(IntegrationKeyCatalog.FIREBASE_APP_ID),
             statusOf(IntegrationKeyCatalog.FIREBASE_MEASUREMENT_ID),
-            statusOf(IntegrationKeyCatalog.OPENWEATHER_API_KEY)
+            // Open-Meteo needs no API key (non-commercial tier), so it is always "configured".
+            new IntegrationStatus(IntegrationKeyCatalog.OPEN_METEO_ENDPOINT, true, "keyless")
         );
     }
 

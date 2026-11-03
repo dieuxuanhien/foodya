@@ -1194,6 +1194,19 @@ Create features/payment/ directory with bloc, pages, and data layer."
 
 ## Phase 9: Weather Service & Redis Caching
 
+> [!NOTE]
+> **Provider change (done): OpenWeather → Open-Meteo.** `OpenWeatherClient` was replaced by a keyless
+> `OpenMeteoClient` (`GET https://api.open-meteo.com/v1/forecast?latitude&longitude&current=…`).
+> Open-Meteo returns numeric **WMO weather codes**, not text, so a new `WmoWeatherCode` enum maps every
+> documented code (0–99) to a description and to the same broad category strings the old provider produced
+> ("Clear", "Clouds", "Rain", "Drizzle", "Thunderstorm", "Snow", "Fog") — no downstream keyword matching changed.
+> `WeatherData` was widened to `weatherMain, description, temperatureCelsius, humidityPercent, windSpeedMs,
+> precipitationMm, weatherCode, isRaining`; `AiRecommendationService` now uses `isRaining()` for the RAINY
+> signal and includes wind/precipitation in the prompt summary. Because there is no API key,
+> `openweather.api.key` is gone from the secret catalog, `.env.example`, `api-keys.json.example` and the
+> integration-status page (`open-meteo.endpoint` is reported as always configured, `keyless`). The Redis caching
+> below is **not yet implemented**.
+
 > **WHY Redis for caching (not Caffeine/EhCache)**:
 >
 > 1. **Shared cache**: Multiple backend instances (horizontal scaling) need shared cache. In-process caches (Caffeine) are per-JVM.
@@ -1203,7 +1216,7 @@ Create features/payment/ directory with bloc, pages, and data layer."
 >
 > **WHY cache by H3 res8 (not res9)**:
 > Weather doesn't change every 100m. H3 res8 cells are ~0.74 km² — weather is uniform within that area.
-> Using res8 means fewer API calls to OpenWeather (shared across many res9 cells within the same res8 cell).
+> Using res8 means fewer API calls to Open-Meteo (shared across many res9 cells within the same res8 cell).
 
 ### 8.1 Add Redis Dependencies
 
@@ -1257,7 +1270,7 @@ Write a simple integration test (if Redis is available) or unit test with mock."
 
 ### 8.3 Weather Caching Service
 
-> The existing system already has weather context for the RAG chatbot (OpenWeather integration, H3 res8 cache key per SRS BR36). This phase adds the Redis backing.
+> The existing system already has weather context for the RAG chatbot (Open-Meteo integration, H3 res8 cache key per SRS BR36). This phase adds the Redis backing.
 
 ```
 Agent Prompt 8.3:
@@ -1269,7 +1282,7 @@ Method: WeatherContext getWeatherForLocation(double lat, double lng)
 3. Try CachePort.get(key, WeatherContext.class)
 4. If cache hit and not expired → return cached
 5. If cache miss:
-   a. Call WeatherPort (existing OpenWeather adapter) to fetch weather
+   a. Call WeatherPort (Open-Meteo adapter) to fetch weather
    b. CachePort.put(key, weatherData, Duration.ofMinutes(15))
    c. Return weather data
 
