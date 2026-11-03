@@ -3,6 +3,7 @@ package com.foodya.backend.application.usecases;
 import com.foodya.backend.application.dto.DriverSessionView;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
+import com.foodya.backend.application.ports.out.DriverLocationCachePort;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
 import com.foodya.backend.application.ports.out.GeoPort;
 import com.foodya.backend.domain.entities.DriverOnlineSession;
@@ -25,11 +26,14 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
 
     private final DriverOnlineSessionPort driverOnlineSessionPort;
     private final GeoPort geoPort;
+    private final DriverLocationCachePort driverLocationCachePort;
 
     public DriverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort,
-                                  GeoPort geoPort) {
+                                  GeoPort geoPort,
+                                  DriverLocationCachePort driverLocationCachePort) {
         this.driverOnlineSessionPort = driverOnlineSessionPort;
         this.geoPort = geoPort;
+        this.driverLocationCachePort = driverLocationCachePort;
     }
 
     // -------------------------------------------------------------------------
@@ -80,6 +84,9 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
         }
 
         DriverOnlineSession saved = driverOnlineSessionPort.save(session);
+        if (saved.getStatus() == DriverSessionStatus.OFFLINE) {
+            evictLocation(driverUserId);
+        }
         log.info("Driver {} toggled offline → status={}, session={}",
                 driverUserId, saved.getStatus(), saved.getId());
         return toView(saved);
@@ -104,6 +111,7 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
         session.updateLocation(lat, lng, h3Index);
 
         DriverOnlineSession saved = driverOnlineSessionPort.save(session);
+        cacheLocation(saved);
         return toView(saved);
     }
 
@@ -121,6 +129,28 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /** Pushes the session's position to the shared driver-location cache (hot path for matching). */
+    private void cacheLocation(DriverOnlineSession session) {
+        if (session.getCurrentLat() == null || session.getCurrentLng() == null || session.getH3IndexRes9() == null) {
+            return;
+        }
+        try {
+            driverLocationCachePort.updateDriverLocation(session.getDriverUserId(),
+                    session.getCurrentLat(), session.getCurrentLng(), session.getH3IndexRes9());
+        } catch (RuntimeException ex) {
+            log.warn("Failed to update driver location cache for {}: {}",
+                    session.getDriverUserId(), ex.getMessage());
+        }
+    }
+
+    private void evictLocation(UUID driverUserId) {
+        try {
+            driverLocationCachePort.removeDriver(driverUserId);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to evict driver location cache for {}: {}", driverUserId, ex.getMessage());
+        }
+    }
 
     private DriverOnlineSession requireActiveSession(UUID driverUserId) {
         return driverOnlineSessionPort.findActiveSession(driverUserId)

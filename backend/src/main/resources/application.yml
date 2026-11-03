@@ -9,6 +9,14 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   flyway:
     out-of-order: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:2s}
+  cache:
+    # The cache is an optimisation: the app must keep working with Redis down.
+    enabled: ${FOODYA_REDIS_CACHE_ENABLED:true}
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}

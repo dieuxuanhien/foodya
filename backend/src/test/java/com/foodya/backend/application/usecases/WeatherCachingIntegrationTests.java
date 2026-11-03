@@ -33,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doAnswer;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -70,6 +71,9 @@ class WeatherCachingIntegrationTests {
 
     @MockitoBean
     private GeoPort geoPort;
+
+    @MockitoBean
+    private CachePort cachePort;
 
     private UUID userId;
 
@@ -123,6 +127,16 @@ class WeatherCachingIntegrationTests {
 
         given(weatherContextPort.getCurrentWeather(anyDouble(), anyDouble()))
                 .willReturn(Optional.of(WeatherData.of("Rain", "light rain", 28.1)));
+
+        // In-JVM cache stand-in: the production adapter is Redis, but the caching contract is what
+        // this test asserts (one provider call for a repeated location).
+        InMemoryCache weatherCacheStore = new InMemoryCache();
+        given(cachePort.<WeatherData>get(anyString(), any(Class.class))).willAnswer(inv ->
+                weatherCacheStore.get(inv.getArgument(0), inv.<Class<WeatherData>>getArgument(1)));
+        doAnswer(inv -> {
+            weatherCacheStore.put(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2));
+            return null;
+        }).when(cachePort).put(anyString(), any(), any());
 
         given(aiDraftPort.generateRecommendationDraft(anyString()))
                 .willReturn("Try Pho Bo nearby");

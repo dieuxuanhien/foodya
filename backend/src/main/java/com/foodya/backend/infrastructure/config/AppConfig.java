@@ -205,8 +205,22 @@ public class AppConfig {
 			WeatherContextPort weatherContextPort,
 			AiChatHistoryPort aiChatHistoryPort,
 			SystemParameterPort systemParameterPort,
+			GeoPort geoPort,
+			WeatherCacheService weatherCacheService) {
+		return new AiRecommendationService(aiEmbeddingPort, aiCatalogVectorPort, menuItemPort, restaurantPort, userAccountPort, aiDraftPort, weatherContextPort, aiChatHistoryPort, systemParameterPort, geoPort, weatherCacheService);
+	}
+
+	@Bean
+	public WeatherCacheService weatherCacheService(
+			WeatherContextPort weatherContextPort,
+			CachePort cachePort,
 			GeoPort geoPort) {
-		return new AiRecommendationService(aiEmbeddingPort, aiCatalogVectorPort, menuItemPort, restaurantPort, userAccountPort, aiDraftPort, weatherContextPort, aiChatHistoryPort, systemParameterPort, geoPort);
+		return new WeatherCacheService(weatherContextPort, cachePort, geoPort);
+	}
+
+	@Bean
+	public DriverLocationCacheService driverLocationCacheService(CachePort cachePort) {
+		return new DriverLocationCacheService(cachePort);
 	}
 
 	@Bean
@@ -251,8 +265,9 @@ public class AppConfig {
 
 	@Bean
 	public DriverLifecycleUseCase driverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort,
-			GeoPort geoPort) {
-		return new DriverLifecycleService(driverOnlineSessionPort, geoPort);
+			GeoPort geoPort,
+			DriverLocationCachePort driverLocationCachePort) {
+		return new DriverLifecycleService(driverOnlineSessionPort, geoPort, driverLocationCachePort);
 	}
 
 	@Bean

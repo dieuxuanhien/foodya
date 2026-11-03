@@ -1194,6 +1194,38 @@ Create features/payment/ directory with bloc, pages, and data layer."
 
 ## Phase 9: Weather Service & Redis Caching
 
+"> [!NOTE]
+> **Implementation status (Phase 9 — backend done).** Implemented on `v2-backend`:
+> - **Dependencies**: `spring-boot-starter-data-redis`; a `redis:7-alpine` service (with healthcheck) in
+>   `backend/docker-compose.yml`; `spring.data.redis.*` and `spring.cache.enabled` in `application.yml`.
+> - **`CachePort` + `RedisCacheAdapter`** (JSON values over `StringRedisTemplate`, GEO ops for radius queries,
+>   sets for H3 indexes). The adapter is **fail-open**: any Redis error is logged and treated as a miss, so
+>   logistics and chat keep working with Redis down. `NoOpCacheAdapter` is used when
+>   `spring.cache.enabled=false` (and in tests, which exclude Redis auto-configuration).
+> - **`WeatherCacheService`** replaces the per-JVM `ConcurrentHashMap` in `AiRecommendationService`.
+>   Key: `weather:h3:<res8>`; TTL 15 min. Provider failures are cached for 2 min under
+>   `weather:h3:unavailable:<res8>` so an outage does not cause one upstream call per chat message
+>   (an empty `Optional` cannot be stored, hence a separate marker key).
+> - **`DriverLocationCacheService` + `DriverLocationCachePort`** (`DriverCachedLocation` value object):
+>   `driver:locations:geo` (GEOSEARCH radius), `driver:locations:h3:<cell>` sets (k-ring lookups), and
+>   `driver:location:<id>` TTL 10 min. Reads older than 5 min are ignored as stale. `DriverLifecycleService`
+>   writes on every location update and evicts on going OFFLINE.
+>
+> **Deviations from the prompts below**:
+> - **Driver matching still reads PostgreSQL, not Redis first.** `DriverMatchingAdapter` needs the full
+>   session (capacity, heartbeat, status) for scoring, so the Redis cache is populated and exposed via
+>   `DriverLocationCachePort` for proximity queries, but switching the matcher's candidate source is deferred
+>   until the session snapshot is cached too. Stated explicitly rather than silently skipping it.
+> - **No periodic DB↔Redis sync job.** The DB session row is written on location updates today; the cache is
+>   additive. A `@Scheduled` flush was not added because the current write path already persists, and a sync
+>   job without a defined source of truth risks overwriting newer data.
+> - **Redis integration test not run against a live server in CI** — no Redis binary in the test environment.
+>   The fail-open contract is unit-tested at the adapter boundary with a mocked template.
+>
+> Verified with `mvn test` (155 tests, green): `WeatherCacheServiceTest` (4), `DriverLocationCacheServiceTest`
+> (5), `RedisCacheAdapterTests` (2 — fail-open + JSON round-trip), and the existing
+> `WeatherCachingIntegrationTests` now asserts one provider call per repeated location through the cache.
+
 > [!NOTE]
 > **Provider change (done): OpenWeather → Open-Meteo.** `OpenWeatherClient` was replaced by a keyless
 > `OpenMeteoClient` (`GET https://api.open-meteo.com/v1/forecast?latitude&longitude&current=…`).

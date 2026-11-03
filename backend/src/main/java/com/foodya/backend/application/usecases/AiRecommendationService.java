@@ -40,15 +40,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AiRecommendationService implements AiRecommendationUseCase {
 
-    private static final int H3_WEATHER_RES = 8;
     private static final int TOP_K_RECOMMENDATIONS = 5;
-    private static final int WEATHER_CACHE_SECONDS = 600;
     private static final int RAG_TOP_K = 40;
     private static final int RAG_REFRESH_SECONDS = 900;
     private static final int DEFAULT_MAX_SHIPPING_KM = 15;
@@ -89,7 +86,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
     private final AiChatHistoryPort aiChatHistoryPort;
     private final SystemParameterPort systemParameterPort;
     private final GeoPort geoPort;
-    private final Map<String, CachedWeather> weatherCache = new ConcurrentHashMap<>();
+    private final WeatherCacheService weatherCacheService;
     private volatile Instant lastRagSnapshotAt;
 
     public AiRecommendationService(AiEmbeddingPort aiEmbeddingPort,
@@ -101,7 +98,8 @@ public class AiRecommendationService implements AiRecommendationUseCase {
                                    WeatherContextPort weatherContextPort,
                                    AiChatHistoryPort aiChatHistoryPort,
                                    SystemParameterPort systemParameterPort,
-                                   GeoPort geoPort) {
+                                   GeoPort geoPort,
+                                   WeatherCacheService weatherCacheService) {
         this.aiEmbeddingPort = aiEmbeddingPort;
         this.aiCatalogVectorPort = aiCatalogVectorPort;
         this.menuItemPort = menuItemPort;
@@ -112,6 +110,7 @@ public class AiRecommendationService implements AiRecommendationUseCase {
         this.aiChatHistoryPort = aiChatHistoryPort;
         this.systemParameterPort = systemParameterPort;
         this.geoPort = geoPort;
+        this.weatherCacheService = weatherCacheService;
     }
 
     public AiChatResponseView createChat(UUID customerUserId, CreateAiChatRequest request) {
@@ -553,24 +552,19 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             return WeatherContext.empty();
         }
 
-        String weatherH3Key = geoPort.geoToH3Index(lat.doubleValue(), lng.doubleValue(), H3_WEATHER_RES);
-        Instant now = Instant.now();
-        CachedWeather cached = weatherCache.get(weatherH3Key);
-        if (cached != null && now.isBefore(cached.expiresAt())) {
-            return toWeatherContext(cached.weatherData(), weatherH3Key);
-        }
-
         try {
-            Optional<WeatherData> optData = weatherContextPort.getCurrentWeather(lat.doubleValue(), lng.doubleValue());
-            WeatherData data = optData.orElse(null);
-            weatherCache.put(weatherH3Key, new CachedWeather(data, now.plusSeconds(WEATHER_CACHE_SECONDS)));
-            return toWeatherContext(data, weatherH3Key);
+            WeatherCacheService.WeatherResult result = weatherCacheService.getWeatherForLocation(
+                    lat.doubleValue(), lng.doubleValue());
+            return toWeatherContext(result.data(), result.h3Res8Cell());
         } catch (Exception ex) {
-            return new WeatherContext(null, weatherH3Key, WeatherSignal.UNKNOWN, "not available");
+            return new WeatherContext(null, null, WeatherSignal.UNKNOWN, "not available");
         }
     }
 
     private WeatherContext toWeatherContext(WeatherData data, String h3) {
+        if (data == null) {
+            return new WeatherContext(null, h3, WeatherSignal.UNKNOWN, "not available");
+        }
         String summary = extractWeatherSummary(data);
         WeatherSignal signal = resolveWeatherSignal(data);
         return new WeatherContext(data, h3, signal, summary);
@@ -1028,9 +1022,6 @@ public class AiRecommendationService implements AiRecommendationUseCase {
             return raw;
         }
         return raw.substring(0, maxLen);
-    }
-
-    private record CachedWeather(WeatherData weatherData, Instant expiresAt) {
     }
 
     private record WeatherContext(WeatherData data,
