@@ -33,6 +33,7 @@ import java.util.UUID;
 @Table(name = "orders")
 public class OrderPersistenceModel {
 
+
     @Id
     private UUID id;
 
@@ -110,6 +111,9 @@ public class OrderPersistenceModel {
 
     @Column(name = "batch_delivery_index")
     private Integer batchDeliveryIndex;
+
+    @Column(name = "fee_breakdown", columnDefinition = "text")
+    private String feeBreakdown;
 
     @Column(name = "estimated_delivery_at")
     private OffsetDateTime estimatedDeliveryAt;
@@ -336,6 +340,14 @@ public class OrderPersistenceModel {
 
     public OffsetDateTime getEstimatedDeliveryAt() {
         return estimatedDeliveryAt;
+    }
+
+    public String getFeeBreakdown() {
+        return feeBreakdown;
+    }
+
+    public void setFeeBreakdown(String feeBreakdown) {
+        this.feeBreakdown = feeBreakdown;
     }
 
     public void setEstimatedDeliveryAt(OffsetDateTime estimatedDeliveryAt) {

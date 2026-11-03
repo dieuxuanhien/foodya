@@ -19,6 +19,18 @@ import com.foodya.backend.application.ports.out.OrderCheckoutPort;
 import com.foodya.backend.application.ports.out.RouteDistancePort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.CartItem;
+import com.foodya.backend.application.dto.WeatherData;
+import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
+import com.foodya.backend.application.ports.out.OrderManagementPort;
+import com.foodya.backend.application.ports.out.WeatherContextPort;
+import com.foodya.backend.application.usecases.pricing.DeliveryFeeCalculator;
+import com.foodya.backend.application.usecases.pricing.DemandSurgeFeeModifier;
+import com.foodya.backend.application.usecases.pricing.DistanceFeeModifier;
+import com.foodya.backend.application.usecases.pricing.PricingSettings;
+import com.foodya.backend.application.usecases.pricing.WeatherFeeModifier;
+import com.foodya.backend.domain.value_objects.DeliveryFeeBreakdown;
+import com.foodya.backend.domain.value_objects.DeliveryFeeContext;
+import com.foodya.backend.domain.value_objects.FeeComponent;
 import com.foodya.backend.domain.policies.DeliveryFeePolicy;
 import com.foodya.backend.domain.services.OrderCodeGenerator;
 import com.foodya.backend.domain.value_objects.CartStatus;
@@ -33,6 +45,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -44,19 +57,28 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
     private final RouteDistancePort routeDistancePort;
     private final SystemParameterPort systemParameterPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
+    private final WeatherContextPort weatherContextPort;
+    private final DriverOnlineSessionPort driverOnlineSessionPort;
+    private final OrderManagementPort orderManagementPort;
 
     public OrderCheckoutService(OrderCheckoutPort orderCheckoutPort,
                                 CartPort cartPort,
                                 CartItemPort cartItemPort,
                                 RouteDistancePort routeDistancePort,
                                 SystemParameterPort systemParameterPort,
-                                OrderEventPublisherPort orderEventPublisherPort) {
+                                OrderEventPublisherPort orderEventPublisherPort,
+                                WeatherContextPort weatherContextPort,
+                                DriverOnlineSessionPort driverOnlineSessionPort,
+                                OrderManagementPort orderManagementPort) {
         this.orderCheckoutPort = orderCheckoutPort;
         this.cartPort = cartPort;
         this.cartItemPort = cartItemPort;
         this.routeDistancePort = routeDistancePort;
         this.systemParameterPort = systemParameterPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
+        this.weatherContextPort = weatherContextPort;
+        this.driverOnlineSessionPort = driverOnlineSessionPort;
+        this.orderManagementPort = orderManagementPort;
     }
 
     public OrderCostReviewView reviewCurrentCartCost(UUID customerUserId, CreateOrderFromCartRequest request) {
@@ -68,7 +90,11 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 quote.commissionAmount,
                 quote.shippingFeeMarginAmount,
                 quote.platformProfitAmount,
-                currencyCode()
+                currencyCode(),
+                quote.feeComponents.stream()
+                        .map(c -> new com.foodya.backend.application.dto.OrderCostReviewView.FeeComponentView(
+                                c.name(), c.label(), c.amount()))
+                        .toList()
         );
     }
 
@@ -105,6 +131,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 .build();
 
 
+        order.setFeeBreakdown(toJson(quote.feeComponents));
         Order savedOrder = orderCheckoutPort.saveOrder(order);
 
         for (OrderItem item : quote.orderItems) {
@@ -202,14 +229,8 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                     Map.of("distanceKm", "must be <= shipping.max_delivery_km"));
         }
 
-        BigDecimal deliveryFee = DeliveryFeePolicy.calculateDeliveryFee(
-                routeDistanceKm,
-                decimalParam("shipping.base_delivery_fee", DeliveryFeePolicy.DEFAULT_BASE_FEE),
-                decimalParam("shipping.base_distance_km", DeliveryFeePolicy.DEFAULT_BASE_DISTANCE_KM),
-                decimalParam("shipping.fee_per_km", DeliveryFeePolicy.DEFAULT_FEE_PER_KM),
-                currencyMinorUnit,
-                roundingMode
-        );
+        DeliveryFeeBreakdown feeBreakdown = calculateDeliveryFee(routeDistanceKm, restaurant);
+        BigDecimal deliveryFee = feeBreakdown.totalFee();
         BigDecimal roundedSubtotal = DeliveryFeePolicy.roundAmount(subtotal, currencyMinorUnit, roundingMode);
         BigDecimal total = DeliveryFeePolicy.roundAmount(roundedSubtotal.add(deliveryFee), currencyMinorUnit, roundingMode);
 
@@ -225,6 +246,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 orderItems,
                 roundedSubtotal,
                 deliveryFee,
+                feeBreakdown.components(),
                 total,
                 commissionAmount,
                 shippingFeeMarginAmount,
@@ -234,6 +256,88 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
 
     private static BigDecimal round(BigDecimal value, int minorUnit, RoundingMode roundingMode) {
         return value.setScale(minorUnit, roundingMode);
+    }
+
+    /**
+     * Builds the pricing chain for one checkout. Rebuilt per call so runtime system-parameter changes take
+     * effect without a restart (the chain itself is stateless).
+     */
+    private DeliveryFeeBreakdown calculateDeliveryFee(BigDecimal routeDistanceKm, Restaurant restaurant) {
+        PricingSettings settings = new PricingSettings(
+                decimalParam("shipping.base_delivery_fee", PricingSettings.defaults().baseFee()),
+                decimalParam("shipping.base_distance_km", PricingSettings.defaults().baseDistanceKm()),
+                decimalParam("shipping.fee_per_km", PricingSettings.defaults().feePerKm()),
+                decimalParam("pricing.max_delivery_fee", PricingSettings.defaults().maxDeliveryFee()),
+                decimalParam("pricing.weather.rain_multiplier", PricingSettings.defaults().rainMultiplier()),
+                decimalParam("pricing.weather.heavy_rain_multiplier", PricingSettings.defaults().heavyRainMultiplier()),
+                decimalParam("pricing.weather.storm_multiplier", PricingSettings.defaults().stormMultiplier()),
+                booleanParam("pricing.surge.enabled", false),
+                decimalParam("pricing.surge.threshold_ratio", PricingSettings.defaults().surgeThresholdRatio()),
+                decimalParam("pricing.surge.multiplier", PricingSettings.defaults().surgeMultiplier()),
+                decimalParam("pricing.surge.max_multiplier", PricingSettings.defaults().surgeMaxMultiplier()));
+
+        DeliveryFeeCalculator calculator = new DeliveryFeeCalculator(
+                List.of(new DistanceFeeModifier(settings), new WeatherFeeModifier(settings),
+                        new DemandSurgeFeeModifier(settings)), settings);
+
+        WeatherData weatherData = weatherAt(restaurant);
+        com.foodya.backend.domain.value_objects.WeatherConditions weather = weatherData == null
+                ? com.foodya.backend.domain.value_objects.WeatherConditions.none()
+                : new com.foodya.backend.domain.value_objects.WeatherConditions(
+                        weatherData.weatherCode(), weatherData.weatherMain(), weatherData.isRaining());
+        DeliveryFeeContext context = new DeliveryFeeContext(
+                routeDistanceKm, weather, java.time.LocalDateTime.now(),
+                settings.surgeEnabled() ? demandSupplyRatio(restaurant) : 0.0,
+                restaurant.getLatitude() != null ? restaurant.getLatitude().doubleValue() : 0.0,
+                restaurant.getLongitude() != null ? restaurant.getLongitude().doubleValue() : 0.0);
+        return calculator.calculate(context);
+    }
+
+    /** Weather is advisory: any failure simply means no weather surcharge. */
+    private WeatherData weatherAt(Restaurant restaurant) {
+        if (restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
+            return null;
+        }
+        try {
+            return weatherContextPort.getCurrentWeather(
+                    restaurant.getLatitude().doubleValue(), restaurant.getLongitude().doubleValue()).orElse(null);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    /** Eligible (unassigned) orders per available driver. 0 when there is no supply signal. */
+    private double demandSupplyRatio(Restaurant restaurant) {
+        try {
+            String cell = restaurant.getH3IndexRes9();
+            if (cell == null) {
+                return 0.0;
+            }
+            long demand = orderManagementPort.findEligibleForBatching().size();
+            long supply = driverOnlineSessionPort.findOnlineDriversInH3Cells(Set.of(cell)).size();
+            return supply == 0 ? 0.0 : (double) demand / supply;
+        } catch (RuntimeException ex) {
+            return 0.0;
+        }
+    }
+
+    private static String toJson(List<FeeComponent> components) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < components.size(); i++) {
+            FeeComponent c = components.get(i);
+            if (i > 0) sb.append(',');
+            sb.append("{\"name\":\"").append(c.name())
+              .append("\",\"label\":\"").append(c.label().replace("\"", "\\\""))
+              .append("\",\"amount\":").append(c.amount().toPlainString()).append('}');
+        }
+        return sb.append(']').toString();
+    }
+
+    private boolean booleanParam(String key, boolean fallback) {
+        return systemParameterPort.findById(key)
+                .map(p -> p.getValue())
+                .map(Boolean::parseBoolean)
+                .orElse(fallback);
     }
 
     private BigDecimal decimalParam(String key, BigDecimal fallback) {
@@ -314,6 +418,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         private final List<OrderItem> orderItems;
         private final BigDecimal subtotal;
         private final BigDecimal deliveryFee;
+        private final List<FeeComponent> feeComponents;
         private final BigDecimal total;
         private final BigDecimal commissionAmount;
         private final BigDecimal shippingFeeMarginAmount;
@@ -323,6 +428,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                                   List<OrderItem> orderItems,
                                   BigDecimal subtotal,
                                   BigDecimal deliveryFee,
+                                  List<FeeComponent> feeComponents,
                                   BigDecimal total,
                                   BigDecimal commissionAmount,
                                   BigDecimal shippingFeeMarginAmount,
@@ -331,6 +437,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             this.orderItems = List.copyOf(orderItems);
             this.subtotal = subtotal;
             this.deliveryFee = deliveryFee;
+            this.feeComponents = feeComponents == null ? List.of() : List.copyOf(feeComponents);
             this.total = total;
             this.commissionAmount = commissionAmount;
             this.shippingFeeMarginAmount = shippingFeeMarginAmount;

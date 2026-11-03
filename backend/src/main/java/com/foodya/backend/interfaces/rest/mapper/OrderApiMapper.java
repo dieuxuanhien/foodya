@@ -35,7 +35,10 @@ public final class OrderApiMapper {
                 view.commissionAmount(),
                 view.shippingFeeMarginAmount(),
                 view.platformProfitAmount(),
-                view.currencyCode()
+                view.currencyCode(),
+                view.feeBreakdown().stream()
+                        .map(c -> new OrderCostReviewResponse.FeeComponent(c.name(), c.label(), c.amount()))
+                        .toList()
         );
     }
 }

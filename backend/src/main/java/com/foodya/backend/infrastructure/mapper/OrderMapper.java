@@ -65,6 +65,7 @@ public class OrderMapper {
         domain.setBatchPickupIndex(model.getBatchPickupIndex());
         domain.setBatchDeliveryIndex(model.getBatchDeliveryIndex());
         domain.setEstimatedDeliveryAt(model.getEstimatedDeliveryAt());
+        domain.setFeeBreakdown(model.getFeeBreakdown());
 
         return domain;
     }
@@ -107,6 +108,7 @@ public class OrderMapper {
         model.setBatchPickupIndex(domain.getBatchPickupIndex());
         model.setBatchDeliveryIndex(domain.getBatchDeliveryIndex());
         model.setEstimatedDeliveryAt(domain.getEstimatedDeliveryAt());
+        model.setFeeBreakdown(domain.getFeeBreakdown());
 
         return model;
     }

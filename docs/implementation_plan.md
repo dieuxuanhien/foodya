@@ -1381,6 +1381,36 @@ Update DriverMatchingAdapter to query from Redis cache first (fall back to DB)."
 
 ## Phase 10: Dynamic Cost Engine
 
+> [!NOTE]
+> **Implementation status (Phase 10 — backend done).** Implemented on `v2-backend`:
+> - **Chain of Responsibility** in `application/usecases/pricing/`: `DistanceFeeModifier` (order 1, replaces
+>   the inline checkout formula; arithmetic still in `DeliveryFeePolicy`), `WeatherFeeModifier` (order 2),
+>   `DemandSurgeFeeModifier` (order 3, disabled by default), driven by `DeliveryFeeCalculator`.
+> - **Weather surcharges key off the WMO code**, not the broad category: 65/67/82 → heavy rain (×1.30),
+>   95/96/97/99 → storm (×1.50), 51–63/80/81 → rain (×1.15). Clear and snow add nothing.
+> - **Cap enforcement keeps the breakdown reconcilable**: when the total exceeds `pricing.max_delivery_fee`,
+>   the excess is trimmed from surcharges first, then the distance charge — the components always sum to the
+>   returned total (asserted in tests).
+> - **`OrderCostReviewResponse` gained `feeBreakdown`** (`[{name, label, amount}]`), so the customer sees
+>   "Base delivery 10,000 / Distance (6.238 km) 21,190 / Rain surcharge (+15%) …". The same breakdown is
+>   serialised into the new `orders.fee_breakdown` column (migration `V35`) at order creation for audit.
+> - All eight `pricing.*` parameters registered in `SystemParameterCatalog` with min-value validation.
+>
+> **Design revisions**:
+> - **`DeliveryFeeContext` takes a domain `WeatherConditions` record, not the application `WeatherData` DTO.**
+>   The first cut imported the DTO into `domain.value_objects` and the ArchUnit rule
+>   `domainMustNotDependOnApplicationLayer` caught it. The checkout service now maps DTO → domain record.
+> - **Read from `WeatherContextPort` directly, not through `WeatherCacheService`.** The weather here is the
+>   one at the *restaurant*, which is known only after the cart is loaded; wiring the cache service in as
+>   well would duplicate the H3/cache logic in the checkout path. Consequence: checkout weather is not
+>   cached — worth revisiting if checkout traffic dominates weather API calls.
+> - **Surge signal** is `eligible batching orders / online drivers in the restaurant's H3 cell`. It is only
+>   computed when `pricing.surge.enabled` is true (default false).
+>
+> Verified with `mvn test` (170 tests, green): 13 `DeliveryFeeCalculatorTests` covering base/distance tiers,
+> each weather tier, surge on/off, cap reconciliation, modifier ordering and the category-text fallback, plus
+> live verification against Open-Meteo for HCMC (see the weather-cache probe notes above).
+
 > **WHY dynamic pricing**:
 >
 > 1. **Weather surcharge**: Drivers face higher risk and slower speeds in rain. Compensating them retains supply.

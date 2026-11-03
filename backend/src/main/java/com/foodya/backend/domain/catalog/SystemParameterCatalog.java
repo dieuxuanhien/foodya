@@ -18,6 +18,16 @@ public final class SystemParameterCatalog {
         rules.put("shipping.base_delivery_fee", ParameterRule.number("10000", true, new NumberConstraint(BigDecimal.ZERO, null)));
         rules.put("shipping.base_distance_km", ParameterRule.number("2.0", true, new NumberConstraint(BigDecimal.ZERO, null)));
         rules.put("shipping.fee_per_km", ParameterRule.number("5000", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        // Phase 10 dynamic pricing — read at checkout by DeliveryFeeCalculator.
+        rules.put("pricing.max_delivery_fee", ParameterRule.number("100000", true, new NumberConstraint(BigDecimal.ONE, null, true)));
+        rules.put("pricing.weather.rain_multiplier", ParameterRule.number("1.15", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("pricing.weather.heavy_rain_multiplier", ParameterRule.number("1.30", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("pricing.weather.storm_multiplier", ParameterRule.number("1.50", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("pricing.surge.enabled", ParameterRule.bool("false", true));
+        rules.put("pricing.surge.threshold_ratio", ParameterRule.number("2.0", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("pricing.surge.multiplier", ParameterRule.number("1.20", true, new NumberConstraint(BigDecimal.ONE, null)));
+        rules.put("pricing.surge.max_multiplier", ParameterRule.number("1.50", true, new NumberConstraint(BigDecimal.ONE, null)));
+
         rules.put("shipping.max_delivery_km", ParameterRule.number("15.0", true, new NumberConstraint(BigDecimal.ZERO, null, true)));
 
         rules.put("search.nearby.max_radius_km", ParameterRule.number("10.0", true, new NumberConstraint(BigDecimal.ZERO, null, true)));

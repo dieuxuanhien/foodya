@@ -95,8 +95,11 @@ public class AppConfig {
 			CartItemPort cartItemPort,
 			RouteDistancePort routeDistancePort,
 			SystemParameterPort systemParameterPort,
-			OrderEventPublisherPort orderEventPublisherPort) {
-		return new OrderCheckoutService(orderCheckoutPort, cartPort, cartItemPort, routeDistancePort, systemParameterPort, orderEventPublisherPort);
+			OrderEventPublisherPort orderEventPublisherPort,
+			WeatherContextPort weatherContextPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			OrderManagementPort orderManagementPort) {
+		return new OrderCheckoutService(orderCheckoutPort, cartPort, cartItemPort, routeDistancePort, systemParameterPort, orderEventPublisherPort, weatherContextPort, driverOnlineSessionPort, orderManagementPort);
 	}
 
 	@Bean

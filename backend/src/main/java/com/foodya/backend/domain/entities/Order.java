@@ -61,6 +61,8 @@ public class Order {
     private BigDecimal deliveryLongitude;
 
     private String customerNote;
+    private String feeBreakdown;
+
 
     private BigDecimal subtotalAmount;
 
@@ -390,6 +392,15 @@ public class Order {
 
     public void setCompletedAt(OffsetDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    /** JSON snapshot of the delivery-fee breakdown at order creation (null for legacy orders). */
+    public String getFeeBreakdown() {
+        return feeBreakdown;
+    }
+
+    public void setFeeBreakdown(String feeBreakdown) {
+        this.feeBreakdown = feeBreakdown;
     }
 
     public UUID getBatchId() {
