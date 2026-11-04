@@ -220,6 +220,22 @@ class OpenApiLiveRouteSmokeIntegrationTests {
             case "GET /api/v1/delivery/batches/active" -> assertNot5xx(request("GET", "/api/v1/delivery/batches/active", auth.deliveryAccess, null));
             case "GET /api/v1/delivery/batches/{batchId}" -> assertNot5xx(request("GET", "/api/v1/delivery/batches/" + randomId, auth.deliveryAccess, null));
             case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/pickup" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/pickup", auth.deliveryAccess, null));
+            case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/fail" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + randomId + "/fail?reason=smoke", auth.deliveryAccess, null));
+            case "POST /api/v1/delivery/orders/{orderId}/reject" -> assertNot5xx(request("POST", "/api/v1/delivery/orders/" + randomId + "/reject", auth.deliveryAccess, null));
+            case "GET /api/v1/admin/settlements/pending" -> assertNot5xx(request("GET", "/api/v1/admin/settlements/pending?payeeType=MERCHANT", auth.adminAccess, null));
+            case "GET /api/v1/admin/settlements/pending/{payeeType}/{payeeUserId}" -> assertNot5xx(request("GET", "/api/v1/admin/settlements/pending/DRIVER/" + randomId, auth.adminAccess, null));
+            case "POST /api/v1/admin/settlements/{payeeType}/{payeeUserId}/settle" -> assertNot5xx(request("POST", "/api/v1/admin/settlements/MERCHANT/" + randomId + "/settle", auth.adminAccess, "{}"));
+            case "GET /api/v1/admin/settlements" -> assertNot5xx(request("GET", "/api/v1/admin/settlements", auth.adminAccess, null));
+            case "GET /api/v1/admin/settlements/{settlementId}" -> assertNot5xx(request("GET", "/api/v1/admin/settlements/" + randomId, auth.adminAccess, null));
+            case "GET /api/v1/merchant/settlements/pending" -> assertNot5xx(request("GET", "/api/v1/merchant/settlements/pending", auth.merchantAccess, null));
+            case "GET /api/v1/merchant/settlements" -> assertNot5xx(request("GET", "/api/v1/merchant/settlements", auth.merchantAccess, null));
+            case "GET /api/v1/delivery/settlements/pending" -> assertNot5xx(request("GET", "/api/v1/delivery/settlements/pending", auth.deliveryAccess, null));
+            case "GET /api/v1/delivery/settlements" -> assertNot5xx(request("GET", "/api/v1/delivery/settlements", auth.deliveryAccess, null));
+            case "GET /api/v1/delivery/earnings" -> assertNot5xx(request("GET", "/api/v1/delivery/earnings", auth.deliveryAccess, null));
+            case "POST /api/v1/merchant/orders/{orderId}/reject" -> assertNot5xx(request("POST", "/api/v1/merchant/orders/" + randomId + "/reject", auth.merchantAccess,
+                    "{\"reason\":\"smoke reject\"}"));
+            case "POST /api/v1/admin/orders/{orderId}/refund" -> assertNot5xx(request("POST", "/api/v1/admin/orders/" + randomId + "/refund", auth.adminAccess,
+                    "{\"reason\":\"smoke refund\"}"));
             case "POST /api/v1/delivery/batches/{batchId}/orders/{orderId}/delivery" -> assertNot5xx(request("POST", "/api/v1/delivery/batches/" + randomId + "/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/delivery", auth.deliveryAccess, null));
             case "GET /api/v1/customer/orders/{orderId}/batch-info" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/batch-info", auth.customerAccess, null));
             case "GET /api/v1/customer/orders/{orderId}/route" -> assertNot5xx(request("GET", "/api/v1/customer/orders/" + SEEDED_ASSIGNED_ORDER_ID + "/route", auth.customerAccess, null));

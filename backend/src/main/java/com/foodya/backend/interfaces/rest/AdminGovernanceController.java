@@ -22,6 +22,8 @@ import com.foodya.backend.interfaces.rest.dto.UpdateMenuItemApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -48,6 +50,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
+@Tag(name = "Admin Governance", description = "Admin oversight of restaurants, orders and menu items")
 @Validated
 public class AdminGovernanceController {
 
@@ -57,6 +60,7 @@ public class AdminGovernanceController {
         this.adminGovernanceService = adminGovernanceService;
     }
 
+    @Operation(summary = "List all restaurants", description = "Admin listing of restaurants across all merchants, filterable by keyword.")
     @GetMapping("/restaurants")
     public ResponseEntity<ApiSuccessResponse<List<RestaurantDetailResponse>>> listRestaurants(@RequestParam(required = false) String q,
                                                                                                 @RequestParam(required = false) String status,
@@ -77,12 +81,14 @@ public class AdminGovernanceController {
         ));
     }
 
+    @Operation(summary = "Get restaurant detail", description = "Full admin view of one restaurant.")
     @GetMapping("/restaurants/{id}")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> getRestaurantById(@PathVariable String id, HttpServletRequest request) {
         RestaurantData restaurant = adminGovernanceService.getRestaurantById(parseUuid(id, "id"));
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Create restaurant", description = "Admin creates a restaurant on behalf of a merchant.")
     @PostMapping("/restaurants")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> createRestaurant(Authentication authentication,
                                                                                          @Valid @RequestBody com.foodya.backend.interfaces.rest.dto.AdminRestaurantCreateRequest req,
@@ -95,6 +101,7 @@ public class AdminGovernanceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Update restaurant", description = "Admin edit of restaurant profile fields.")
     @PutMapping("/restaurants/{id}")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> updateRestaurant(Authentication authentication,
                                                                                          @PathVariable String id,
@@ -108,6 +115,7 @@ public class AdminGovernanceController {
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Approve restaurant", description = "Sets the restaurant status to ACTIVE, which makes it visible in the public catalog. Allowed from any current status.")
     @PostMapping("/restaurants/{id}/approve")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> approveRestaurant(Authentication authentication,
                                                                                             @PathVariable String id,
@@ -116,6 +124,7 @@ public class AdminGovernanceController {
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Reject restaurant", description = "Moves a PENDING restaurant to REJECTED.")
     @PostMapping("/restaurants/{id}/reject")
     public ResponseEntity<ApiSuccessResponse<RestaurantDetailResponse>> rejectRestaurant(Authentication authentication,
                                                                                             @PathVariable String id,
@@ -124,12 +133,14 @@ public class AdminGovernanceController {
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toRestaurantDetailResponse(restaurant), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Delete restaurant", description = "Permanently deletes the restaurant. Blocked with 409 while it has orders in progress.")
     @DeleteMapping("/restaurants/{id}")
     public ResponseEntity<Void> deleteRestaurant(Authentication authentication, @PathVariable String id) {
         adminGovernanceService.deleteRestaurant(parseUuid(id, "id"), CurrentUser.userId(authentication));
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "List all orders", description = "Admin listing of orders, filterable by status and restaurant.")
     @GetMapping("/orders")
     public ResponseEntity<ApiSuccessResponse<List<OrderSummaryResponse>>> listOrders(@RequestParam(required = false) String status,
                                                                                       @RequestParam(required = false) @Min(0) Integer page,
@@ -149,6 +160,7 @@ public class AdminGovernanceController {
         ));
     }
 
+    @Operation(summary = "List restaurant menu categories", description = "Admin read of a restaurant's menu categories.")
     @GetMapping("/restaurants/{id}/menu-categories")
     public ResponseEntity<ApiSuccessResponse<List<MenuCategoryResponse>>> listMenuCategories(@PathVariable String id,
                                                                                             @RequestParam(required = false) @Min(0) Integer page,
@@ -166,6 +178,7 @@ public class AdminGovernanceController {
         ));
     }
 
+    @Operation(summary = "List menu items", description = "Admin listing of menu items, filterable by restaurant.")
     @GetMapping("/menu-items")
     public ResponseEntity<ApiSuccessResponse<List<MenuItemResponse>>> listMenuItems(@RequestParam(required = false) String restaurantId,
                                                                                     @RequestParam(required = false) String categoryCode,
@@ -187,6 +200,7 @@ public class AdminGovernanceController {
         ));
     }
 
+    @Operation(summary = "Create menu item", description = "Admin creates a menu item under a restaurant.")
     @PostMapping("/restaurants/{id}/menu-items")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> createMenuItem(Authentication authentication,
                                                                                @PathVariable String id,
@@ -196,6 +210,7 @@ public class AdminGovernanceController {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Update menu item", description = "Admin edit of a menu item.")
     @PutMapping("/menu-items/{id}")
     public ResponseEntity<ApiSuccessResponse<MenuItemResponse>> updateMenuItem(Authentication authentication,
                                                                                @PathVariable String id,
@@ -205,6 +220,7 @@ public class AdminGovernanceController {
         return ResponseEntity.ok(ApiSuccessResponse.of(CommonApiMapper.toMenuItemResponse(menuItem), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Override order status", description = "Sets an order status along the allowed transition model (not arbitrary). A paid order moved to CANCELLED or FAILED is refunded, and a cancelled order releases its driver.")
     @PatchMapping("/orders/{id}/status")
     public ResponseEntity<ApiSuccessResponse<OrderDetailResponse>> updateOrderStatus(Authentication authentication,
                                                                                       @PathVariable String id,

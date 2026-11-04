@@ -84,6 +84,36 @@ public class OrderManagementAdapter implements OrderManagementPort {
     }
 
     @Override
+    public List<Order> findStaleByStatus(OrderStatus status, java.time.OffsetDateTime before) {
+        return repository.findByStatusAndPlacedAtBeforeOrderByPlacedAtAsc(status, before)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Order> findOpenByDriverUserId(UUID driverUserId) {
+        return repository.findByDriverUserIdAndStatusInOrderByPlacedAtAsc(driverUserId, OPEN_FOR_DRIVER)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Order> findCompletedByDriverUserId(UUID driverUserId,
+                                                   java.time.OffsetDateTime from,
+                                                   java.time.OffsetDateTime to) {
+        return repository.findByDriverUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(
+                        driverUserId, OrderStatus.SUCCESS, from, to)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    private static final List<OrderStatus> OPEN_FOR_DRIVER = List.of(
+            OrderStatus.ASSIGNED, OrderStatus.PREPARING, OrderStatus.DELIVERING);
+
+    @Override
     @SuppressWarnings("null")
     public Order save(Order order) {
         OrderPersistenceModel model = mapper.toPersistence(Objects.requireNonNull(order));

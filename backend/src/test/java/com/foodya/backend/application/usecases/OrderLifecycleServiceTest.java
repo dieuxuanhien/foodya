@@ -40,6 +40,7 @@ class OrderLifecycleServiceTest {
     private OrderEventPublisherPort orderEventPublisherPort;
     private UserAccountPort userAccountPort;
     private OrderPaymentPort orderPaymentPort;
+    private OrderClosureService orderClosureService;
     private OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort;
     private PaginationPolicy paginationPolicy;
     private DriverMatchingPort driverMatchingPort;
@@ -61,6 +62,7 @@ class OrderLifecycleServiceTest {
         driverMatchingPort = mock(DriverMatchingPort.class);
         driverOnlineSessionPort = mock(DriverOnlineSessionPort.class);
         deliveryRouteQueryPort = mock(DeliveryRouteQueryPort.class);
+        orderClosureService = mock(OrderClosureService.class);
 
         service = new OrderLifecycleService(
                 orderManagementPort,
@@ -68,12 +70,12 @@ class OrderLifecycleServiceTest {
                 deliveryTrackingPointPort,
                 orderEventPublisherPort,
                 userAccountPort,
-                orderPaymentPort,
                 orderTrackingUpdatePublisherPort,
                 paginationPolicy,
                 driverMatchingPort,
                 driverOnlineSessionPort,
-                deliveryRouteQueryPort
+                deliveryRouteQueryPort,
+                orderClosureService
         );
     }
 

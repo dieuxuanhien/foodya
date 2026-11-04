@@ -9,13 +9,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class VNPaySignatureTests {
 
     @Test
-    void hashDataSortsParamsAndEncodesValues() {
+    void hashDataSortsParamsByPlainKeyAndEncodesOnlyValues() {
         String data = VNPaySignature.hashData(Map.of(
                 "vnp_TxnRef", "ORDER-1",
                 "vnp_Amount", "6500000",
-                "vnp_OrderInfo", "Thanh toan don hang",   // space -> '+' per US-ASCII URL encoding
+                "vnp_OrderInfo", "Thanh toan don hang",
                 "vnp_SecureHash", "ignored"
         ));
+        // Keys are plain (not encoded), values are URL-encoded (space -> '+'), sorted by plain key
         assertEquals("vnp_Amount=6500000&vnp_OrderInfo=Thanh+toan+don+hang&vnp_TxnRef=ORDER-1", data);
     }
 
@@ -49,8 +50,9 @@ class VNPaySignatureTests {
     }
 
     @Test
-    void queryStringAppendsSecureHashAndEncodes() {
+    void queryStringAppendsSecureHashLastAndSortsAscending() {
         String qs = VNPaySignature.queryString(Map.of("vnp_TxnRef", "ORDER-X"), "abc");
-        assertEquals("?vnp_SecureHash=abc&vnp_TxnRef=ORDER-X&", qs);
+        // vnp_SecureHash appended at the very end, after all other params
+        assertEquals("?vnp_TxnRef=ORDER-X&vnp_SecureHash=abc", qs);
     }
 }

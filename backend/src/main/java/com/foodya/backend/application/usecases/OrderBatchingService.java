@@ -2,6 +2,7 @@ package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
+import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.ports.in.DeliveryRouteUseCase;
 import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
@@ -17,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +57,7 @@ public class OrderBatchingService implements OrderBatchingUseCase {
     private final DriverMatchingPort driverMatchingPort;
     private final RestaurantPort restaurantPort;
     private final DeliveryRouteUseCase deliveryRouteUseCase;
+    private final OrderClosureService orderClosureService;
 
     public OrderBatchingService(OrderManagementPort orderManagementPort,
                                 DriverOnlineSessionPort driverOnlineSessionPort,
@@ -66,7 +69,8 @@ public class OrderBatchingService implements OrderBatchingUseCase {
                                 SystemParameterPort systemParameterPort,
                                 DriverMatchingPort driverMatchingPort,
                                 RestaurantPort restaurantPort,
-                                DeliveryRouteUseCase deliveryRouteUseCase) {
+                                DeliveryRouteUseCase deliveryRouteUseCase,
+                                OrderClosureService orderClosureService) {
         this.orderManagementPort = orderManagementPort;
         this.driverOnlineSessionPort = driverOnlineSessionPort;
         this.distanceMatrixPort = distanceMatrixPort;
@@ -78,6 +82,7 @@ public class OrderBatchingService implements OrderBatchingUseCase {
         this.driverMatchingPort = driverMatchingPort;
         this.restaurantPort = restaurantPort;
         this.deliveryRouteUseCase = deliveryRouteUseCase;
+        this.orderClosureService = orderClosureService;
     }
 
     @Override
@@ -281,6 +286,7 @@ public class OrderBatchingService implements OrderBatchingUseCase {
 
                 // Update order: assign driver and batch
                 Order order = orderManagementPort.findById(orderId).orElse(null);
+                // Orders the merchant has accepted and no failed driver is currently holding.
                 if (order != null && order.getStatus() == OrderStatus.ACCEPTED) {
                     order.assignDriver(route.driverUserId());
                     order.setBatchId(batch.getId());
@@ -383,17 +389,19 @@ public class OrderBatchingService implements OrderBatchingUseCase {
             batch.activate();
             orderBatchPort.save(batch);
         }
-
         BatchOrderItem item = orderBatchPort.findBatchItemByBatchIdAndOrderId(batchId, orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found in batch"));
-        item.markPickedUp();
+        try {
+            item.markPickedUp();
+        } catch (IllegalStateException ex) {
+            throw new ValidationException("order cannot be picked up in its current state",
+                    Map.of("itemStatus", item.getItemStatus().name()));
+        }
         orderBatchPort.saveBatchItem(item);
 
-        // Advance the order state machine so it can later be completed. A batched
-        // order is ASSIGNED after the solver; picking up moves it to DELIVERING.
-        // Orders already PREPARING/DELIVERING (legacy path) are left untouched.
+        // Pickup moves the order to DELIVERING whether or not the merchant marked it as preparing.
         orderManagementPort.findById(orderId).ifPresent(order -> {
-            if (order.getStatus() == OrderStatus.ASSIGNED) {
+            if (order.getStatus() == OrderStatus.ASSIGNED || order.getStatus() == OrderStatus.PREPARING) {
                 order.deliveryStart();
                 orderManagementPort.save(order);
                 publishOrderEvent(order, "ORDER_DELIVERING",
@@ -410,55 +418,67 @@ public class OrderBatchingService implements OrderBatchingUseCase {
         if (!batch.getDriverUserId().equals(driverUserId)) {
             throw new ForbiddenException("Batch does not belong to this driver");
         }
-
         BatchOrderItem item = orderBatchPort.findBatchItemByBatchIdAndOrderId(batchId, orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found in batch"));
-        item.markDelivered();
+        try {
+            if (item.getItemStatus() == BatchItemStatus.PENDING) {
+                item.markPickedUp(); // the driver skipped the pickup tap
+            }
+            item.markDelivered();
+        } catch (IllegalStateException ex) {
+            throw new ValidationException("order cannot be delivered in its current state",
+                    Map.of("itemStatus", item.getItemStatus().name()));
+        }
         orderBatchPort.saveBatchItem(item);
 
-        // Transition order to SUCCESS. Accept DELIVERING (normal batch flow) or a
-        // still-ASSIGNED order (driver skipped the pickup step) so a delivery is
-        // never silently lost.
-        orderManagementPort.findById(orderId).ifPresent(order -> {
+        Order order = orderManagementPort.findById(orderId).orElse(null);
+        boolean delivered = false;
+        if (order != null) {
+            if (order.getStatus() == OrderStatus.ASSIGNED || order.getStatus() == OrderStatus.PREPARING) {
+                order.deliveryStart();
+            }
             if (order.getStatus() == OrderStatus.DELIVERING) {
                 order.deliveryFinish(OrderStatus.SUCCESS);
-            } else if (order.getStatus() == OrderStatus.ASSIGNED) {
-                order.deliveryStart();
-                order.deliveryFinish(OrderStatus.SUCCESS);
+                orderClosureService.settleCodPayment(order, OrderStatus.SUCCESS);
+                orderManagementPort.save(order);
+                publishOrderEvent(order, "ORDER_SUCCESS", "Order " + order.getOrderCode() + " delivered");
+                delivered = true;
             } else {
                 log.warn("Order {} in status {} cannot be completed via batch delivery",
                         order.getOrderCode(), order.getStatus());
-                return;
             }
-            orderManagementPort.save(order);
-            publishOrderEvent(order, "ORDER_SUCCESS",
-                    "Order " + order.getOrderCode() + " delivered");
-        });
+        }
+        if (delivered) {
+            orderClosureService.onDelivered(driverUserId, orderId);
+        }
+        orderBatchPort.refreshBatchStatus(batchId);
+        return item;
+    }
 
-        // Update driver session
-        driverOnlineSessionPort.findActiveSession(driverUserId)
-                .ifPresent(session -> {
-                    session.completeDelivery();
-                    driverOnlineSessionPort.save(session);
-                });
-
-        // Check if all items in batch are done
-        List<BatchOrderItem> allItems = orderBatchPort.findBatchItemsByBatchId(batchId);
-        boolean allDone = allItems.stream().allMatch(i ->
-                i.getItemStatus() == BatchItemStatus.DELIVERED
-                        || i.getItemStatus() == BatchItemStatus.FAILED);
-        if (allDone) {
-            boolean anyFailed = allItems.stream()
-                    .anyMatch(i -> i.getItemStatus() == BatchItemStatus.FAILED);
-            if (anyFailed) {
-                batch.markPartial();
-            } else {
-                batch.complete();
-            }
-            orderBatchPort.save(batch);
+    @Override
+    public BatchOrderItem markDeliveryFailed(UUID batchId, UUID orderId, UUID driverUserId, String reason) {
+        OrderBatch batch = getBatchDetail(batchId);
+        if (!batch.getDriverUserId().equals(driverUserId)) {
+            throw new ForbiddenException("Batch does not belong to this driver");
+        }
+        orderBatchPort.findBatchItemByBatchIdAndOrderId(batchId, orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found in batch"));
+        Order order = orderManagementPort.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+        if (order.getStatus() != OrderStatus.DELIVERING) {
+            throw new ValidationException("only a picked-up order can be marked as failed",
+                    Map.of("status", "must be DELIVERING; reject the order instead before pickup"));
         }
 
-        return item;
+        order.deliveryFinish(OrderStatus.FAILED);
+        order.setCancelReason(reason);
+        orderClosureService.settleCodPayment(order, OrderStatus.FAILED);
+        Order saved = orderManagementPort.save(order);
+        orderClosureService.onClosed(saved, batchId, driverUserId, "driver", reason);
+        publishOrderEvent(saved, "ORDER_FAILED",
+                "Order " + saved.getOrderCode() + " could not be delivered: " + reason);
+        return orderBatchPort.findBatchItemByBatchIdAndOrderId(batchId, orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found in batch"));
     }
 
     @Override

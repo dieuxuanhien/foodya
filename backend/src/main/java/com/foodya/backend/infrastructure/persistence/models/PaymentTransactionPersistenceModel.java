@@ -54,6 +54,12 @@ public class PaymentTransactionPersistenceModel {
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
+    @Column(name = "transaction_date", length = 14)
+    private String transactionDate;
+
+    @Column(name = "refund_txn_no", length = 100)
+    private String refundTxnNo;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -89,6 +95,10 @@ public class PaymentTransactionPersistenceModel {
     public void setPaymentUrl(String paymentUrl) { this.paymentUrl = paymentUrl; }
     public String getIpAddress() { return ipAddress; }
     public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    public String getTransactionDate() { return transactionDate; }
+    public void setTransactionDate(String transactionDate) { this.transactionDate = transactionDate; }
+    public String getRefundTxnNo() { return refundTxnNo; }
+    public void setRefundTxnNo(String refundTxnNo) { this.refundTxnNo = refundTxnNo; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

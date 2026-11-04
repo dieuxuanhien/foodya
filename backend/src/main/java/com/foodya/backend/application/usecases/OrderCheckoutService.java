@@ -234,7 +234,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         BigDecimal roundedSubtotal = DeliveryFeePolicy.roundAmount(subtotal, currencyMinorUnit, roundingMode);
         BigDecimal total = DeliveryFeePolicy.roundAmount(roundedSubtotal.add(deliveryFee), currencyMinorUnit, roundingMode);
 
-        BigDecimal commissionRatePercent = decimalParam("finance.commission_rate_percent", BigDecimal.TEN);
+        BigDecimal commissionRatePercent = decimalParam("finance.commission_rate_percent", BigDecimal.valueOf(15));
         BigDecimal shippingMarginRatePercent = decimalParam("finance.shipping_margin_rate_percent", BigDecimal.ZERO);
 
         BigDecimal commissionAmount = DeliveryFeePolicy.calculateCommission(roundedSubtotal, commissionRatePercent, currencyMinorUnit, roundingMode);

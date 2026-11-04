@@ -70,6 +70,9 @@ foodya:
     hash-secret: ${FOODYA_VNPAY_HASH_SECRET:}
     url: ${FOODYA_VNPAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
     return-url: ${FOODYA_VNPAY_RETURN_URL:http://localhost:8080/api/v1/payments/vnpay/return}
+    api-url: ${FOODYA_VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+    # LOG_ONLY: refunds are recorded, no gateway call. GATEWAY: call the VNPAY refund API.
+    refund-mode: ${FOODYA_VNPAY_REFUND_MODE:LOG_ONLY}
   batching:
     # Fixed tick for the batch scheduler. The effective assignment cadence is
     # governed by the runtime system parameter `batching.cooldown_seconds`.

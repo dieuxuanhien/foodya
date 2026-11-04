@@ -23,6 +23,10 @@ public class PaymentTransaction {
     private String returnUrl;
     private String paymentUrl;
     private String ipAddress;
+    /** Original transaction time (yyyyMMddHHmmss) that VNPAY requires for a refund request. */
+    private String transactionDate;
+    /** Gateway number of the refund transaction, set after a successful refund. */
+    private String refundTxnNo;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant completedAt;
@@ -80,6 +84,32 @@ public class PaymentTransaction {
         this.updatedAt = Instant.now();
     }
 
+    /** Records a refund confirmed by the gateway. */
+    public void completeRefund(String refundGatewayTxnNo, String rawResponse) {
+        if (status == PaymentTransactionStatus.REFUNDED) {
+            return; // idempotent
+        }
+        requireStatus(PaymentTransactionStatus.COMPLETED, "refund");
+        this.status = PaymentTransactionStatus.REFUNDED;
+        this.refundTxnNo = refundGatewayTxnNo;
+        this.gatewayResponse = rawResponse;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Fails a transaction that never received a gateway confirmation (stale PROCESSING).
+     * The gateway may still send a late IPN; {@code handleCallback} re-reads the current state
+     * so a late success is still honoured explicitly.
+     */
+    public void markExpired(String reason) {
+        if (status == PaymentTransactionStatus.COMPLETED || status == PaymentTransactionStatus.REFUNDED) {
+            throw new IllegalStateException("Cannot expire a settled payment transaction");
+        }
+        this.status = PaymentTransactionStatus.FAILED;
+        this.gatewayResponse = reason;
+        this.updatedAt = Instant.now();
+    }
+
     private void requireStatus(PaymentTransactionStatus expected, String action) {
         if (status != expected) {
             throw new IllegalStateException("Cannot " + action + " transaction in status " + status);
@@ -112,6 +142,10 @@ public class PaymentTransaction {
     public void setPaymentUrl(String paymentUrl) { this.paymentUrl = paymentUrl; }
     public String getIpAddress() { return ipAddress; }
     public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    public String getTransactionDate() { return transactionDate; }
+    public void setTransactionDate(String transactionDate) { this.transactionDate = transactionDate; }
+    public String getRefundTxnNo() { return refundTxnNo; }
+    public void setRefundTxnNo(String refundTxnNo) { this.refundTxnNo = refundTxnNo; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

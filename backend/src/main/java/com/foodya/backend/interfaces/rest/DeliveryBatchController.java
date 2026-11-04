@@ -44,10 +44,27 @@ public class DeliveryBatchController {
     @Operation(summary = "Get batch detail", description = "Returns a specific batch by ID.")
     @GetMapping("/{batchId}")
     public ResponseEntity<ApiSuccessResponse<BatchApiResponse>> getBatchDetail(
-            @PathVariable UUID batchId, HttpServletRequest request) {
+            @PathVariable UUID batchId, Authentication authentication, HttpServletRequest request) {
         OrderBatch batch = orderBatchingUseCase.getBatchDetail(batchId);
+        if (!batch.getDriverUserId().equals(CurrentUser.userId(authentication))) {
+            throw new com.foodya.backend.application.exception.ForbiddenException("Batch does not belong to this driver");
+        }
         List<BatchOrderItem> items = orderBatchingUseCase.getBatchItems(batchId);
         return ResponseEntity.ok(ApiSuccessResponse.of(toBatchResponse(batch, items), RequestTrace.from(request)));
+    }
+
+    @Operation(summary = "Mark delivery failed",
+            description = "Driver reports a picked-up order could not be delivered. The order fails, "
+                    + "COD cash is marked uncollected and an online payment is refunded.")
+    @PostMapping("/{batchId}/orders/{orderId}/fail")
+    public ResponseEntity<ApiSuccessResponse<BatchItemApiResponse>> markFailed(
+            @PathVariable UUID batchId, @PathVariable UUID orderId,
+            @RequestParam(required = false) String reason,
+            Authentication authentication, HttpServletRequest request) {
+        UUID driverUserId = CurrentUser.userId(authentication);
+        String failureReason = reason == null || reason.isBlank() ? "delivery failed" : reason;
+        BatchOrderItem item = orderBatchingUseCase.markDeliveryFailed(batchId, orderId, driverUserId, failureReason);
+        return ResponseEntity.ok(ApiSuccessResponse.of(toItemResponse(item), RequestTrace.from(request)));
     }
 
     @Operation(summary = "Mark pickup complete", description = "Driver marks an order as picked up from restaurant.")

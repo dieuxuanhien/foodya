@@ -41,7 +41,16 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
     // -------------------------------------------------------------------------
 
     @Override
-    public DriverSessionView toggleOnline(UUID driverUserId) {
+    public DriverSessionView toggleOnline(UUID driverUserId, Double lat, Double lng) {
+        if ((lat == null) != (lng == null)) {
+            throw new ValidationException("lat and lng must be sent together",
+                    Map.of("location", "send both lat and lng, or neither"));
+        }
+        if (lat != null && (lat < -90 || lat > 90 || lng < -180 || lng > 180)) {
+            throw new ValidationException("location out of range",
+                    Map.of("location", "lat must be within [-90, 90] and lng within [-180, 180]"));
+        }
+
         Optional<DriverOnlineSession> existing = driverOnlineSessionPort.findActiveSession(driverUserId);
 
         if (existing.isPresent()) {
@@ -56,7 +65,11 @@ public class DriverLifecycleService implements DriverLifecycleUseCase {
         // Create a new session
         DriverOnlineSession session = new DriverOnlineSession();
         session.goOnline(driverUserId);
+        if (lat != null) {
+            session.updateLocation(lat, lng, geoPort.geoToH3Index(lat, lng, H3_DRIVER_RESOLUTION));
+        }
         DriverOnlineSession saved = driverOnlineSessionPort.save(session);
+        cacheLocation(saved);
 
         log.info("Driver {} went ONLINE, session {}", driverUserId, saved.getId());
         return toView(saved);

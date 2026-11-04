@@ -43,4 +43,7 @@ public interface DriverOnlineSessionPort {
      * @param now       the current time
      */
     void updateHeartbeat(UUID sessionId, Instant now);
+
+    /** Live sessions whose heartbeat is older than {@code before}. */
+    List<DriverOnlineSession> findLiveSessionsWithHeartbeatBefore(Instant before);
 }

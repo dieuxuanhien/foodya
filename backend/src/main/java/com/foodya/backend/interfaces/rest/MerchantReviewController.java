@@ -7,6 +7,8 @@ import com.foodya.backend.interfaces.rest.dto.RespondOrderReviewApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/merchant/reviews")
+@Tag(name = "Merchant Reviews", description = "Merchant replies to customer order reviews")
 public class MerchantReviewController {
 
     private final OrderReviewUseCase orderReviewService;
@@ -30,6 +33,7 @@ public class MerchantReviewController {
         this.orderReviewService = orderReviewService;
     }
 
+    @Operation(summary = "Reply to a review", description = "Merchant posts a public reply to a customer review.")
     @PostMapping("/{reviewId}/replies")
     public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> reply(Authentication authentication,
                                                                          @PathVariable UUID reviewId,

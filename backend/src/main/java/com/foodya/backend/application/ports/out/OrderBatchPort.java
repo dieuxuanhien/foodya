@@ -31,4 +31,10 @@ public interface OrderBatchPort {
     List<BatchOrderItem> findBatchItemsByBatchId(UUID batchId);
 
     Optional<BatchOrderItem> findBatchItemByBatchIdAndOrderId(UUID batchId, UUID orderId);
+
+    /** Marks a batch item as failed without touching the order state machine. */
+    BatchOrderItem failBatchItem(UUID batchId, UUID orderId);
+
+    /** Re-evaluates a batch after one of its items changed (completes it when all items are terminal). */
+    OrderBatch refreshBatchStatus(UUID batchId);
 }

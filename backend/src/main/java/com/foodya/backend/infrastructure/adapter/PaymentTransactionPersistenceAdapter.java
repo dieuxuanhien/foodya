@@ -2,10 +2,15 @@ package com.foodya.backend.infrastructure.adapter;
 
 import com.foodya.backend.application.ports.out.PaymentTransactionPort;
 import com.foodya.backend.domain.entities.PaymentTransaction;
+import com.foodya.backend.domain.value_objects.PaymentTransactionStatus;
 import com.foodya.backend.infrastructure.mapper.PaymentTransactionMapper;
 import com.foodya.backend.infrastructure.repository.PaymentTransactionRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,5 +44,24 @@ public class PaymentTransactionPersistenceAdapter implements PaymentTransactionP
     @Override
     public Optional<PaymentTransaction> findLatestByOrderId(UUID orderId) {
         return repository.findFirstByOrderIdOrderByCreatedAtDesc(orderId).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<PaymentTransaction> findLatestByOrderIdAndStatus(UUID orderId, PaymentTransactionStatus status) {
+        return repository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(orderId, status).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<PaymentTransaction> findCompletedForClosedOrders() {
+        return repository.findCompletedForClosedOrders().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<PaymentTransaction> findByStatusCreatedBefore(PaymentTransactionStatus status, Instant before) {
+        return repository.findByStatusAndCreatedAtBefore(
+                        status, OffsetDateTime.ofInstant(before, ZoneOffset.UTC))
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }

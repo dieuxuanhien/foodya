@@ -49,14 +49,19 @@ public class DeliveryStatusController {
     // POST /api/v1/delivery/status/online
     // -------------------------------------------------------------------------
 
-    @Operation(summary = "Go online", description = "Driver taps the GO button. Creates a new online session. Returns 409 if already online.")
+    @Operation(summary = "Go online",
+            description = "Driver taps the GO button. Creates a new online session; returns 422 if already online. "
+                    + "Send {lat,lng} (optional body) so the driver is matchable immediately; without a position the driver "
+                    + "is invisible to order matching until the first PUT /location.")
     @PostMapping("/online")
     public ResponseEntity<ApiSuccessResponse<DriverStatusApiResponse>> goOnline(
+            @Valid @RequestBody(required = false) UpdateDriverLocationApiRequest position,
             Authentication authentication,
             HttpServletRequest request) {
 
         UUID driverUserId = CurrentUser.userId(authentication);
-        DriverSessionView session = driverLifecycleUseCase.toggleOnline(driverUserId);
+        DriverSessionView session = driverLifecycleUseCase.toggleOnline(driverUserId,
+                position == null ? null : position.lat(), position == null ? null : position.lng());
         return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(session, null), RequestTrace.from(request)));
     }
 

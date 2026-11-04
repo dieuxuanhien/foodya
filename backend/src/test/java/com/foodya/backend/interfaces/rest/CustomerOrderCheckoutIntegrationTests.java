@@ -93,8 +93,15 @@ class CustomerOrderCheckoutIntegrationTests {
     @MockitoBean
     private RouteDistancePort routeDistancePort;
 
+    /** Weather surcharges must not depend on a live forecast, otherwise the fee assertion flaps. */
+    @MockitoBean
+    private com.foodya.backend.application.ports.out.WeatherContextPort weatherContextPort;
+
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.when(weatherContextPort.getCurrentWeather(
+                org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+                .thenReturn(java.util.Optional.empty());
         cartItemRepository.deleteAll();
         cartRepository.deleteAll();
         orderRepository.deleteAll();

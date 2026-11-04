@@ -54,6 +54,22 @@ public class PaymentController {
                 RequestTrace.from(httpRequest)));
     }
 
+    @Operation(summary = "Refund a paid order",
+            description = "Admin action: refunds the most recent completed VNPAY payment for the order in full. "
+                    + "Idempotent; returns refunded=false with a message when the gateway rejects it.")
+    @PostMapping("/api/v1/admin/orders/{orderId}/refund")
+    public ResponseEntity<ApiSuccessResponse<PaymentUseCase.PaymentRefundView>> refund(
+            @PathVariable UUID orderId,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+        String reason = body == null ? null : body.get("reason");
+        PaymentUseCase.PaymentRefundView view = paymentUseCase.refundOrder(
+                orderId, CurrentUser.userId(authentication).toString(), clientIp(httpRequest),
+                reason == null || reason.isBlank() ? "admin refund" : reason);
+        return ResponseEntity.ok(ApiSuccessResponse.of(view, RequestTrace.from(httpRequest)));
+    }
+
     /**
      * VNPAY IPN. Must answer HTTP 200 with {@code {"RspCode":"00","Message":"Confirm Success"}} for accepted
      * notifications; any other code makes VNPAY retry.
@@ -64,6 +80,9 @@ public class PaymentController {
         PaymentUseCase.PaymentCallbackResult result = paymentUseCase.handleCallback(new HashMap<>(params));
         if (!result.verified()) {
             return ResponseEntity.ok(ipn("97", "Invalid signature"));
+        }
+        if (PaymentUseCase.AMOUNT_MISMATCH.equals(result.status())) {
+            return ResponseEntity.ok(ipn("04", "Invalid amount"));
         }
         if (!result.success() && result.orderId() == null) {
             return ResponseEntity.ok(ipn("01", "Order not found"));

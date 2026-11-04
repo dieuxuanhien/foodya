@@ -3,9 +3,11 @@ package com.foodya.backend.infrastructure.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodya.backend.application.ports.in.CatalogUseCase;
 import com.foodya.backend.application.ports.in.DeliveryRouteUseCase;
+import com.foodya.backend.application.ports.in.DriverEarningsUseCase;
 import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
 import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
 import com.foodya.backend.application.ports.in.PaymentUseCase;
+import com.foodya.backend.application.ports.in.SettlementUseCase;
 import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
 import com.foodya.backend.infrastructure.integration.GoongMapsClient;
 import com.foodya.backend.application.usecases.DriverLifecycleService;
@@ -109,13 +111,13 @@ public class AppConfig {
 			DeliveryTrackingPointPort deliveryTrackingPointPort,
 			OrderEventPublisherPort orderEventPublisherPort,
 			UserAccountPort userAccountPort,
-			OrderPaymentPort orderPaymentPort,
 			OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
 			PaginationPolicy paginationPolicy,
 			DriverMatchingPort driverMatchingPort,
 			DriverOnlineSessionPort driverOnlineSessionPort,
-			DeliveryRouteQueryPort deliveryRouteQueryPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort, orderTrackingUpdatePublisherPort, paginationPolicy, driverMatchingPort, driverOnlineSessionPort, deliveryRouteQueryPort);
+			DeliveryRouteQueryPort deliveryRouteQueryPort,
+			OrderClosureService orderClosureService) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderTrackingUpdatePublisherPort, paginationPolicy, driverMatchingPort, driverOnlineSessionPort, deliveryRouteQueryPort, orderClosureService);
 	}
 
 	@Bean
@@ -170,7 +172,8 @@ public class AppConfig {
 			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
 			AuditLogService auditLogService,
-			OrderPaymentPort orderPaymentPort) {
+			OrderPaymentPort orderPaymentPort,
+			OrderClosureService orderClosureService) {
 		return new AdminGovernanceService(
 				adminRestaurantPort,
 				adminOrderPort,
@@ -181,7 +184,8 @@ public class AppConfig {
 				adminUserPort,
 				paginationPolicy,
 				auditLogService,
-				orderPaymentPort
+				orderPaymentPort,
+				orderClosureService
 		);
 	}
 
@@ -285,11 +289,40 @@ public class AppConfig {
 			SystemParameterPort systemParameterPort,
 			DriverMatchingPort driverMatchingPort,
 			RestaurantPort restaurantPort,
-			DeliveryRouteUseCase deliveryRouteUseCase) {
+			DeliveryRouteUseCase deliveryRouteUseCase,
+			OrderClosureService orderClosureService) {
 		return new OrderBatchingService(orderManagementPort, driverOnlineSessionPort,
 				distanceMatrixPort, vrpSolverPort, orderBatchPort, geoPort,
 				orderEventPublisherPort, systemParameterPort, driverMatchingPort, restaurantPort,
-				deliveryRouteUseCase);
+				deliveryRouteUseCase, orderClosureService);
+	}
+
+	@Bean
+	public SettlementUseCase settlementService(
+			SettlementPort settlementPort,
+			UserAccountPort userAccountPort,
+			AuditLogService auditLogService,
+			PaginationPolicy paginationPolicy) {
+		return new SettlementService(settlementPort, userAccountPort, auditLogService, paginationPolicy);
+	}
+
+	@Bean
+	public OrderClosureService orderClosureService(
+			OrderManagementPort orderManagementPort,
+			OrderBatchPort orderBatchPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			OrderPaymentPort orderPaymentPort,
+			RestaurantPort restaurantPort,
+			OrderEventPublisherPort orderEventPublisherPort,
+			PaymentUseCase paymentUseCase,
+			SystemParameterPort systemParameterPort) {
+		return new OrderClosureService(orderManagementPort, orderBatchPort, driverOnlineSessionPort,
+				orderPaymentPort, restaurantPort, orderEventPublisherPort, paymentUseCase, systemParameterPort);
+	}
+
+	@Bean
+	public DriverEarningsUseCase driverEarningsService(OrderManagementPort orderManagementPort) {
+		return new DriverEarningsService(orderManagementPort);
 	}
 
 	@Bean

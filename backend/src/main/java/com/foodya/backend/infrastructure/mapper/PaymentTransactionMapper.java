@@ -26,6 +26,8 @@ public class PaymentTransactionMapper {
         d.setReturnUrl(m.getReturnUrl());
         d.setPaymentUrl(m.getPaymentUrl());
         d.setIpAddress(m.getIpAddress());
+        d.setTransactionDate(m.getTransactionDate());
+        d.setRefundTxnNo(m.getRefundTxnNo());
         d.setCreatedAt(m.getCreatedAt().toInstant());
         d.setUpdatedAt(m.getUpdatedAt().toInstant());
         d.setCompletedAt(m.getCompletedAt() == null ? null : m.getCompletedAt().toInstant());
@@ -48,6 +50,8 @@ public class PaymentTransactionMapper {
         m.setReturnUrl(d.getReturnUrl());
         m.setPaymentUrl(d.getPaymentUrl());
         m.setIpAddress(d.getIpAddress());
+        m.setTransactionDate(d.getTransactionDate());
+        m.setRefundTxnNo(d.getRefundTxnNo());
         m.setCreatedAt(OffsetDateTime.ofInstant(d.getCreatedAt(), ZoneOffset.UTC));
         m.setUpdatedAt(OffsetDateTime.ofInstant(d.getUpdatedAt(), ZoneOffset.UTC));
         m.setCompletedAt(d.getCompletedAt() == null ? null : OffsetDateTime.ofInstant(d.getCompletedAt(), ZoneOffset.UTC));

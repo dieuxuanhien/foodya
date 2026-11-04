@@ -24,5 +24,17 @@ public interface OrderManagementPort {
      */
     List<Order> findEligibleForBatching();
 
+    /** Orders sitting in the given status placed before {@code before} (timeout sweeps). */
+    List<Order> findStaleByStatus(OrderStatus status, java.time.OffsetDateTime before);
+
+    /** Orders a driver currently holds (ASSIGNED, PREPARING or DELIVERING), oldest first. */
+    List<Order> findOpenByDriverUserId(UUID driverUserId);
+
+    /** Successful deliveries credited to a driver within the window. */
+    List<Order> findCompletedByDriverUserId(UUID driverUserId,
+                                            java.time.OffsetDateTime from,
+                                            java.time.OffsetDateTime to);
+
+
     Order save(Order order);
 }

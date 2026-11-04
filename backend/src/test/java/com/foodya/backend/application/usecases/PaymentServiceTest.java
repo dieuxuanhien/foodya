@@ -24,6 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class PaymentServiceTest {
@@ -139,5 +140,119 @@ class PaymentServiceTest {
         assertThat(result.verified()).isFalse();
         verify(transactionPort, never()).save(any());
         verify(orderManagementPort, never()).save(any());
+    }
+
+    @Test
+    void amountMismatchIsRejectedAndReportedToTheGateway() {
+        PaymentTransaction txn = PaymentTransaction.create(order.getId(), PaymentMethod.VNPAY,
+                PaymentGateway.VNPAY, "REF-AMT", 65000, null, null);
+        when(transactionPort.findByGatewayTxnRef("REF-AMT")).thenReturn(Optional.of(txn));
+        // gateway reports a smaller amount than the order total
+        when(gatewayPort.verifyCallback(any())).thenReturn(new PaymentVerifyResult(
+                true, true, "REF-AMT", "123", "00", new BigDecimal("1000"), "NCB"));
+
+        PaymentUseCase.PaymentCallbackResult result = service.handleCallback(new HashMap<>());
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.status()).isEqualTo(PaymentUseCase.AMOUNT_MISMATCH);
+        assertThat(txn.getStatus()).isEqualTo(PaymentTransactionStatus.PENDING); // untouched
+        assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.UNPAID);
+    }
+
+    @Test
+    void paymentArrivingAfterCancellationIsRefundedNotCredited() {
+        Order cancelled = Order.builder()
+                .orderCode("ORD-CANCELLED")
+                .customerUserId(customerId)
+                .status(OrderStatus.CANCELLED)
+                .paymentMethod(PaymentMethod.VNPAY)
+                .paymentStatus(PaymentStatus.UNPAID)
+                .totalAmount(new BigDecimal("65000"))
+                .build();
+        cancelled.setId(UUID.randomUUID());
+        when(orderManagementPort.findById(cancelled.getId())).thenReturn(Optional.of(cancelled));
+
+        PaymentTransaction txn = PaymentTransaction.create(cancelled.getId(), PaymentMethod.VNPAY,
+                PaymentGateway.VNPAY, "REF-LATE", 65000, null, null);
+        txn.setTransactionDate("20261104120000");
+        when(transactionPort.findByGatewayTxnRef("REF-LATE")).thenReturn(Optional.of(txn));
+        when(gatewayPort.verifyCallback(any())).thenReturn(new PaymentVerifyResult(
+                true, true, "REF-LATE", "123", "00", new BigDecimal("65000"), "NCB"));
+        when(gatewayPort.refund(any())).thenReturn(new PaymentRefundResult(true, "00", "ok", "999"));
+
+        PaymentUseCase.PaymentCallbackResult result = service.handleCallback(new HashMap<>());
+
+        assertThat(result.success()).isFalse();
+        assertThat(txn.getStatus()).isEqualTo(PaymentTransactionStatus.REFUNDED);
+        assertThat(cancelled.getPaymentStatus()).isEqualTo(PaymentStatus.UNPAID);
+        verify(gatewayPort).refund(argThat(r -> r.transactionRef().equals("REF-LATE")
+                && r.amount() == 65000L && "20261104120000".equals(r.transactionDate())));
+    }
+
+    @Test
+    void refundOrderMarksTransactionAndOrderRefunded() {
+        order.setPaymentStatus(PaymentStatus.PAID);
+        order.setStatus(OrderStatus.CANCELLED);
+
+        PaymentTransaction txn = PaymentTransaction.create(order.getId(), PaymentMethod.VNPAY,
+                PaymentGateway.VNPAY, "REF-OK", 65000, null, null);
+        txn.complete("123", "ok");
+        when(transactionPort.findLatestByOrderIdAndStatus(order.getId(), PaymentTransactionStatus.COMPLETED))
+                .thenReturn(Optional.of(txn));
+        when(gatewayPort.refund(any())).thenReturn(new PaymentRefundResult(true, "00", "ok", "999"));
+
+        PaymentUseCase.PaymentRefundView view = service.refundOrder(order.getId(), "admin", "1.2.3.4", "test");
+
+        assertThat(view.refunded()).isTrue();
+        assertThat(txn.getStatus()).isEqualTo(PaymentTransactionStatus.REFUNDED);
+        assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+    }
+
+    @Test
+    void refundIsIdempotentWhenAlreadyRefunded() {
+        PaymentTransaction txn = PaymentTransaction.create(order.getId(), PaymentMethod.VNPAY,
+                PaymentGateway.VNPAY, "REF-DONE", 65000, null, null);
+        txn.complete("123", "ok");
+        txn.refund();
+        when(transactionPort.findLatestByOrderIdAndStatus(order.getId(), PaymentTransactionStatus.COMPLETED))
+                .thenReturn(Optional.empty());
+        when(transactionPort.findLatestByOrderId(order.getId())).thenReturn(Optional.of(txn));
+
+        PaymentUseCase.PaymentRefundView view = service.refundOrder(order.getId(), "admin", "1.2.3.4", "again");
+
+        assertThat(view.refunded()).isTrue();
+        verify(gatewayPort, never()).refund(any());
+    }
+
+    @Test
+    void gatewayRefundFailureLeavesTransactionCompletedForRetry() {
+        order.setPaymentStatus(PaymentStatus.PAID);
+        PaymentTransaction txn = PaymentTransaction.create(order.getId(), PaymentMethod.VNPAY,
+                PaymentGateway.VNPAY, "REF-FAIL", 65000, null, null);
+        txn.complete("123", "ok");
+        when(transactionPort.findLatestByOrderIdAndStatus(order.getId(), PaymentTransactionStatus.COMPLETED))
+                .thenReturn(Optional.of(txn));
+        when(gatewayPort.refund(any())).thenReturn(new PaymentRefundResult(false, "91", "no such transaction", null));
+
+        PaymentUseCase.PaymentRefundView view = service.refundOrder(order.getId(), "admin", "1.2.3.4", "test");
+
+        assertThat(view.refunded()).isFalse();
+        assertThat(txn.getStatus()).isEqualTo(PaymentTransactionStatus.COMPLETED);
+        assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    @Test
+    void expireStalePaymentsFailsUnconfirmedTransactions() {
+        PaymentTransaction stale = PaymentTransaction.create(order.getId(), PaymentMethod.VNPAY,
+                PaymentGateway.VNPAY, "REF-STALE", 65000, null, null);
+        stale.markProcessing("https://pay");
+        when(transactionPort.findByStatusCreatedBefore(eq(PaymentTransactionStatus.PROCESSING),
+                org.mockito.ArgumentMatchers.<java.time.Instant>any()))
+                .thenReturn(java.util.List.of(stale));
+
+        int expired = service.expireStalePayments(java.time.Duration.ofMinutes(30));
+
+        assertThat(expired).isEqualTo(1);
+        assertThat(stale.getStatus()).isEqualTo(PaymentTransactionStatus.FAILED);
     }
 }

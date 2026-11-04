@@ -62,4 +62,13 @@ public class DriverOnlineSessionAdapter implements DriverOnlineSessionPort {
                 Objects.requireNonNull(sessionId),
                 OffsetDateTime.ofInstant(Objects.requireNonNull(now), ZoneOffset.UTC));
     }
+
+    @Override
+    public List<DriverOnlineSession> findLiveSessionsWithHeartbeatBefore(Instant before) {
+        return repository.findLiveSessionsWithHeartbeatBefore(
+                        OffsetDateTime.ofInstant(Objects.requireNonNull(before), ZoneOffset.UTC))
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

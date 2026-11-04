@@ -7,6 +7,8 @@ import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.AuditLogResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -21,6 +23,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/audit-logs")
+@Tag(name = "Admin Audit Logs", description = "Paginated audit trail of admin actions")
 @Validated
 public class AdminAuditLogController {
 
@@ -30,6 +33,7 @@ public class AdminAuditLogController {
         this.auditLogService = auditLogService;
     }
 
+    @Operation(summary = "List audit logs", description = "Paginated audit log entries, optionally filtered by event type.")
     @GetMapping
     public ResponseEntity<ApiSuccessResponse<List<AuditLogResponse>>> list(@RequestParam(required = false) String eventType,
                                                                             @RequestParam(required = false) String entityType,

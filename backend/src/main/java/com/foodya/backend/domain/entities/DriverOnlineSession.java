@@ -157,6 +157,38 @@ public class DriverOnlineSession {
     }
 
     /**
+     * Closes a session whose heartbeat stopped: an abandoned driver is treated as offline so they
+     * stop being matched. The caller releases the driver's open orders first.
+     */
+    public void expire() {
+        this.status = DriverSessionStatus.OFFLINE;
+        this.endedAt = Instant.now();
+        this.activeOrderCount = 0;
+    }
+
+    /**
+     * Frees one order slot when an order ends without a normal delivery (cancelled, failed, or
+     * released). Unlike {@link #completeDelivery()} this never throws for a session that is already
+     * idle, and it deliberately leaves {@code lastHeartbeat} untouched so it cannot hide a dead app.
+     */
+    public void releaseSlot() {
+        if (activeOrderCount <= 0 || endedAt != null) {
+            return;
+        }
+        activeOrderCount--;
+        if (activeOrderCount > 0) {
+            if (status == DriverSessionStatus.BUSY) {
+                status = DriverSessionStatus.ON_DELIVERY;
+            }
+        } else if (status == DriverSessionStatus.GOING_OFFLINE) {
+            status = DriverSessionStatus.OFFLINE;
+            endedAt = Instant.now();
+        } else if (status == DriverSessionStatus.ON_DELIVERY || status == DriverSessionStatus.BUSY) {
+            status = DriverSessionStatus.ONLINE;
+        }
+    }
+
+    /**
      * Admin unsuspends the driver — transitions back to OFFLINE (driver must tap GO again).
      */
     public void unsuspend() {

@@ -7,6 +7,7 @@ import com.foodya.backend.application.dto.OrderSummaryView;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderDetailResponse;
+import com.foodya.backend.interfaces.rest.dto.CancelOrderApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderStatusUpdateApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderSummaryResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
@@ -26,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -100,6 +102,27 @@ public class MerchantOrderController {
         OrderStatus targetStatus = parseStatus(statusUpdate.status());
         OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
                 orderLifecycleService.merchantUpdateStatus(CurrentUser.userId(authentication), orderId, targetStatus)
+        );
+        return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(request)));
+    }
+
+    @PostMapping("/orders/{orderId}/reject")
+    @Operation(summary = "Reject order",
+            description = "Reject an order the restaurant cannot fulfil (out of stock, closing, bad address). "
+                    + "Allowed up to PREPARING; a paid order is refunded automatically.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Order cancelled"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Restaurant does not belong to merchant"),
+            @ApiResponse(responseCode = "422", description = "Order can no longer be rejected")
+    })
+    public ResponseEntity<ApiSuccessResponse<OrderDetailResponse>> rejectOrder(Authentication authentication,
+                                                                     @PathVariable UUID orderId,
+                                                                     @RequestBody(required = false) CancelOrderApiRequest body,
+                                                                     HttpServletRequest request) {
+        String reason = body == null || body.reason() == null ? "rejected by restaurant" : body.reason();
+        OrderDetailResponse data = OrderLifecycleApiMapper.toDetail(
+                orderLifecycleService.merchantReject(CurrentUser.userId(authentication), orderId, reason)
         );
         return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(request)));
     }

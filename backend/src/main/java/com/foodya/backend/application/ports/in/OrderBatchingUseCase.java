@@ -44,6 +44,12 @@ public interface OrderBatchingUseCase {
     BatchOrderItem markDeliveryComplete(UUID batchId, UUID orderId, UUID driverUserId);
 
     /**
+     * Driver reports that a picked-up order could not be delivered (customer unreachable, wrong address).
+     * The order fails, COD cash is marked uncollected and an online payment is refunded.
+     */
+    BatchOrderItem markDeliveryFailed(UUID batchId, UUID orderId, UUID driverUserId, String reason);
+
+    /**
      * Gets batch info for a customer's order (ETA, position in batch).
      */
     CustomerBatchInfo getCustomerBatchInfo(UUID orderId, UUID customerUserId);

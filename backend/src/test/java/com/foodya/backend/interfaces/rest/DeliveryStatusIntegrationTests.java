@@ -81,6 +81,39 @@ class DeliveryStatusIntegrationTests {
     }
 
     @Test
+    void toggleOnlineWithPositionMakesTheDriverMatchableImmediately() throws Exception {
+        UserAccount driver = seedDriver("driver-on-gps");
+        String token = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+
+        mockMvc.perform(post(BASE + "/online")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"lat\":10.7755,\"lng\":106.7005}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value(DriverSessionStatus.ONLINE.name()))
+                .andExpect(jsonPath("$.data.currentLat").value(10.7755))
+                .andExpect(jsonPath("$.data.currentLng").value(106.7005))
+                .andExpect(jsonPath("$.data.h3Cell").isNotEmpty());
+    }
+
+    @Test
+    void toggleOnlineRejectsAnIncompleteOrOutOfRangePosition() throws Exception {
+        UserAccount driver = seedDriver("driver-on-bad-gps");
+        String token = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+
+        mockMvc.perform(post(BASE + "/online")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"lat\":10.7755}"))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(post(BASE + "/online")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"lat\":95,\"lng\":106.7}"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void getStatusReturnsOnlineAfterToggle() throws Exception {
         UserAccount driver = seedDriver("driver-status-1");
         String token = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());

@@ -3,6 +3,8 @@ package com.foodya.backend.infrastructure.adapter;
 import com.foodya.backend.application.ports.out.OrderBatchPort;
 import com.foodya.backend.domain.entities.BatchOrderItem;
 import com.foodya.backend.domain.entities.OrderBatch;
+import com.foodya.backend.domain.value_objects.BatchItemStatus;
+import com.foodya.backend.domain.value_objects.BatchStatus;
 import com.foodya.backend.infrastructure.mapper.BatchOrderItemMapper;
 import com.foodya.backend.infrastructure.mapper.OrderBatchMapper;
 import com.foodya.backend.infrastructure.repository.BatchOrderItemRepository;
@@ -77,5 +79,47 @@ public class OrderBatchPersistenceAdapter implements OrderBatchPort {
     public Optional<BatchOrderItem> findBatchItemByBatchIdAndOrderId(UUID batchId, UUID orderId) {
         return itemRepository.findByBatchIdAndOrderId(batchId, orderId)
                 .map(itemMapper::toDomain);
+    }
+
+    @Override
+    @SuppressWarnings("null")
+    public BatchOrderItem failBatchItem(UUID batchId, UUID orderId) {
+        BatchOrderItem item = findBatchItemByBatchIdAndOrderId(batchId, orderId)
+                .orElseThrow(() -> new IllegalStateException("Order " + orderId + " is not part of batch " + batchId));
+        item.markFailed();
+        BatchOrderItem saved = saveBatchItem(item);
+        refreshBatchStatus(batchId);
+        return saved;
+    }
+
+    @Override
+    public OrderBatch refreshBatchStatus(UUID batchId) {
+        OrderBatch batch = findById(batchId)
+                .orElseThrow(() -> new IllegalStateException("Batch " + batchId + " not found"));
+        if (batch.getStatus() == BatchStatus.COMPLETED || batch.getStatus() == BatchStatus.PARTIAL
+                || batch.getStatus() == BatchStatus.CANCELLED) {
+            return batch;
+        }
+        List<BatchOrderItem> items = findBatchItemsByBatchId(batchId);
+        boolean allTerminal = !items.isEmpty() && items.stream().allMatch(i ->
+                i.getItemStatus() == BatchItemStatus.DELIVERED || i.getItemStatus() == BatchItemStatus.FAILED);
+        if (!allTerminal) {
+            return batch;
+        }
+        boolean anyDelivered = items.stream().anyMatch(i -> i.getItemStatus() == BatchItemStatus.DELIVERED);
+        boolean anyFailed = items.stream().anyMatch(i -> i.getItemStatus() == BatchItemStatus.FAILED);
+        if (!anyDelivered) {
+            batch.cancel(); // every order fell through: nothing was delivered
+        } else {
+            if (batch.getStatus() == BatchStatus.PENDING) {
+                batch.activate();
+            }
+            if (anyFailed) {
+                batch.markPartial();
+            } else {
+                batch.complete();
+            }
+        }
+        return save(batch);
     }
 }

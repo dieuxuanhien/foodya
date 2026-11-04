@@ -50,4 +50,12 @@ public interface DriverOnlineSessionRepository
            "WHERE s.id = :sessionId")
     void updateHeartbeat(@Param("sessionId") UUID sessionId,
                          @Param("now") OffsetDateTime now);
+
+    /** Live (not ended, not suspended) sessions that have stopped sending heartbeats. */
+    @Query("SELECT s FROM DriverOnlineSessionPersistenceModel s " +
+           "WHERE s.endedAt IS NULL " +
+           "AND s.status IN ('ONLINE', 'ON_DELIVERY', 'BUSY', 'GOING_OFFLINE') " +
+           "AND s.lastHeartbeat < :before")
+    List<DriverOnlineSessionPersistenceModel> findLiveSessionsWithHeartbeatBefore(
+            @Param("before") OffsetDateTime before);
 }

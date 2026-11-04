@@ -36,8 +36,14 @@ public final class SystemParameterCatalog {
         rules.put("catalog.menu_item_price_min", ParameterRule.number("1000", true, new NumberConstraint(BigDecimal.ZERO, null, true)));
         rules.put("catalog.menu_item_price_max", ParameterRule.number("10000000", true, new NumberConstraint(BigDecimal.ONE, null, true)));
 
-        rules.put("finance.commission_rate_percent", ParameterRule.number("10.0", true, new NumberConstraint(BigDecimal.ZERO, BigDecimal.valueOf(100))));
+        rules.put("finance.commission_rate_percent", ParameterRule.number("15.0", true, new NumberConstraint(BigDecimal.ZERO, BigDecimal.valueOf(100))));
         rules.put("finance.shipping_margin_rate_percent", ParameterRule.number("0.0", true, new NumberConstraint(BigDecimal.ZERO, BigDecimal.valueOf(100))));
+
+        // Timeout / liveness sweeps (OrderTimeoutScheduler). 0 disables that sweep.
+        rules.put("order.merchant_accept_timeout_minutes", ParameterRule.number("10", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        rules.put("order.assignment_timeout_minutes", ParameterRule.number("20", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        rules.put("driver.heartbeat_timeout_minutes", ParameterRule.number("5", true, new NumberConstraint(BigDecimal.ZERO, null)));
+        rules.put("payment.pending_expiry_minutes", ParameterRule.number("30", true, new NumberConstraint(BigDecimal.ONE, null)));
 
         rules.put("currency.code", ParameterRule.string("VND", false, value -> {
             if (!value.matches("^[A-Z]{3}$")) {

@@ -25,13 +25,21 @@ public interface OrderLifecycleUseCase {
 
     OrderDetailView merchantUpdateStatus(UUID merchantUserId, UUID orderId, OrderStatus targetStatus);
 
-    List<OrderSummaryView> deliveryAssignments();
+    /** Merchant rejects an order it cannot fulfil (PENDING/ACCEPTED/ASSIGNED/PREPARING → CANCELLED). */
+    OrderDetailView merchantReject(UUID merchantUserId, UUID orderId, String reason);
 
-    OrderDetailView deliveryAccept(UUID orderId);
+    /** Orders the driver currently holds (ASSIGNED, PREPARING or DELIVERING). Never another driver's orders. */
+    List<OrderSummaryView> deliveryAssignments(UUID driverUserId);
 
-    OrderDetailView deliveryUpdateStatus(UUID orderId, OrderStatus targetStatus);
+    OrderDetailView deliveryAccept(UUID driverUserId, UUID orderId);
 
-    OrderTrackingPointView addTrackingPoint(UUID orderId, BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt);
+    /** Driver declines an assignment; the order returns to ACCEPTED for reassignment. */
+    OrderDetailView deliveryReject(UUID driverUserId, UUID orderId);
+
+    OrderDetailView deliveryUpdateStatus(UUID driverUserId, UUID orderId, OrderStatus targetStatus);
+
+    OrderTrackingPointView addTrackingPoint(UUID driverUserId, UUID orderId,
+                                            BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt);
 
     List<OrderTrackingPointView> customerTrackingPoints(UUID customerUserId, UUID orderId);
 }

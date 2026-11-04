@@ -18,7 +18,16 @@ public interface DriverLifecycleUseCase {
      * @param driverUserId the authenticated driver's user ID
      * @return the new active session view
      */
-    DriverSessionView toggleOnline(UUID driverUserId);
+    default DriverSessionView toggleOnline(UUID driverUserId) {
+        return toggleOnline(driverUserId, null, null);
+    }
+
+    /**
+     * Same as {@link #toggleOnline(UUID)} but starts the session at a known position. A driver without a
+     * position is invisible to matching until their first location update, so clients should send it.
+     * {@code lat} and {@code lng} must be given together.
+     */
+    DriverSessionView toggleOnline(UUID driverUserId, Double lat, Double lng);
 
     /**
      * Driver taps the GO button again (ONLINE → OFFLINE or ON_DELIVERY → GOING_OFFLINE).

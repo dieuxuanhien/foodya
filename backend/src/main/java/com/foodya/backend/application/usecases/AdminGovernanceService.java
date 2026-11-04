@@ -58,6 +58,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
     private final PaginationPolicy paginationPolicy;
     private final AuditLogService auditLogService;
     private final OrderPaymentPort orderPaymentPort;
+    private final OrderClosureService orderClosureService;
 
     public AdminGovernanceService(AdminRestaurantPort adminRestaurantPort,
                                   AdminOrderPort adminOrderPort,
@@ -68,7 +69,8 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
                                   AdminUserPort adminUserPort,
                                   PaginationPolicy paginationPolicy,
                                   AuditLogService auditLogService,
-                                  OrderPaymentPort orderPaymentPort) {
+                                  OrderPaymentPort orderPaymentPort,
+                                  OrderClosureService orderClosureService) {
         this.adminRestaurantPort = adminRestaurantPort;
         this.adminOrderPort = adminOrderPort;
         this.adminMenuItemPort = adminMenuItemPort;
@@ -79,6 +81,7 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
         this.paginationPolicy = paginationPolicy;
         this.auditLogService = auditLogService;
         this.orderPaymentPort = orderPaymentPort;
+        this.orderClosureService = orderClosureService;
     }
 
     public PaginatedResult<RestaurantData> listRestaurants(String keyword, RestaurantStatus status, Integer page, Integer size) {
@@ -306,9 +309,16 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
             );
         }
 
+        UUID batchId = order.getBatchId();
+        UUID driverUserId = order.getDriverUserId();
         order.adminTransitionTo(targetStatus);
-        syncCodPaymentState(order, targetStatus);
+        orderClosureService.settleCodPayment(order, targetStatus);
         Order saved = adminOrderPort.save(order);
+        if (targetStatus == OrderStatus.CANCELLED || targetStatus == OrderStatus.FAILED) {
+            orderClosureService.onClosed(saved, batchId, driverUserId, "admin", "admin override");
+        } else if (targetStatus == OrderStatus.SUCCESS) {
+            orderClosureService.onDelivered(driverUserId, saved.getId());
+        }
         auditLogService.securityEvent(
                 actorId.toString(),
                 "ADMIN_ORDER_STATUS_UPDATE",
@@ -423,27 +433,6 @@ public class AdminGovernanceService implements AdminGovernanceUseCase {
             case DELIVERING -> target == OrderStatus.SUCCESS || target == OrderStatus.FAILED;
             case SUCCESS, CANCELLED, FAILED -> false;
         };
-    }
-
-    private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
-        if (targetStatus == OrderStatus.SUCCESS) {
-            order.syncCodPaymentStatus(PaymentStatus.PAID);
-        } else if (targetStatus == OrderStatus.FAILED) {
-            order.syncCodPaymentStatus(PaymentStatus.FAILED);
-        } else {
-            return;
-        }
-
-        OrderPayment payment = orderPaymentPort.findByOrderId(order.getId())
-                .orElseGet(OrderPayment::new);
-        payment.setOrderId(order.getId());
-        payment.setPaymentMethod(order.getPaymentMethod());
-        payment.setPaymentStatus(order.getPaymentStatus());
-        payment.setAmount(order.getTotalAmount());
-        payment.setPaidAt(order.getPaymentStatus() == PaymentStatus.PAID
-                ? (order.getCompletedAt() == null ? OffsetDateTime.now() : order.getCompletedAt())
-                : null);
-        orderPaymentPort.save(payment);
     }
 
     private RestaurantData toRestaurantData(Restaurant restaurant) {

@@ -40,6 +40,21 @@ public class Order {
             OrderStatus.ASSIGNED
     );
 
+    private static final List<OrderStatus> REJECTABLE_BY_MERCHANT = List.of(
+            OrderStatus.PENDING,
+            OrderStatus.ACCEPTED,
+            OrderStatus.ASSIGNED,
+            OrderStatus.PREPARING
+    );
+
+    /** Operator/system cancellations are allowed up to the moment the driver starts. */
+    private static final List<OrderStatus> CANCELLABLE_BY_SYSTEM = List.of(
+            OrderStatus.PENDING,
+            OrderStatus.ACCEPTED,
+            OrderStatus.ASSIGNED,
+            OrderStatus.PREPARING
+    );
+
     private UUID id;
 
     private String orderCode;
@@ -178,13 +193,45 @@ public class Order {
         }
     }
 
+    /** System/operator cancellation (timeouts, no-driver, support action). */
+    public void cancelBySystem(String reason) {
+        if (!CANCELLABLE_BY_SYSTEM.contains(status)) {
+            throw invalidTransition("system cancel");
+        }
+        status = OrderStatus.CANCELLED;
+        if (reason != null && !reason.isBlank()) {
+            cancelReason = reason.trim();
+        }
+    }
+
     public void merchantAccept() {
         requireStatus(OrderStatus.PENDING, "merchant accept");
         status = OrderStatus.ACCEPTED;
     }
 
+    /**
+     * Merchant rejects an order it cannot fulfil (out of stock, closing, wrong address, etc.).
+     * Allowed before food preparation/delivery has started. Once the order has moved past
+     * {@code PREPARING} the merchant must contact support and an admin cancels instead.
+     */
+    public void merchantReject(String reason) {
+        if (!REJECTABLE_BY_MERCHANT.contains(status)) {
+            throw invalidTransition("merchant reject");
+        }
+        status = OrderStatus.CANCELLED;
+        if (reason != null && !reason.isBlank()) {
+            cancelReason = reason.trim();
+        }
+    }
+
+    /**
+     * Kitchen started cooking. Valid before assignment and again after the batch scheduler assigned
+     * a driver; the order stays async: the driver pickup event moves it to DELIVERING.
+     */
     public void merchantMarkPreparing() {
-        requireStatus(OrderStatus.ASSIGNED, "merchant mark preparing");
+        if (status != OrderStatus.ACCEPTED && status != OrderStatus.ASSIGNED) {
+            throw invalidTransition("merchant mark preparing");
+        }
         status = OrderStatus.PREPARING;
     }
 
@@ -198,13 +245,34 @@ public class Order {
         this.status = OrderStatus.ASSIGNED;
     }
 
+    /** Driver confirms the order assigned to them. The caller verifies it is the assigned driver. */
     public void deliveryAcceptAssignment() {
-        requireStatus(OrderStatus.ACCEPTED, "delivery accept assignment");
-        status = OrderStatus.ASSIGNED;
+        if (status != OrderStatus.ASSIGNED && status != OrderStatus.PREPARING) {
+            throw invalidTransition("delivery accept assignment");
+        }
     }
 
+    /**
+     * Releases the order from its driver so the batch scheduler can assign it again. Only possible
+     * before pickup. A kitchen that already started cooking goes back to ACCEPTED, so the merchant
+     * marks it as preparing again once a new driver is assigned.
+     */
+    public void releaseDriver() {
+        if (status != OrderStatus.ASSIGNED && status != OrderStatus.PREPARING) {
+            throw invalidTransition("release driver");
+        }
+        this.driverUserId = null;
+        this.batchId = null;
+        this.batchPickupIndex = null;
+        this.batchDeliveryIndex = null;
+        this.status = OrderStatus.ACCEPTED;
+    }
+
+    /** Pickup: the driver leaves the restaurant, whether or not the merchant marked it as preparing. */
     public void deliveryStart() {
-        requireStatus(OrderStatus.ASSIGNED, "delivery start");
+        if (status != OrderStatus.ASSIGNED && status != OrderStatus.PREPARING) {
+            throw invalidTransition("delivery start");
+        }
         status = OrderStatus.DELIVERING;
     }
 
@@ -344,6 +412,17 @@ public class Order {
         } else if (targetPaymentStatus == PaymentStatus.FAILED) {
             markCodFailed();
         }
+    }
+
+    /**
+     * Marks a refunded order: the customer has been made whole, so the payment is no longer
+     * outstanding. Only meaningful for orders that were actually paid.
+     */
+    public void markRefunded() {
+        if (paymentStatus != PaymentStatus.PAID) {
+            throw invalidPaymentTransition("mark refunded");
+        }
+        paymentStatus = PaymentStatus.REFUNDED;
     }
 
     public BigDecimal getCommissionAmount() {
