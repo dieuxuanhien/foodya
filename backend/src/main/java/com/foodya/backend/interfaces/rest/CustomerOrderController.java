@@ -1,10 +1,10 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.CreateOrderFromCartRequest;
 import com.foodya.backend.application.dto.OrderCostReviewView;
 import com.foodya.backend.application.dto.OrderCreatedView;
 import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateOrderFromCartApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderCostReviewResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderCreatedResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderApiMapper;
@@ -44,9 +44,9 @@ public class CustomerOrderController {
             @ApiResponse(responseCode = "422", description = "Validation failed")
     })
     public ResponseEntity<ApiSuccessResponse<OrderCostReviewResponse>> reviewCurrentCartCost(Authentication authentication,
-                                                                                             @Valid @RequestBody CreateOrderFromCartRequest request,
+                                                                                             @Valid @RequestBody CreateOrderFromCartApiRequest request,
                                                                                              HttpServletRequest httpServletRequest) {
-        OrderCostReviewView view = orderCheckoutService.reviewCurrentCartCost(CurrentUser.userId(authentication), request);
+        OrderCostReviewView view = orderCheckoutService.reviewCurrentCartCost(CurrentUser.userId(authentication), request.toApplicationDto());
         return ResponseEntity.ok(ApiSuccessResponse.of(OrderApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }
 
@@ -59,9 +59,9 @@ public class CustomerOrderController {
     })
     public ResponseEntity<ApiSuccessResponse<OrderCreatedResponse>> createOrder(Authentication authentication,
                                                                                  @RequestHeader("Idempotency-Key") String idempotencyKey,
-                                                                                 @Valid @RequestBody CreateOrderFromCartRequest request,
+                                                                                 @Valid @RequestBody CreateOrderFromCartApiRequest request,
                                                                                  HttpServletRequest httpServletRequest) {
-        OrderCreatedView view = orderCheckoutService.createOrder(CurrentUser.userId(authentication), idempotencyKey, request);
+        OrderCreatedView view = orderCheckoutService.createOrder(CurrentUser.userId(authentication), idempotencyKey, request.toApplicationDto());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiSuccessResponse.of(OrderApiMapper.toResponse(view), RequestTrace.from(httpServletRequest)));
     }

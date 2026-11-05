@@ -23,7 +23,8 @@ public class StompOrderTrackingUpdatePublisherAdapter implements OrderTrackingUp
         messagingTemplate.convertAndSendToUser(
                 customerUserId.toString(),
                 "/queue/orders/" + orderId + "/tracking",
-                new TrackingPointMessage(orderId, point.lat(), point.lng(), point.recordedAt())
+                new TrackingPointMessage(orderId, point.lat(), point.lng(), point.recordedAt(),
+                        point.snapped(), point.route())
         );
     }
 
@@ -31,7 +32,9 @@ public class StompOrderTrackingUpdatePublisherAdapter implements OrderTrackingUp
             UUID orderId,
             BigDecimal lat,
             BigDecimal lng,
-            OffsetDateTime recordedAt
+            OffsetDateTime recordedAt,
+            OrderTrackingPointView.SnappedPositionView snapped,
+            OrderTrackingPointView.RouteProgressView route
     ) {
     }
 }

@@ -1,10 +1,10 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.CreateAiChatRequest;
 import com.foodya.backend.application.ports.in.AiRecommendationUseCase;
 import com.foodya.backend.interfaces.rest.dto.AiChatHistoryResponse;
 import com.foodya.backend.interfaces.rest.dto.AiChatResponse;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateAiChatApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.AiChatApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,13 +42,13 @@ public class CustomerAiChatController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "422", description = "Validation failed")
     })
-    public ApiSuccessResponse<AiChatResponse> create(Authentication authentication,
-                                                     @Valid @RequestBody CreateAiChatRequest request,
+    public ResponseEntity<ApiSuccessResponse<AiChatResponse>> create(Authentication authentication,
+                                                     @Valid @RequestBody CreateAiChatApiRequest request,
                                                      HttpServletRequest httpServletRequest) {
         AiChatResponse data = AiChatApiMapper.toResponse(
-                aiRecommendationService.createChat(CurrentUser.userId(authentication), request)
+                aiRecommendationService.createChat(CurrentUser.userId(authentication), request.toApplicationDto())
         );
-        return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
+        return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest)));
     }
 
     @GetMapping
@@ -56,12 +57,12 @@ public class CustomerAiChatController {
             @ApiResponse(responseCode = "200", description = "History listed"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ApiSuccessResponse<List<AiChatHistoryResponse>> history(Authentication authentication,
+    public ResponseEntity<ApiSuccessResponse<List<AiChatHistoryResponse>>> history(Authentication authentication,
                                                                    HttpServletRequest httpServletRequest) {
         List<AiChatHistoryResponse> data = aiRecommendationService.history(CurrentUser.userId(authentication))
                 .stream()
                 .map(AiChatApiMapper::toHistory)
                 .toList();
-        return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
+        return ResponseEntity.ok(ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest)));
     }
 }

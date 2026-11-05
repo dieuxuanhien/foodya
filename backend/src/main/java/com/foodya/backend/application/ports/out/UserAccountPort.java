@@ -1,17 +1,17 @@
 package com.foodya.backend.application.ports.out;
 
-import com.foodya.backend.application.dto.UserAccountData;
+import com.foodya.backend.domain.entities.UserAccount;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public interface UserAccountPort {
 
-    Optional<UserAccountData> findById(UUID id);
+    Optional<UserAccount> findById(UUID id);
 
-    Optional<UserAccountData> findByUsername(String username);
+    Optional<UserAccount> findByUsername(String username);
 
-    Optional<UserAccountData> findByEmail(String email);
+    Optional<UserAccount> findByEmail(String email);
 
     boolean existsByUsername(String username);
 
@@ -23,5 +23,5 @@ public interface UserAccountPort {
 
     boolean existsByPhoneNumberAndIdNot(String phoneNumber, UUID id);
 
-    UserAccountData save(UserAccountData userAccount);
+    UserAccount save(UserAccount userAccount);
 }

@@ -210,4 +210,31 @@ public class Restaurant {
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public void approve() {
+        this.status = RestaurantStatus.ACTIVE;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void suspend() {
+        this.status = RestaurantStatus.INACTIVE;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void toggleOperatingStatus(boolean open) {
+        this.open = open;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void updateRating(BigDecimal newRating, int newCount) {
+        if (newRating != null && (newRating.compareTo(BigDecimal.ZERO) < 0 || newRating.compareTo(new BigDecimal("5.0")) > 0)) {
+            throw new IllegalArgumentException("Rating must be between 0.0 and 5.0");
+        }
+        if (newCount < 0) {
+            throw new IllegalArgumentException("Review count cannot be negative");
+        }
+        this.avgRating = newRating;
+        this.reviewCount = newCount;
+        this.updatedAt = OffsetDateTime.now();
+    }
 }

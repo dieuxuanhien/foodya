@@ -25,5 +25,6 @@ public final class IntegrationKeyCatalog {
     public static final String FIREBASE_SERVICE_ACCOUNT_FILE = "firebase.service.account.file";
     public static final String FIREBASE_SERVICE_ACCOUNT_JSON = "firebase.service.account.json";
 
-    public static final String OPENWEATHER_API_KEY = "openweather.api.key";
+    /** Keyless provider identifier shown on the integration status page (no secret needed). */
+    public static final String OPEN_METEO_ENDPOINT = "open-meteo.endpoint";
 }

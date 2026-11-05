@@ -85,7 +85,7 @@ class AdminAuditLogIntegrationTests {
     @Test
     void adminCanListAuditLogsWithFilters() throws Exception {
         UserAccount admin = seedUser("admin-audit", UserRole.ADMIN);
-        String adminToken = tokenPort.issueAccessToken(AuthPersistenceMapper.toData(admin), UUID.randomUUID().toString());
+        String adminToken = tokenPort.issueAccessToken(admin, UUID.randomUUID().toString());
 
         seedAuditLog("ORDER_STATUS_UPDATED", "ORDER", "order-1001", "PENDING", "ACCEPTED", "actor-a");
         seedAuditLog("ORDER_CANCELLED", "ORDER", "order-1002", "ASSIGNED", "CANCELLED", "actor-b");

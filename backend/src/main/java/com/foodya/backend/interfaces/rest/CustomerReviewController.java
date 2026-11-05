@@ -1,12 +1,14 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.CreateOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
+import com.foodya.backend.interfaces.rest.dto.CreateOrderReviewApiRequest;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
 import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/customer/orders")
+@Tag(name = "Customer Reviews", description = "Customer review submission for delivered orders")
 public class CustomerReviewController {
 
     private final OrderReviewUseCase orderReviewService;
@@ -30,10 +33,11 @@ public class CustomerReviewController {
         this.orderReviewService = orderReviewService;
     }
 
+    @Operation(summary = "Review an order", description = "Create a star rating and comment for an order that reached SUCCESS. One review per order.")
     @PostMapping("/{orderId}/reviews")
     public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> createReview(Authentication authentication,
                                                                                  @PathVariable UUID orderId,
-                                                                                 @Valid @RequestBody CreateOrderReviewRequest request,
+                                                                                 @Valid @RequestBody CreateOrderReviewApiRequest request,
                                                                                  HttpServletRequest httpServletRequest) {
         OrderReviewResponse data = createReviewData(authentication, orderId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -42,7 +46,7 @@ public class CustomerReviewController {
 
     private OrderReviewResponse createReviewData(Authentication authentication,
                                                  UUID orderId,
-                                                 CreateOrderReviewRequest request) {
+                                                 CreateOrderReviewApiRequest request) {
         OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.createReview(CurrentUser.userId(authentication), orderId, request.stars(), request.comment())
         );

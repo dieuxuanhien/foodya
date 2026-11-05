@@ -1,29 +1,29 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.dto.PasswordResetChallengeData;
-import com.foodya.backend.application.dto.RefreshTokenData;
-import com.foodya.backend.application.dto.TokenClaims;
-import com.foodya.backend.application.dto.UserAccountData;
-import com.foodya.backend.domain.policies.PasswordPolicy;
-import com.foodya.backend.domain.services.PhoneNormalizer;
-import com.foodya.backend.domain.value_objects.UserRole;
-import com.foodya.backend.domain.value_objects.UserStatus;
 import com.foodya.backend.application.dto.ForgotPasswordResult;
 import com.foodya.backend.application.dto.LoginRequest;
 import com.foodya.backend.application.dto.RegisterRequest;
+import com.foodya.backend.application.dto.TokenClaims;
 import com.foodya.backend.application.dto.TokenPairResult;
 import com.foodya.backend.application.dto.VerifyOtpResult;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.UnauthorizedException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.AuthUseCase;
-import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.OtpDeliveryPort;
+import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.PasswordResetChallengePort;
 import com.foodya.backend.application.ports.out.RefreshTokenPort;
 import com.foodya.backend.application.ports.out.SecurityPolicyPort;
 import com.foodya.backend.application.ports.out.TokenPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
+import com.foodya.backend.domain.entities.PasswordResetChallenge;
+import com.foodya.backend.domain.entities.RefreshToken;
+import com.foodya.backend.domain.entities.UserAccount;
+import com.foodya.backend.domain.policies.PasswordPolicy;
+import com.foodya.backend.domain.services.PhoneNormalizer;
+import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.domain.value_objects.UserStatus;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
@@ -67,7 +67,8 @@ public class AuthService implements AuthUseCase {
         validateUniqueness(request.username(), request.email(), request.phoneNumber());
         validatePassword(request.password());
 
-        UserAccountData user = new UserAccountData();
+        UserAccount user = new UserAccount();
+        user.onCreate();
         user.setUsername(request.username().trim());
         user.setEmail(request.email().trim().toLowerCase(Locale.ROOT));
         user.setPhoneNumber(normalizePhone(request.phoneNumber()));
@@ -76,13 +77,13 @@ public class AuthService implements AuthUseCase {
         user.setStatus(request.role() == UserRole.MERCHANT ? UserStatus.PENDING_APPROVAL : UserStatus.ACTIVE);
         user.setPasswordHash(passwordHashPort.encode(request.password()));
 
-        UserAccountData saved = userAccountPort.save(user);
+        UserAccount saved = userAccountPort.save(user);
         auditLogService.securityEvent(saved.getId().toString(), "AUTH_REGISTER", "USER", saved.getId().toString(), null, "registered");
         return issueTokenPair(saved, UUID.randomUUID().toString());
     }
 
     public TokenPairResult login(LoginRequest request) {
-        UserAccountData user = userByUsernameOrEmail(request.usernameOrEmail())
+        UserAccount user = userByUsernameOrEmail(request.usernameOrEmail())
                 .orElseThrow(() -> new UnauthorizedException("invalid credentials"));
 
         if (!passwordHashPort.matches(request.password(), user.getPasswordHash())) {
@@ -100,7 +101,7 @@ public class AuthService implements AuthUseCase {
         TokenClaims claims = parseTypedToken(refreshToken, TokenPort.TOKEN_TYPE_REFRESH);
         String jti = claims.id();
         String family = claims.getString("family");
-        RefreshTokenData existing = refreshTokenPort.findByTokenJti(jti)
+        RefreshToken existing = refreshTokenPort.findByTokenJti(jti)
                 .orElseThrow(() -> new UnauthorizedException("refresh token not recognized"));
 
         if (existing.getRevokedAt() != null || existing.getExpiresAt().isBefore(OffsetDateTime.now())) {
@@ -133,10 +134,10 @@ public class AuthService implements AuthUseCase {
     }
 
     public void logoutAll(UUID userId) {
-        UserAccountData user = userAccountPort.findById(userId)
+        UserAccount user = userAccountPort.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("user not found"));
 
-        List<RefreshTokenData> active = refreshTokenPort.findByUserAndRevokedAtIsNullAndExpiresAtAfter(user, OffsetDateTime.now());
+        List<RefreshToken> active = refreshTokenPort.findByUserAndRevokedAtIsNullAndExpiresAtAfter(user, OffsetDateTime.now());
         OffsetDateTime now = OffsetDateTime.now();
         active.forEach(token -> token.setRevokedAt(now));
         refreshTokenPort.saveAll(active);
@@ -144,7 +145,7 @@ public class AuthService implements AuthUseCase {
     }
 
     public ForgotPasswordResult forgotPassword(String email) {
-        UserAccountData user = userAccountPort.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
+        UserAccount user = userAccountPort.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
         if (user == null) {
             return new ForgotPasswordResult("", "If this account exists, OTP has been sent");
         }
@@ -152,7 +153,7 @@ public class AuthService implements AuthUseCase {
         String challengeToken = UUID.randomUUID().toString();
         String otp = generateOtp();
 
-        PasswordResetChallengeData challenge = new PasswordResetChallengeData();
+        PasswordResetChallenge challenge = new PasswordResetChallenge();
         challenge.setChallengeToken(challengeToken);
         challenge.setUser(user);
         challenge.setOtpHash(passwordHashPort.encode(otp));
@@ -161,19 +162,16 @@ public class AuthService implements AuthUseCase {
         otpDeliveryPort.sendPasswordResetOtp(user.getEmail(), otp);
         auditLogService.securityEvent(user.getId().toString(), "AUTH_FORGOT_PASSWORD", "USER", user.getId().toString(), null, challengeToken);
 
-        String hint = maskEmail(user.getEmail());
+        String hint = user.maskEmail();
         return new ForgotPasswordResult(challengeToken, hint);
     }
 
     public VerifyOtpResult verifyOtp(String challengeToken, String otp) {
-        PasswordResetChallengeData challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
+        PasswordResetChallenge challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
                 .orElseThrow(() -> new UnauthorizedException("invalid challenge token"));
 
-        if (challenge.getConsumedAt() != null || challenge.getExpiresAt().isBefore(OffsetDateTime.now())) {
-            throw new UnauthorizedException("otp challenge expired");
-        }
-        if (!passwordHashPort.matches(otp, challenge.getOtpHash())) {
-            throw new UnauthorizedException("invalid otp");
+        if (!challenge.verifyOtp(otp, passwordHashPort::matches)) {
+            throw new UnauthorizedException("invalid otp or challenge expired");
         }
 
         challenge.setVerifiedAt(OffsetDateTime.now());
@@ -191,14 +189,14 @@ public class AuthService implements AuthUseCase {
 
         TokenClaims claims = parseTypedToken(resetToken, TokenPort.TOKEN_TYPE_RESET);
         String challengeToken = claims.getString("challengeToken");
-        PasswordResetChallengeData challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
+        PasswordResetChallenge challenge = passwordResetChallengePort.findByChallengeToken(challengeToken)
                 .orElseThrow(() -> new UnauthorizedException("invalid reset challenge"));
 
         if (challenge.getVerifiedAt() == null || challenge.getConsumedAt() != null || challenge.getExpiresAt().isBefore(OffsetDateTime.now())) {
             throw new UnauthorizedException("reset challenge is not valid");
         }
 
-        UserAccountData user = challenge.getUser();
+        UserAccount user = challenge.getUser();
         validatePassword(newPassword);
         if (passwordHashPort.matches(newPassword, user.getPasswordHash())) {
             throw new ValidationException("new password must differ from current password", Map.of("newPassword", "must differ from current password"));
@@ -214,17 +212,17 @@ public class AuthService implements AuthUseCase {
         logoutAll(user.getId());
     }
 
-    private TokenPairResult issueTokenPair(UserAccountData user, String family) {
+    private TokenPairResult issueTokenPair(UserAccount user, String family) {
         return issueTokenPair(user, family, UUID.randomUUID().toString());
     }
 
-    private TokenPairResult issueTokenPair(UserAccountData user, String family, String refreshJti) {
+    private TokenPairResult issueTokenPair(UserAccount user, String family, String refreshJti) {
         String accessJti = UUID.randomUUID().toString();
         String accessToken = tokenPort.issueAccessToken(user, accessJti);
         String refreshToken = tokenPort.issueRefreshToken(user, refreshJti, family);
 
         TokenClaims refreshClaims = tokenPort.parseClaims(refreshToken);
-        RefreshTokenData refresh = new RefreshTokenData();
+        RefreshToken refresh = new RefreshToken();
         refresh.setUser(user);
         refresh.setTokenJti(refreshJti);
         refresh.setTokenFamily(family);
@@ -253,7 +251,7 @@ public class AuthService implements AuthUseCase {
         }
     }
 
-    private Optional<UserAccountData> userByUsernameOrEmail(String input) {
+    private Optional<UserAccount> userByUsernameOrEmail(String input) {
         String trimmed = input.trim();
         if (trimmed.contains("@")) {
             return userAccountPort.findByEmail(trimmed.toLowerCase(Locale.ROOT));
@@ -276,14 +274,15 @@ public class AuthService implements AuthUseCase {
         return claims;
     }
 
-    private void revokeFamily(String family) {
+    private void revokeFamily(String tokenFamily) {
+        List<RefreshToken> familyTokens = refreshTokenPort.findByTokenFamily(tokenFamily);
         OffsetDateTime now = OffsetDateTime.now();
-        refreshTokenPort.findByTokenFamily(family).forEach(token -> {
-            if (token.getRevokedAt() == null) {
-                token.setRevokedAt(now);
-                refreshTokenPort.save(token);
+        familyTokens.forEach(t -> {
+            if (t.getRevokedAt() == null) {
+                t.setRevokedAt(now);
             }
         });
+        refreshTokenPort.saveAll(familyTokens);
     }
 
     private static String normalizePhone(String phone) {
@@ -308,13 +307,5 @@ public class AuthService implements AuthUseCase {
     private static String generateOtp() {
         int code = new SecureRandom().nextInt(900000) + 100000;
         return String.valueOf(code);
-    }
-
-    private static String maskEmail(String email) {
-        int at = email.indexOf('@');
-        if (at <= 1) {
-            return "***";
-        }
-        return email.charAt(0) + "***" + email.substring(at);
     }
 }

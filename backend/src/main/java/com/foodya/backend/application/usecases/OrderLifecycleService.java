@@ -1,27 +1,36 @@
 package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.OrderDetailView;
+import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.dto.OrderSummaryView;
 import com.foodya.backend.application.dto.OrderTrackingPointView;
+import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.UserAccountData;
-import com.foodya.backend.application.event.OrderNotificationEvent;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.NotFoundException;
 import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.OrderLifecycleUseCase;
+import com.foodya.backend.application.ports.out.DeliveryRouteQueryPort;
 import com.foodya.backend.application.ports.out.DeliveryTrackingPointPort;
+import com.foodya.backend.application.ports.out.DriverMatchingPort;
+import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderManagementPort;
-import com.foodya.backend.application.ports.out.OrderPaymentPort;
 import com.foodya.backend.application.ports.out.OrderTrackingUpdatePublisherPort;
 import com.foodya.backend.application.ports.out.RestaurantPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.entities.DeliveryTrackingPoint;
+import com.foodya.backend.domain.entities.DriverOnlineSession;
 import com.foodya.backend.domain.entities.Order;
 import com.foodya.backend.domain.entities.OrderPayment;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.application.support.PaginationPolicy;
+import com.foodya.backend.domain.value_objects.DriverMatchRequest;
+import com.foodya.backend.domain.value_objects.DriverMatchResult;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
+import com.foodya.backend.domain.value_objects.RouteSnapper;
+import com.foodya.backend.domain.value_objects.SnappedPosition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +38,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class OrderLifecycleService implements OrderLifecycleUseCase {
@@ -40,30 +50,47 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
     private final DeliveryTrackingPointPort deliveryTrackingPointPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
     private final UserAccountPort userAccountPort;
-    private final OrderPaymentPort orderPaymentPort;
     private final OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort;
+    private final PaginationPolicy paginationPolicy;
+    private final DriverMatchingPort driverMatchingPort;
+    private final DriverOnlineSessionPort driverOnlineSessionPort;
+    private final DeliveryRouteQueryPort deliveryRouteQueryPort;
+    private final OrderClosureService orderClosureService;
 
     public OrderLifecycleService(OrderManagementPort orderManagementPort,
                                  RestaurantPort restaurantPort,
                                  DeliveryTrackingPointPort deliveryTrackingPointPort,
                                  OrderEventPublisherPort orderEventPublisherPort,
                                  UserAccountPort userAccountPort,
-                                 OrderPaymentPort orderPaymentPort,
-                                 OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
+                                 OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
+                                 PaginationPolicy paginationPolicy,
+                                 DriverMatchingPort driverMatchingPort,
+                                 DriverOnlineSessionPort driverOnlineSessionPort,
+                                 DeliveryRouteQueryPort deliveryRouteQueryPort,
+                                 OrderClosureService orderClosureService) {
         this.orderManagementPort = orderManagementPort;
         this.restaurantPort = restaurantPort;
         this.deliveryTrackingPointPort = deliveryTrackingPointPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
         this.userAccountPort = userAccountPort;
-        this.orderPaymentPort = orderPaymentPort;
         this.orderTrackingUpdatePublisherPort = orderTrackingUpdatePublisherPort;
+        this.paginationPolicy = paginationPolicy;
+        this.driverMatchingPort = driverMatchingPort;
+        this.driverOnlineSessionPort = driverOnlineSessionPort;
+        this.deliveryRouteQueryPort = deliveryRouteQueryPort;
+        this.orderClosureService = orderClosureService;
     }
 
-    public List<OrderSummaryView> customerOrders(UUID customerUserId) {
-        return orderManagementPort.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+    public PaginatedResult<OrderSummaryView> customerOrders(UUID customerUserId, Integer page, Integer size) {
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<Order> result = orderManagementPort.findByCustomerUserIdOrderByPlacedAtDesc(customerUserId, spec.page(), spec.size());
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toSummary).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
     }
 
     public OrderDetailView customerOrder(UUID customerUserId, UUID orderId) {
@@ -79,27 +106,35 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         if (!order.getCustomerUserId().equals(customerUserId)) {
             throw new ForbiddenException("order does not belong to customer");
         }
+        UUID batchId = order.getBatchId();
+        UUID driverUserId = order.getDriverUserId();
         try {
             order.cancelByCustomer(cancelReason);
         } catch (IllegalStateException ex) {
             throw new ValidationException("order is not cancellable", Map.of("status", "must be PENDING, ACCEPTED, or ASSIGNED"));
         }
         Order saved = orderManagementPort.save(order);
+        orderClosureService.onClosed(saved, batchId, driverUserId, "customer", cancelReason);
         publishOrderEvent(saved, "ORDER_CANCELLED", "Order " + saved.getOrderCode() + " cancelled");
         return toDetail(saved);
     }
 
-    public List<OrderSummaryView> merchantOrders(UUID merchantUserId, UUID restaurantId) {
+    public PaginatedResult<OrderSummaryView> merchantOrders(UUID merchantUserId, UUID restaurantId, Integer page, Integer size) {
         Restaurant restaurant = restaurantPort.findById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
         if (!restaurant.getOwnerUserId().equals(merchantUserId)) {
             throw new ForbiddenException("restaurant does not belong to merchant");
         }
 
-        return orderManagementPort.findByRestaurantIdOrderByPlacedAtDesc(restaurantId)
-                .stream()
-                .map(this::toSummary)
-                .toList();
+        PaginationPolicy.PaginationSpec spec = paginationPolicy.page(page, size);
+        PaginatedResult<Order> result = orderManagementPort.findByRestaurantIdOrderByPlacedAtDesc(restaurantId, spec.page(), spec.size());
+        return new PaginatedResult<>(
+                result.items().stream().map(this::toSummary).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
     }
 
     public OrderDetailView merchantOrder(UUID merchantUserId, UUID orderId) {
@@ -121,6 +156,13 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
             }
             Order saved = orderManagementPort.save(order);
             publishOrderEvent(saved, "ORDER_ACCEPTED", "Order " + saved.getOrderCode() + " accepted");
+
+            // Phase 5: Driver assignment is now handled by the batch scheduler
+            // (OrderBatchingService → BatchSchedulerJob). The scheduler collects all
+            // ACCEPTED orders and runs VRPPD-TW optimization for batched assignment.
+            // Immediate single-assignment fallback is also handled by the scheduler
+            // for urgent orders that have waited too long.
+
             return toDetail(saved);
         }
         if (targetStatus == OrderStatus.PREPARING) {
@@ -128,7 +170,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 order.merchantMarkPreparing();
             } catch (IllegalStateException ex) {
                 throw new ValidationException("invalid merchant status transition",
-                        Map.of("status", "only PENDING->ACCEPTED or ASSIGNED->PREPARING is allowed"));
+                        Map.of("status", "only PENDING->ACCEPTED, ACCEPTED->PREPARING or ASSIGNED->PREPARING is allowed"));
             }
             Order saved = orderManagementPort.save(order);
             publishOrderEvent(saved, "ORDER_PREPARING", "Order " + saved.getOrderCode() + " is being prepared");
@@ -136,30 +178,68 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         }
 
         throw new ValidationException("invalid merchant status transition",
-                Map.of("status", "only PENDING->ACCEPTED or ASSIGNED->PREPARING is allowed"));
+                Map.of("status", "only PENDING->ACCEPTED, ACCEPTED->PREPARING or ASSIGNED->PREPARING is allowed"));
     }
 
-    public List<OrderSummaryView> deliveryAssignments() {
-        return orderManagementPort.findByStatusInOrderByPlacedAtAsc(List.of(OrderStatus.ACCEPTED, OrderStatus.ASSIGNED))
+    public OrderDetailView merchantReject(UUID merchantUserId, UUID orderId, String reason) {
+        Order order = requireOrder(orderId);
+        assertMerchantOwnsOrder(merchantUserId, order.getRestaurantId());
+        UUID batchId = order.getBatchId();
+        UUID driverUserId = order.getDriverUserId();
+        try {
+            order.merchantReject(reason);
+        } catch (IllegalStateException ex) {
+            throw new ValidationException("invalid merchant status transition",
+                    Map.of("status", "only PENDING, ACCEPTED, ASSIGNED or PREPARING orders can be rejected"));
+        }
+        order.setBatchId(null);
+        Order saved = orderManagementPort.save(order);
+        orderClosureService.onClosed(saved, batchId, driverUserId, "merchant", reason);
+        publishOrderEvent(saved, "ORDER_CANCELLED", "Order " + saved.getOrderCode() + " rejected by restaurant");
+        return toDetail(saved);
+    }
+
+    public List<OrderSummaryView> deliveryAssignments(UUID driverUserId) {
+        return orderManagementPort.findOpenByDriverUserId(driverUserId)
                 .stream()
                 .map(this::toSummary)
                 .toList();
     }
 
-    public OrderDetailView deliveryAccept(UUID orderId) {
+    public OrderDetailView deliveryAccept(UUID driverUserId, UUID orderId) {
         Order order = requireOrder(orderId);
+        if (order.getDriverUserId() != null && !order.getDriverUserId().equals(driverUserId)) {
+            throw new ForbiddenException("order is assigned to another driver");
+        }
         try {
             order.deliveryAcceptAssignment();
         } catch (IllegalStateException ex) {
-            throw new ValidationException("order is not assignable", Map.of("status", "must be ACCEPTED"));
+            throw new ValidationException("order is not assignable", Map.of("status", "must be ASSIGNED"));
         }
         Order saved = orderManagementPort.save(order);
-        publishOrderEvent(saved, "ORDER_ASSIGNED", "Order " + saved.getOrderCode() + " assigned to delivery");
+        publishOrderEvent(saved, "ORDER_ASSIGNED", "Order " + saved.getOrderCode() + " accepted by driver");
         return toDetail(saved);
     }
 
-    public OrderDetailView deliveryUpdateStatus(UUID orderId, OrderStatus targetStatus) {
+    public OrderDetailView deliveryReject(UUID driverUserId, UUID orderId) {
         Order order = requireOrder(orderId);
+        assertAssignedDriver(driverUserId, order);
+        UUID batchId = order.getBatchId();
+        try {
+            order.releaseDriver();
+        } catch (IllegalStateException ex) {
+            throw new ValidationException("order cannot be rejected",
+                    Map.of("status", "only ASSIGNED or PREPARING orders can be rejected; contact support once picked up"));
+        }
+        Order saved = orderManagementPort.save(order);
+        orderClosureService.onDriverReleased(driverUserId, batchId, saved.getId());
+        publishOrderEvent(saved, "ORDER_ASSIGNED", "Order " + saved.getOrderCode() + " returned to the assignment pool");
+        return toDetail(saved);
+    }
+
+    public OrderDetailView deliveryUpdateStatus(UUID driverUserId, UUID orderId, OrderStatus targetStatus) {
+        Order order = requireOrder(orderId);
+        assertAssignedDriver(driverUserId, order);
         if (targetStatus == OrderStatus.DELIVERING) {
             try {
                 order.deliveryStart();
@@ -173,14 +253,20 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         }
 
         if (targetStatus == OrderStatus.SUCCESS || targetStatus == OrderStatus.FAILED) {
+            UUID batchId = order.getBatchId();
             try {
                 order.deliveryFinish(targetStatus);
-                syncCodPaymentState(order, targetStatus);
+                orderClosureService.settleCodPayment(order, targetStatus);
             } catch (IllegalStateException ex) {
                 throw new ValidationException("invalid delivery status transition",
                         Map.of("status", "allowed: ASSIGNED->DELIVERING and DELIVERING->SUCCESS|FAILED"));
             }
             Order saved = orderManagementPort.save(order);
+            if (targetStatus == OrderStatus.FAILED) {
+                orderClosureService.onClosed(saved, batchId, driverUserId, "driver", "delivery failed");
+            } else {
+                orderClosureService.onDelivered(driverUserId, saved.getId());
+            }
             publishOrderEvent(
                     saved,
                     targetStatus == OrderStatus.SUCCESS ? "ORDER_SUCCESS" : "ORDER_FAILED",
@@ -193,8 +279,10 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 Map.of("status", "allowed: ASSIGNED->DELIVERING and DELIVERING->SUCCESS|FAILED"));
     }
 
-    public OrderTrackingPointView addTrackingPoint(UUID orderId, BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt) {
+    public OrderTrackingPointView addTrackingPoint(UUID driverUserId, UUID orderId,
+                                                   BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt) {
         Order order = requireOrder(orderId);
+        assertAssignedDriver(driverUserId, order);
         if (order.getStatus() != OrderStatus.ASSIGNED && order.getStatus() != OrderStatus.DELIVERING) {
             throw new ValidationException("tracking point is not allowed in current state",
                     Map.of("status", "must be ASSIGNED or DELIVERING"));
@@ -207,7 +295,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         point.setRecordedAt(recordedAt);
 
         DeliveryTrackingPoint saved = deliveryTrackingPointPort.save(point);
-        OrderTrackingPointView view = new OrderTrackingPointView(saved.getLat(), saved.getLng(), saved.getRecordedAt());
+        OrderTrackingPointView view = enrich(saved.getLat(), saved.getLng(), saved.getRecordedAt(), orderId);
         try {
             orderTrackingUpdatePublisherPort.publishTrackingPoint(order.getCustomerUserId(), orderId, view);
         } catch (RuntimeException ex) {
@@ -222,10 +310,99 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
             throw new ForbiddenException("order does not belong to customer");
         }
 
+        DeliveryRouteQueryPort.PlannedRoute route = deliveryRouteQueryPort.findActiveRouteForOrder(orderId).orElse(null);
         return deliveryTrackingPointPort.findByOrderIdOrderByRecordedAtAsc(orderId)
                 .stream()
-                .map(point -> new OrderTrackingPointView(point.getLat(), point.getLng(), point.getRecordedAt()))
+                .map(point -> enrichWith(route, point.getLat(), point.getLng(), point.getRecordedAt()))
                 .toList();
+    }
+
+    /**
+     * Snaps the raw GPS point onto the order's planned route (when one exists) and derives
+     * remaining distance and ETA. Without a planned route the point is returned raw.
+     */
+    private OrderTrackingPointView enrich(BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt, UUID orderId) {
+        DeliveryRouteQueryPort.PlannedRoute route = deliveryRouteQueryPort.findActiveRouteForOrder(orderId).orElse(null);
+        return enrichWith(route, lat, lng, recordedAt);
+    }
+
+    private OrderTrackingPointView enrichWith(DeliveryRouteQueryPort.PlannedRoute route,
+                                              BigDecimal lat, BigDecimal lng, OffsetDateTime recordedAt) {
+        if (route == null || lat == null || lng == null) {
+            return new OrderTrackingPointView(lat, lng, recordedAt);
+        }
+        SnappedPosition snapped = RouteSnapper.snap(
+                route.encodedPolyline(), route.durationSeconds(), lat.doubleValue(), lng.doubleValue());
+        if (snapped == null) {
+            return new OrderTrackingPointView(lat, lng, recordedAt);
+        }
+        OrderTrackingPointView.RouteProgressView progress = new OrderTrackingPointView.RouteProgressView(
+                snapped.remainingDistanceMeters(),
+                snapped.remainingDurationSeconds(),
+                recordedAt.plusSeconds(snapped.remainingDurationSeconds()));
+        return new OrderTrackingPointView(lat, lng, recordedAt,
+                new OrderTrackingPointView.SnappedPositionView(snapped.lat(), snapped.lng(), snapped.progress()),
+                progress);
+    }
+
+    // -------------------------------------------------------------------------
+    // Auto-assign driver after merchant acceptance
+    // -------------------------------------------------------------------------
+
+    private void tryAutoAssignDriver(Order order) {
+        try {
+            Restaurant restaurant = restaurantPort.findById(order.getRestaurantId()).orElse(null);
+            if (restaurant == null || restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
+                log.warn("Cannot auto-assign driver for order {}: restaurant location unavailable", order.getId());
+                return;
+            }
+
+            DriverMatchRequest matchRequest = new DriverMatchRequest(
+                    restaurant.getLatitude().doubleValue(),
+                    restaurant.getLongitude().doubleValue(),
+                    order.getDeliveryLatitude() != null ? order.getDeliveryLatitude().doubleValue() : 0.0,
+                    order.getDeliveryLongitude() != null ? order.getDeliveryLongitude().doubleValue() : 0.0,
+                    order.getTotalAmount()
+            );
+
+            Optional<DriverMatchResult> matchResult = driverMatchingPort.findBestDriver(matchRequest);
+            if (matchResult.isEmpty()) {
+                log.warn("No driver available for order {} — order stays in ACCEPTED", order.getOrderCode());
+                return;
+            }
+
+            DriverMatchResult match = matchResult.get();
+
+            // Transition order: ACCEPTED → ASSIGNED with driver
+            order.assignDriver(match.driverUserId());
+            Order saved = orderManagementPort.save(order);
+
+            // Update driver session: increment active order count
+            driverOnlineSessionPort.findActiveSession(match.driverUserId())
+                    .ifPresent(session -> {
+                        session.startDelivery();
+                        driverOnlineSessionPort.save(session);
+                    });
+
+            log.info("Auto-assigned driver {} to order {} (distance={}km, score={})",
+                    match.driverUserId(), saved.getOrderCode(),
+                    String.format("%.2f", match.distanceKm()),
+                    String.format("%.3f", match.score()));
+
+            publishOrderEvent(saved, "ORDER_ASSIGNED", "Driver assigned to order " + saved.getOrderCode());
+        } catch (Exception ex) {
+            // Non-fatal: order stays in ACCEPTED, can be retried or manually assigned
+            log.error("Failed to auto-assign driver for order {}: {}", order.getOrderCode(), ex.getMessage(), ex);
+        }
+    }
+
+    private void assertAssignedDriver(UUID driverUserId, Order order) {
+        if (order.getDriverUserId() == null) {
+            throw new ForbiddenException("order is not assigned to a driver");
+        }
+        if (!order.getDriverUserId().equals(driverUserId)) {
+            throw new ForbiddenException("order is assigned to another driver");
+        }
     }
 
     private void assertMerchantOwnsOrder(UUID merchantUserId, UUID restaurantId) {
@@ -249,6 +426,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 order.getOrderCode(),
                 order.getCustomerUserId(),
                 restaurant.getOwnerUserId(),
+                order.getDriverUserId(),
                 order.getStatus(),
                 eventType,
                 "Order update " + order.getOrderCode(),
@@ -256,33 +434,12 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
         ));
     }
 
-    private void syncCodPaymentState(Order order, OrderStatus targetStatus) {
-        if (targetStatus == OrderStatus.SUCCESS) {
-            order.markCodPaid();
-        } else if (targetStatus == OrderStatus.FAILED) {
-            order.markCodFailed();
-        } else {
-            return;
-        }
-
-        OrderPayment payment = orderPaymentPort.findByOrderId(order.getId())
-                .orElseGet(OrderPayment::new);
-        payment.setOrderId(order.getId());
-        payment.setPaymentMethod(order.getPaymentMethod());
-        payment.setPaymentStatus(order.getPaymentStatus());
-        payment.setAmount(order.getTotalAmount());
-        payment.setPaidAt(order.getPaymentStatus() == PaymentStatus.PAID
-                ? (order.getCompletedAt() == null ? OffsetDateTime.now() : order.getCompletedAt())
-                : null);
-        orderPaymentPort.save(payment);
-    }
-
     private OrderSummaryView toSummary(Order order) {
         String restaurantName = restaurantPort.findById(order.getRestaurantId())
                 .map(Restaurant::getName)
                 .orElse("Unknown Restaurant");
         String customerName = userAccountPort.findById(order.getCustomerUserId())
-                .map(UserAccountData::getFullName)
+                .map(com.foodya.backend.domain.entities.UserAccount::getFullName)
                 .orElse("Unknown Customer");
 
         return new OrderSummaryView(
@@ -301,7 +458,7 @@ public class OrderLifecycleService implements OrderLifecycleUseCase {
                 .map(Restaurant::getName)
                 .orElse("Unknown Restaurant");
         String customerName = userAccountPort.findById(order.getCustomerUserId())
-                .map(UserAccountData::getFullName)
+                .map(com.foodya.backend.domain.entities.UserAccount::getFullName)
                 .orElse("Unknown Customer");
 
         return new OrderDetailView(

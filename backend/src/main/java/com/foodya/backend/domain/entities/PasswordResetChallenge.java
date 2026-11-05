@@ -91,4 +91,39 @@ public class PasswordResetChallenge {
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    public boolean isExpired() {
+        return expiresAt != null && expiresAt.isBefore(OffsetDateTime.now());
+    }
+
+    public boolean isConsumed() {
+        return consumedAt != null;
+    }
+
+    public boolean verifyOtp(String inputOtp, java.util.function.BiPredicate<String, String> matcher) {
+        if (isConsumed() || isExpired()) {
+            return false;
+        }
+        return matcher != null && matcher.test(inputOtp, otpHash);
+    }
+
+    public void verifyOtp(String inputOtp) {
+        if (isConsumed()) {
+            throw new IllegalStateException("Challenge is already consumed");
+        }
+        if (isExpired()) {
+            throw new IllegalStateException("Challenge has expired");
+        }
+        if (inputOtp == null || inputOtp.isBlank()) {
+            throw new IllegalArgumentException("OTP input cannot be blank");
+        }
+        this.verifiedAt = OffsetDateTime.now();
+    }
+
+    public void consume() {
+        if (isConsumed() || isExpired()) {
+            throw new IllegalStateException("cannot consume expired or already consumed challenge");
+        }
+        this.consumedAt = OffsetDateTime.now();
+    }
 }

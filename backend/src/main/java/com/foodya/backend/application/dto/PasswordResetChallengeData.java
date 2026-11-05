@@ -68,4 +68,26 @@ public class PasswordResetChallengeData {
     public void setConsumedAt(OffsetDateTime consumedAt) {
         this.consumedAt = consumedAt;
     }
+
+    public boolean isExpired() {
+        return expiresAt != null && expiresAt.isBefore(OffsetDateTime.now());
+    }
+
+    public boolean isConsumed() {
+        return consumedAt != null;
+    }
+
+    public boolean verifyOtp(String inputOtp, com.foodya.backend.application.ports.out.PasswordHashPort passwordHashPort) {
+        if (isConsumed() || isExpired()) {
+            return false;
+        }
+        return passwordHashPort != null && passwordHashPort.matches(inputOtp, otpHash);
+    }
+
+    public void consume() {
+        if (isConsumed() || isExpired()) {
+            throw new IllegalStateException("cannot consume expired or already consumed challenge");
+        }
+        this.consumedAt = OffsetDateTime.now();
+    }
 }

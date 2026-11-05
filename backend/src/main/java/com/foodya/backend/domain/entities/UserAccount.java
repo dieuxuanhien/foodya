@@ -139,4 +139,40 @@ public class UserAccount {
     public void setDeletedAt(OffsetDateTime deletedAt) {
         this.deletedAt = deletedAt;
     }
+
+    public void activate() {
+        if (deletedAt != null) {
+            throw new IllegalStateException("Cannot activate soft-deleted user account");
+        }
+        this.status = UserStatus.ACTIVE;
+        onUpdate();
+    }
+
+    public void suspend() {
+        if (deletedAt != null) {
+            throw new IllegalStateException("Cannot suspend soft-deleted user account");
+        }
+        this.status = UserStatus.LOCKED;
+        onUpdate();
+    }
+
+    public void softDelete() {
+        if (deletedAt != null) {
+            throw new IllegalStateException("User account is already soft-deleted");
+        }
+        this.deletedAt = OffsetDateTime.now();
+        this.status = UserStatus.LOCKED;
+        onUpdate();
+    }
+
+    public String maskEmail() {
+        if (email == null || email.isBlank()) {
+            return "";
+        }
+        int at = email.indexOf('@');
+        if (at <= 1) {
+            return "***";
+        }
+        return email.charAt(0) + "***" + email.substring(at);
+    }
 }

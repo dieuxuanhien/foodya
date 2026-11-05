@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.usecases.CatalogService;
+import com.foodya.backend.application.ports.in.CatalogUseCase;
 import com.foodya.backend.interfaces.rest.dto.CategoryTaxonomyResponse;
 import com.foodya.backend.application.dto.PaginatedResult;
 import com.foodya.backend.application.dto.RestaurantSearchView;
@@ -36,9 +36,9 @@ import java.util.UUID;
 @Validated
 public class RestaurantController {
 
-    private final CatalogService catalogService;
+    private final CatalogUseCase catalogService;
 
-    public RestaurantController(CatalogService catalogService) {
+    public RestaurantController(CatalogUseCase catalogService) {
         this.catalogService = catalogService;
     }
 

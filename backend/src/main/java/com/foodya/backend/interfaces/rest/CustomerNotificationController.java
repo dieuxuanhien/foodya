@@ -14,6 +14,8 @@ import com.foodya.backend.interfaces.rest.dto.NotificationLogResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,6 +39,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
+@Tag(name = "Notifications", description = "User notification inbox and push device tokens")
 @Validated
 public class CustomerNotificationController {
 
@@ -46,6 +49,7 @@ public class CustomerNotificationController {
         this.notificationService = notificationService;
     }
 
+    @Operation(summary = "List my notifications", description = "Paginated notification inbox for the authenticated user.")
     @GetMapping
     public ResponseEntity<ApiSuccessResponse<List<NotificationLogResponse>>> list(Authentication authentication,
                                                                                    @RequestParam(required = false) @Min(0) Integer page,
@@ -57,6 +61,7 @@ public class CustomerNotificationController {
         return ResponseEntity.ok(ApiSuccessResponse.of(data, meta, RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Mark notification read", description = "Marks a single notification as read.")
     @PatchMapping("/{id}/read")
     public ResponseEntity<ApiSuccessResponse<NotificationLogResponse>> markRead(Authentication authentication,
                                                                                  @PathVariable UUID id,
@@ -65,6 +70,8 @@ public class CustomerNotificationController {
         return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(view), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Register device token",
+            description = "Stores an FCM device token for the user. Send platform = ANDROID, IOS, WEB or UNKNOWN. Accepted even when Firebase is not configured server-side, in which case pushes are logged, not sent.")
     @PostMapping("/devices")
     public ResponseEntity<ApiSuccessResponse<DeviceTokenResponse>> registerDevice(Authentication authentication,
                                                                                   @Valid @RequestBody DeviceTokenRegisterApiRequest body,
@@ -76,6 +83,8 @@ public class CustomerNotificationController {
         return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(view), RequestTrace.from(request)));
     }
 
+    @Operation(summary = "Unregister device token",
+            description = "Removes an FCM device token, e.g. on logout. Safe to call repeatedly.")
     @DeleteMapping("/devices")
     public ResponseEntity<ApiSuccessResponse<Void>> unregisterDevice(Authentication authentication,
                                                                       @Valid @RequestBody DeviceTokenUnregisterApiRequest body,

@@ -9,16 +9,30 @@ import com.foodya.backend.application.exception.ValidationException;
 import com.foodya.backend.application.ports.in.OrderCheckoutUseCase;
 import com.foodya.backend.application.ports.out.CartItemPort;
 import com.foodya.backend.application.ports.out.CartPort;
-import com.foodya.backend.application.dto.MenuItemData;
-import com.foodya.backend.application.dto.OrderItemData;
-import com.foodya.backend.application.dto.OrderData;
-import com.foodya.backend.application.dto.OrderPaymentData;
-import com.foodya.backend.application.dto.RestaurantData;
+import com.foodya.backend.domain.entities.MenuItem;
+import com.foodya.backend.domain.entities.Order;
+import com.foodya.backend.domain.entities.OrderItem;
+import com.foodya.backend.domain.entities.OrderPayment;
+import com.foodya.backend.domain.entities.Restaurant;
 import com.foodya.backend.application.ports.out.OrderEventPublisherPort;
 import com.foodya.backend.application.ports.out.OrderCheckoutPort;
 import com.foodya.backend.application.ports.out.RouteDistancePort;
 import com.foodya.backend.application.ports.out.SystemParameterPort;
 import com.foodya.backend.domain.entities.CartItem;
+import com.foodya.backend.application.dto.WeatherData;
+import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
+import com.foodya.backend.application.ports.out.OrderManagementPort;
+import com.foodya.backend.application.ports.out.WeatherContextPort;
+import com.foodya.backend.application.usecases.pricing.DeliveryFeeCalculator;
+import com.foodya.backend.application.usecases.pricing.DemandSurgeFeeModifier;
+import com.foodya.backend.application.usecases.pricing.DistanceFeeModifier;
+import com.foodya.backend.application.usecases.pricing.PricingSettings;
+import com.foodya.backend.application.usecases.pricing.WeatherFeeModifier;
+import com.foodya.backend.domain.value_objects.DeliveryFeeBreakdown;
+import com.foodya.backend.domain.value_objects.DeliveryFeeContext;
+import com.foodya.backend.domain.value_objects.FeeComponent;
+import com.foodya.backend.domain.policies.DeliveryFeePolicy;
+import com.foodya.backend.domain.services.OrderCodeGenerator;
 import com.foodya.backend.domain.value_objects.CartStatus;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
@@ -31,6 +45,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -42,19 +57,28 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
     private final RouteDistancePort routeDistancePort;
     private final SystemParameterPort systemParameterPort;
     private final OrderEventPublisherPort orderEventPublisherPort;
+    private final WeatherContextPort weatherContextPort;
+    private final DriverOnlineSessionPort driverOnlineSessionPort;
+    private final OrderManagementPort orderManagementPort;
 
     public OrderCheckoutService(OrderCheckoutPort orderCheckoutPort,
                                 CartPort cartPort,
                                 CartItemPort cartItemPort,
                                 RouteDistancePort routeDistancePort,
                                 SystemParameterPort systemParameterPort,
-                                OrderEventPublisherPort orderEventPublisherPort) {
+                                OrderEventPublisherPort orderEventPublisherPort,
+                                WeatherContextPort weatherContextPort,
+                                DriverOnlineSessionPort driverOnlineSessionPort,
+                                OrderManagementPort orderManagementPort) {
         this.orderCheckoutPort = orderCheckoutPort;
         this.cartPort = cartPort;
         this.cartItemPort = cartItemPort;
         this.routeDistancePort = routeDistancePort;
         this.systemParameterPort = systemParameterPort;
         this.orderEventPublisherPort = orderEventPublisherPort;
+        this.weatherContextPort = weatherContextPort;
+        this.driverOnlineSessionPort = driverOnlineSessionPort;
+        this.orderManagementPort = orderManagementPort;
     }
 
     public OrderCostReviewView reviewCurrentCartCost(UUID customerUserId, CreateOrderFromCartRequest request) {
@@ -66,7 +90,11 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 quote.commissionAmount,
                 quote.shippingFeeMarginAmount,
                 quote.platformProfitAmount,
-                currencyCode()
+                currencyCode(),
+                quote.feeComponents.stream()
+                        .map(c -> new com.foodya.backend.application.dto.OrderCostReviewView.FeeComponentView(
+                                c.name(), c.label(), c.amount()))
+                        .toList()
         );
     }
 
@@ -75,40 +103,43 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                                         CreateOrderFromCartRequest request) {
         String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
 
-        OrderData existing = orderCheckoutPort.findByCustomerUserIdAndIdempotencyKey(customerUserId, normalizedIdempotencyKey).orElse(null);
+        Order existing = orderCheckoutPort.findByCustomerUserIdAndIdempotencyKey(customerUserId, normalizedIdempotencyKey).orElse(null);
         if (existing != null) {
             return toView(existing);
         }
 
         CartCheckoutQuote quote = buildCartCheckoutQuote(customerUserId, request);
 
-        OrderData order = new OrderData();
-        order.setOrderCode(newOrderCode());
-        order.setCustomerUserId(customerUserId);
-        order.setIdempotencyKey(normalizedIdempotencyKey);
-        order.setRestaurantId(quote.restaurant.getId());
-        order.setStatus(OrderStatus.PENDING);
-        order.setDeliveryAddress(request.deliveryAddress().trim());
-        order.setDeliveryLatitude(request.deliveryLatitude());
-        order.setDeliveryLongitude(request.deliveryLongitude());
-        order.setCustomerNote(request.customerNote());
-        order.setSubtotalAmount(quote.subtotal);
-        order.setDeliveryFee(quote.deliveryFee);
-        order.setTotalAmount(quote.total);
-        order.setPaymentMethod(PaymentMethod.COD);
-        order.setPaymentStatus(PaymentStatus.UNPAID);
-        order.setCommissionAmount(quote.commissionAmount);
-        order.setShippingFeeMarginAmount(quote.shippingFeeMarginAmount);
-        order.setPlatformProfitAmount(quote.platformProfitAmount);
+        Order order = Order.builder()
+                .orderCode(OrderCodeGenerator.generateOrderCode())
+                .customerUserId(customerUserId)
+                .idempotencyKey(normalizedIdempotencyKey)
+                .restaurantId(quote.restaurant.getId())
+                .status(OrderStatus.PENDING)
+                .deliveryAddress(request.deliveryAddress().trim())
+                .deliveryLatitude(request.deliveryLatitude())
+                .deliveryLongitude(request.deliveryLongitude())
+                .customerNote(request.customerNote())
+                .subtotalAmount(quote.subtotal)
+                .deliveryFee(quote.deliveryFee)
+                .totalAmount(quote.total)
+                .paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.UNPAID)
+                .commissionAmount(quote.commissionAmount)
+                .shippingFeeMarginAmount(quote.shippingFeeMarginAmount)
+                .platformProfitAmount(quote.platformProfitAmount)
+                .build();
 
-        OrderData savedOrder = orderCheckoutPort.saveOrder(order);
 
-        for (OrderItemData item : quote.orderItems) {
+        order.setFeeBreakdown(toJson(quote.feeComponents));
+        Order savedOrder = orderCheckoutPort.saveOrder(order);
+
+        for (OrderItem item : quote.orderItems) {
             item.setOrderId(savedOrder.getId());
         }
         orderCheckoutPort.saveOrderItems(quote.orderItems);
 
-        OrderPaymentData payment = new OrderPaymentData();
+        OrderPayment payment = new OrderPayment();
         payment.setOrderId(savedOrder.getId());
         payment.setPaymentMethod(PaymentMethod.COD);
         payment.setPaymentStatus(PaymentStatus.UNPAID);
@@ -120,6 +151,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             savedOrder.getOrderCode(),
             savedOrder.getCustomerUserId(),
             quote.restaurant.getOwnerUserId(),
+            null,
             savedOrder.getStatus(),
             "ORDER_CREATED",
             "New order " + savedOrder.getOrderCode(),
@@ -145,18 +177,18 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         UUID restaurantId = activeCart.getRestaurantId();
         if (restaurantId == null) {
             UUID menuItemId = cartItems.get(0).getMenuItemId();
-            MenuItemData firstMenuItem = orderCheckoutPort.findMenuItemById(menuItemId)
+            MenuItem firstMenuItem = orderCheckoutPort.findMenuItemById(menuItemId)
                     .orElseThrow(() -> new NotFoundException("menu item not found"));
             restaurantId = firstMenuItem.getRestaurantId();
         }
 
-        RestaurantData restaurant = orderCheckoutPort.findActiveRestaurantById(restaurantId)
+        Restaurant restaurant = orderCheckoutPort.findActiveRestaurantById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("restaurant not found"));
 
         int currencyMinorUnit = intParam("currency.minor_unit", 0);
         RoundingMode roundingMode = roundingModeParam("currency.rounding_mode", "HALF_UP");
 
-        List<OrderItemData> orderItems = new ArrayList<>();
+        List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
@@ -164,7 +196,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 throw new ValidationException("invalid quantity", Map.of("quantity", "must be >= 1"));
             }
 
-            MenuItemData menuItem = orderCheckoutPort.findMenuItemById(cartItem.getMenuItemId())
+            MenuItem menuItem = orderCheckoutPort.findMenuItemById(cartItem.getMenuItemId())
                     .orElseThrow(() -> new NotFoundException("menu item not found"));
 
             if (!restaurantId.equals(menuItem.getRestaurantId())) {
@@ -172,10 +204,10 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             }
             assertMenuItemOrderable(menuItem);
 
-            BigDecimal lineTotal = round(menuItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())), currencyMinorUnit, roundingMode);
+            BigDecimal lineTotal = DeliveryFeePolicy.roundAmount(menuItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())), currencyMinorUnit, roundingMode);
             subtotal = subtotal.add(lineTotal);
 
-            OrderItemData line = new OrderItemData();
+            OrderItem line = new OrderItem();
             line.setMenuItemId(menuItem.getId());
             line.setMenuItemNameSnapshot(menuItem.getName());
             line.setUnitPriceSnapshot(menuItem.getPrice());
@@ -197,30 +229,24 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                     Map.of("distanceKm", "must be <= shipping.max_delivery_km"));
         }
 
-        BigDecimal deliveryFee = computeDeliveryFee(routeDistanceKm, currencyMinorUnit, roundingMode);
-        BigDecimal roundedSubtotal = round(subtotal, currencyMinorUnit, roundingMode);
-        BigDecimal total = round(roundedSubtotal.add(deliveryFee), currencyMinorUnit, roundingMode);
+        DeliveryFeeBreakdown feeBreakdown = calculateDeliveryFee(routeDistanceKm, restaurant);
+        BigDecimal deliveryFee = feeBreakdown.totalFee();
+        BigDecimal roundedSubtotal = DeliveryFeePolicy.roundAmount(subtotal, currencyMinorUnit, roundingMode);
+        BigDecimal total = DeliveryFeePolicy.roundAmount(roundedSubtotal.add(deliveryFee), currencyMinorUnit, roundingMode);
 
-        BigDecimal commissionRatePercent = decimalParam("finance.commission_rate_percent", BigDecimal.TEN);
+        BigDecimal commissionRatePercent = decimalParam("finance.commission_rate_percent", BigDecimal.valueOf(15));
         BigDecimal shippingMarginRatePercent = decimalParam("finance.shipping_margin_rate_percent", BigDecimal.ZERO);
 
-        BigDecimal commissionAmount = round(
-                roundedSubtotal.multiply(commissionRatePercent).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP),
-                currencyMinorUnit,
-                roundingMode
-        );
-        BigDecimal shippingFeeMarginAmount = round(
-                deliveryFee.multiply(shippingMarginRatePercent).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP),
-                currencyMinorUnit,
-                roundingMode
-        );
-        BigDecimal platformProfitAmount = round(commissionAmount.add(shippingFeeMarginAmount), currencyMinorUnit, roundingMode);
+        BigDecimal commissionAmount = DeliveryFeePolicy.calculateCommission(roundedSubtotal, commissionRatePercent, currencyMinorUnit, roundingMode);
+        BigDecimal shippingFeeMarginAmount = DeliveryFeePolicy.calculateShippingMargin(deliveryFee, shippingMarginRatePercent, currencyMinorUnit, roundingMode);
+        BigDecimal platformProfitAmount = DeliveryFeePolicy.calculatePlatformProfit(commissionAmount, shippingFeeMarginAmount, currencyMinorUnit, roundingMode);
 
         return new CartCheckoutQuote(
                 restaurant,
                 orderItems,
                 roundedSubtotal,
                 deliveryFee,
+                feeBreakdown.components(),
                 total,
                 commissionAmount,
                 shippingFeeMarginAmount,
@@ -228,24 +254,90 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         );
     }
 
-    private BigDecimal computeDeliveryFee(BigDecimal distanceKm,
-                                          int minorUnit,
-                                          RoundingMode roundingMode) {
-        BigDecimal baseFee = decimalParam("shipping.base_delivery_fee", BigDecimal.valueOf(10000));
-        BigDecimal baseDistanceKm = decimalParam("shipping.base_distance_km", BigDecimal.valueOf(2));
-        BigDecimal feePerKm = decimalParam("shipping.fee_per_km", BigDecimal.valueOf(5000));
-
-        if (distanceKm.compareTo(baseDistanceKm) <= 0) {
-            return round(baseFee, minorUnit, roundingMode);
-        }
-
-        BigDecimal extraKm = distanceKm.subtract(baseDistanceKm);
-        BigDecimal fee = baseFee.add(extraKm.multiply(feePerKm));
-        return round(fee, minorUnit, roundingMode);
-    }
-
     private static BigDecimal round(BigDecimal value, int minorUnit, RoundingMode roundingMode) {
         return value.setScale(minorUnit, roundingMode);
+    }
+
+    /**
+     * Builds the pricing chain for one checkout. Rebuilt per call so runtime system-parameter changes take
+     * effect without a restart (the chain itself is stateless).
+     */
+    private DeliveryFeeBreakdown calculateDeliveryFee(BigDecimal routeDistanceKm, Restaurant restaurant) {
+        PricingSettings settings = new PricingSettings(
+                decimalParam("shipping.base_delivery_fee", PricingSettings.defaults().baseFee()),
+                decimalParam("shipping.base_distance_km", PricingSettings.defaults().baseDistanceKm()),
+                decimalParam("shipping.fee_per_km", PricingSettings.defaults().feePerKm()),
+                decimalParam("pricing.max_delivery_fee", PricingSettings.defaults().maxDeliveryFee()),
+                decimalParam("pricing.weather.rain_multiplier", PricingSettings.defaults().rainMultiplier()),
+                decimalParam("pricing.weather.heavy_rain_multiplier", PricingSettings.defaults().heavyRainMultiplier()),
+                decimalParam("pricing.weather.storm_multiplier", PricingSettings.defaults().stormMultiplier()),
+                booleanParam("pricing.surge.enabled", false),
+                decimalParam("pricing.surge.threshold_ratio", PricingSettings.defaults().surgeThresholdRatio()),
+                decimalParam("pricing.surge.multiplier", PricingSettings.defaults().surgeMultiplier()),
+                decimalParam("pricing.surge.max_multiplier", PricingSettings.defaults().surgeMaxMultiplier()));
+
+        DeliveryFeeCalculator calculator = new DeliveryFeeCalculator(
+                List.of(new DistanceFeeModifier(settings), new WeatherFeeModifier(settings),
+                        new DemandSurgeFeeModifier(settings)), settings);
+
+        WeatherData weatherData = weatherAt(restaurant);
+        com.foodya.backend.domain.value_objects.WeatherConditions weather = weatherData == null
+                ? com.foodya.backend.domain.value_objects.WeatherConditions.none()
+                : new com.foodya.backend.domain.value_objects.WeatherConditions(
+                        weatherData.weatherCode(), weatherData.weatherMain(), weatherData.isRaining());
+        DeliveryFeeContext context = new DeliveryFeeContext(
+                routeDistanceKm, weather, java.time.LocalDateTime.now(),
+                settings.surgeEnabled() ? demandSupplyRatio(restaurant) : 0.0,
+                restaurant.getLatitude() != null ? restaurant.getLatitude().doubleValue() : 0.0,
+                restaurant.getLongitude() != null ? restaurant.getLongitude().doubleValue() : 0.0);
+        return calculator.calculate(context);
+    }
+
+    /** Weather is advisory: any failure simply means no weather surcharge. */
+    private WeatherData weatherAt(Restaurant restaurant) {
+        if (restaurant.getLatitude() == null || restaurant.getLongitude() == null) {
+            return null;
+        }
+        try {
+            return weatherContextPort.getCurrentWeather(
+                    restaurant.getLatitude().doubleValue(), restaurant.getLongitude().doubleValue()).orElse(null);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    /** Eligible (unassigned) orders per available driver. 0 when there is no supply signal. */
+    private double demandSupplyRatio(Restaurant restaurant) {
+        try {
+            String cell = restaurant.getH3IndexRes9();
+            if (cell == null) {
+                return 0.0;
+            }
+            long demand = orderManagementPort.findEligibleForBatching().size();
+            long supply = driverOnlineSessionPort.findOnlineDriversInH3Cells(Set.of(cell)).size();
+            return supply == 0 ? 0.0 : (double) demand / supply;
+        } catch (RuntimeException ex) {
+            return 0.0;
+        }
+    }
+
+    private static String toJson(List<FeeComponent> components) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < components.size(); i++) {
+            FeeComponent c = components.get(i);
+            if (i > 0) sb.append(',');
+            sb.append("{\"name\":\"").append(c.name())
+              .append("\",\"label\":\"").append(c.label().replace("\"", "\\\""))
+              .append("\",\"amount\":").append(c.amount().toPlainString()).append('}');
+        }
+        return sb.append(']').toString();
+    }
+
+    private boolean booleanParam(String key, boolean fallback) {
+        return systemParameterPort.findById(key)
+                .map(p -> p.getValue())
+                .map(Boolean::parseBoolean)
+                .orElse(fallback);
     }
 
     private BigDecimal decimalParam(String key, BigDecimal fallback) {
@@ -292,16 +384,10 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
         }
     }
 
-    private static void assertMenuItemOrderable(MenuItemData menuItem) {
+    private static void assertMenuItemOrderable(MenuItem menuItem) {
         if (!menuItem.isActive() || !menuItem.isAvailable() || menuItem.getDeletedAt() != null) {
             throw new ValidationException("menu item is not orderable", Map.of("menuItemId", "inactive or unavailable"));
         }
-    }
-
-    private static String newOrderCode() {
-        String timestamp = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String suffix = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        return "ORD-" + timestamp + "-" + suffix;
     }
 
     private String currencyCode() {
@@ -310,7 +396,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
                 .orElse("VND");
     }
 
-    private OrderCreatedView toView(OrderData order) {
+    private OrderCreatedView toView(Order order) {
         return new OrderCreatedView(
                 order.getId(),
                 order.getOrderCode(),
@@ -328,19 +414,21 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
     }
 
     private static final class CartCheckoutQuote {
-        private final RestaurantData restaurant;
-        private final List<OrderItemData> orderItems;
+        private final Restaurant restaurant;
+        private final List<OrderItem> orderItems;
         private final BigDecimal subtotal;
         private final BigDecimal deliveryFee;
+        private final List<FeeComponent> feeComponents;
         private final BigDecimal total;
         private final BigDecimal commissionAmount;
         private final BigDecimal shippingFeeMarginAmount;
         private final BigDecimal platformProfitAmount;
 
-        private CartCheckoutQuote(RestaurantData restaurant,
-                                  List<OrderItemData> orderItems,
+        private CartCheckoutQuote(Restaurant restaurant,
+                                  List<OrderItem> orderItems,
                                   BigDecimal subtotal,
                                   BigDecimal deliveryFee,
+                                  List<FeeComponent> feeComponents,
                                   BigDecimal total,
                                   BigDecimal commissionAmount,
                                   BigDecimal shippingFeeMarginAmount,
@@ -349,6 +437,7 @@ public class OrderCheckoutService implements OrderCheckoutUseCase {
             this.orderItems = List.copyOf(orderItems);
             this.subtotal = subtotal;
             this.deliveryFee = deliveryFee;
+            this.feeComponents = feeComponents == null ? List.of() : List.copyOf(feeComponents);
             this.total = total;
             this.commissionAmount = commissionAmount;
             this.shippingFeeMarginAmount = shippingFeeMarginAmount;

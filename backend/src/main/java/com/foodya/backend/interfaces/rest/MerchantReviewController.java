@@ -1,18 +1,19 @@
 package com.foodya.backend.interfaces.rest;
 
-import com.foodya.backend.application.dto.RespondOrderReviewRequest;
 import com.foodya.backend.application.ports.in.OrderReviewUseCase;
 import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.OrderReviewResponse;
+import com.foodya.backend.interfaces.rest.dto.RespondOrderReviewApiRequest;
 import com.foodya.backend.interfaces.rest.mapper.OrderReviewApiMapper;
 import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/merchant/reviews")
+@Tag(name = "Merchant Reviews", description = "Merchant replies to customer order reviews")
 public class MerchantReviewController {
 
     private final OrderReviewUseCase orderReviewService;
@@ -31,21 +33,11 @@ public class MerchantReviewController {
         this.orderReviewService = orderReviewService;
     }
 
-    @PatchMapping("/{reviewId}/response")
-    public ApiSuccessResponse<OrderReviewResponse> respond(Authentication authentication,
-                                                           @PathVariable UUID reviewId,
-                                                           @Valid @RequestBody RespondOrderReviewRequest request,
-                                                           HttpServletRequest httpServletRequest) {
-        OrderReviewResponse data = OrderReviewApiMapper.toResponse(
-                orderReviewService.merchantRespond(CurrentUser.userId(authentication), reviewId, request.response())
-        );
-        return ApiSuccessResponse.of(data, RequestTrace.from(httpServletRequest));
-    }
-
+    @Operation(summary = "Reply to a review", description = "Merchant posts a public reply to a customer review.")
     @PostMapping("/{reviewId}/replies")
     public ResponseEntity<ApiSuccessResponse<OrderReviewResponse>> reply(Authentication authentication,
                                                                          @PathVariable UUID reviewId,
-                                                                         @Valid @RequestBody RespondOrderReviewRequest request,
+                                                                         @Valid @RequestBody RespondOrderReviewApiRequest request,
                                                                          HttpServletRequest httpServletRequest) {
         OrderReviewResponse data = OrderReviewApiMapper.toResponse(
                 orderReviewService.merchantRespond(CurrentUser.userId(authentication), reviewId, request.response())

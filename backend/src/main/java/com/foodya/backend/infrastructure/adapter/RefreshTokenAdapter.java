@@ -1,9 +1,6 @@
 package com.foodya.backend.infrastructure.adapter;
 
-import com.foodya.backend.application.dto.RefreshTokenData;
-import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.ports.out.RefreshTokenPort;
-import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.entities.RefreshToken;
 import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.mapper.RefreshTokenMapper;
@@ -37,48 +34,38 @@ public class RefreshTokenAdapter implements RefreshTokenPort {
     }
 
     @Override
-    public Optional<RefreshTokenData> findByTokenJti(String tokenJti) {
+    public Optional<RefreshToken> findByTokenJti(String tokenJti) {
         return repository.findByTokenJti(Objects.requireNonNull(tokenJti))
-                .map(model -> AuthPersistenceMapper.toData(refreshTokenMapper.toDomain(model, loadUserDomain(model.getUserId()))));
+                .map(model -> refreshTokenMapper.toDomain(model, loadUserDomain(model.getUserId())));
     }
 
     @Override
-    public List<RefreshTokenData> findByTokenFamily(String tokenFamily) {
+    public List<RefreshToken> findByTokenFamily(String tokenFamily) {
         return repository.findByTokenFamily(Objects.requireNonNull(tokenFamily)).stream()
-                .map(model -> AuthPersistenceMapper.toData(refreshTokenMapper.toDomain(model, loadUserDomain(model.getUserId()))))
+                .map(model -> refreshTokenMapper.toDomain(model, loadUserDomain(model.getUserId())))
                 .toList();
     }
 
     @Override
-    public List<RefreshTokenData> findByUserAndRevokedAtIsNullAndExpiresAtAfter(UserAccountData user, OffsetDateTime now) {
-        UserAccountData userModel = Objects.requireNonNull(user);
-        UserAccount userEntity = loadUserDomain(Objects.requireNonNull(userModel.getId()));
-        return repository.findByUserIdAndRevokedAtIsNullAndExpiresAtAfter(userModel.getId(), Objects.requireNonNull(now))
+    public List<RefreshToken> findByUserAndRevokedAtIsNullAndExpiresAtAfter(UserAccount user, OffsetDateTime now) {
+        UserAccount userDomain = Objects.requireNonNull(user);
+        return repository.findByUserIdAndRevokedAtIsNullAndExpiresAtAfter(userDomain.getId(), Objects.requireNonNull(now))
             .stream()
-            .map(model -> AuthPersistenceMapper.toData(refreshTokenMapper.toDomain(model, userEntity)))
+            .map(model -> refreshTokenMapper.toDomain(model, userDomain))
             .toList();
     }
 
     @Override
-    public RefreshTokenData save(RefreshTokenData refreshToken) {
-        RefreshTokenData tokenModel = Objects.requireNonNull(refreshToken);
-        UserAccount userEntity = loadUserDomain(tokenModel.getUser().getId());
-        RefreshToken entity = tokenModel.getId() == null
-                ? new RefreshToken()
-            : repository.findById(Objects.requireNonNull(tokenModel.getId()))
-                .map(model -> refreshTokenMapper.toDomain(model, loadUserDomain(model.getUserId())))
-                .orElseGet(() -> {
-                    RefreshToken newEntity = new RefreshToken();
-                    newEntity.setId(tokenModel.getId());
-                    return newEntity;
-                });
-        AuthPersistenceMapper.copyToEntity(tokenModel, entity, userEntity);
-        entity.setId(tokenModel.getId());
-        return AuthPersistenceMapper.toData(refreshTokenMapper.toDomain(repository.save(Objects.requireNonNull(refreshTokenMapper.toPersistence(entity))), userEntity));
+    public RefreshToken save(RefreshToken refreshToken) {
+        RefreshToken tokenDomain = Objects.requireNonNull(refreshToken);
+        UserAccount userDomain = tokenDomain.getUser() != null
+                ? tokenDomain.getUser()
+                : (tokenDomain.getId() != null ? repository.findById(tokenDomain.getId()).map(m -> loadUserDomain(m.getUserId())).orElse(null) : null);
+        return refreshTokenMapper.toDomain(repository.save(Objects.requireNonNull(refreshTokenMapper.toPersistence(tokenDomain))), userDomain);
     }
 
     @Override
-    public List<RefreshTokenData> saveAll(List<RefreshTokenData> refreshTokens) {
+    public List<RefreshToken> saveAll(List<RefreshToken> refreshTokens) {
         return refreshTokens.stream().map(this::save).toList();
     }
 

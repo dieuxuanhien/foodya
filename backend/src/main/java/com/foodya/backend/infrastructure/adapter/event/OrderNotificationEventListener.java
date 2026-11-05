@@ -34,5 +34,16 @@ public class OrderNotificationEventListener {
                 event.message(),
                 event.orderId()
         );
+
+        if (event.driverUserId() != null) {
+            notificationService.notifyUser(
+                    event.driverUserId(),
+                    UserRole.DELIVERY,
+                    event.eventType(),
+                    event.title(),
+                    event.message(),
+                    event.orderId()
+            );
+        }
     }
 }

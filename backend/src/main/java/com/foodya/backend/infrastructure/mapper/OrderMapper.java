@@ -44,6 +44,7 @@ public class OrderMapper {
         domain.setCustomerUserId(model.getCustomerUserId());
         domain.setIdempotencyKey(model.getIdempotencyKey());
         domain.setRestaurantId(model.getRestaurantId());
+        domain.setDriverUserId(model.getDriverUserId());
         domain.setStatus(model.getStatus());
         domain.setDeliveryAddress(model.getDeliveryAddress());
         domain.setDeliveryLatitude(model.getDeliveryLatitude());
@@ -60,6 +61,11 @@ public class OrderMapper {
         domain.setCancelReason(model.getCancelReason());
         domain.setPlacedAt(model.getPlacedAt());
         domain.setCompletedAt(model.getCompletedAt());
+        domain.setBatchId(model.getBatchId());
+        domain.setBatchPickupIndex(model.getBatchPickupIndex());
+        domain.setBatchDeliveryIndex(model.getBatchDeliveryIndex());
+        domain.setEstimatedDeliveryAt(model.getEstimatedDeliveryAt());
+        domain.setFeeBreakdown(model.getFeeBreakdown());
 
         return domain;
     }
@@ -81,6 +87,7 @@ public class OrderMapper {
         model.setCustomerUserId(domain.getCustomerUserId());
         model.setIdempotencyKey(domain.getIdempotencyKey());
         model.setRestaurantId(domain.getRestaurantId());
+        model.setDriverUserId(domain.getDriverUserId());
         model.setStatus(domain.getStatus());
         model.setDeliveryAddress(domain.getDeliveryAddress());
         model.setDeliveryLatitude(domain.getDeliveryLatitude());
@@ -97,6 +104,11 @@ public class OrderMapper {
         model.setCancelReason(domain.getCancelReason());
         model.setPlacedAt(domain.getPlacedAt());
         model.setCompletedAt(domain.getCompletedAt());
+        model.setBatchId(domain.getBatchId());
+        model.setBatchPickupIndex(domain.getBatchPickupIndex());
+        model.setBatchDeliveryIndex(domain.getBatchDeliveryIndex());
+        model.setEstimatedDeliveryAt(domain.getEstimatedDeliveryAt());
+        model.setFeeBreakdown(domain.getFeeBreakdown());
 
         return model;
     }

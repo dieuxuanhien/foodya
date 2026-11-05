@@ -53,7 +53,9 @@ public class DeviceTokenAdapter implements DeviceTokenPort {
     }
 
     private void copyToEntity(DeviceToken source, DeviceTokenPersistenceModel target) {
-        target.setId(source.getId());
+        if (target.getId() == null) {
+            target.setId(source.getId());
+        }
         target.setUserId(source.getUserId());
         target.setToken(source.getToken());
         target.setPlatform(source.getPlatform());
@@ -61,7 +63,9 @@ public class DeviceTokenAdapter implements DeviceTokenPort {
         target.setAppVersion(source.getAppVersion());
         target.setEnabled(source.isEnabled());
         target.setLastSeenAt(source.getLastSeenAt());
-        target.setCreatedAt(source.getCreatedAt());
+        if (target.getCreatedAt() == null) {
+            target.setCreatedAt(source.getCreatedAt());
+        }
         target.setUpdatedAt(source.getUpdatedAt());
     }
 

@@ -33,6 +33,7 @@ import java.util.UUID;
 @Table(name = "orders")
 public class OrderPersistenceModel {
 
+
     @Id
     private UUID id;
 
@@ -47,6 +48,9 @@ public class OrderPersistenceModel {
 
     @Column(name = "restaurant_id", nullable = false)
     private UUID restaurantId;
+
+    @Column(name = "driver_user_id")
+    private UUID driverUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
@@ -98,6 +102,21 @@ public class OrderPersistenceModel {
 
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
+
+    @Column(name = "batch_id")
+    private UUID batchId;
+
+    @Column(name = "batch_pickup_index")
+    private Integer batchPickupIndex;
+
+    @Column(name = "batch_delivery_index")
+    private Integer batchDeliveryIndex;
+
+    @Column(name = "fee_breakdown", columnDefinition = "text")
+    private String feeBreakdown;
+
+    @Column(name = "estimated_delivery_at")
+    private OffsetDateTime estimatedDeliveryAt;
 
     @PrePersist
     void onCreate() {
@@ -157,6 +176,14 @@ public class OrderPersistenceModel {
 
     public void setRestaurantId(UUID restaurantId) {
         this.restaurantId = restaurantId;
+    }
+
+    public UUID getDriverUserId() {
+        return driverUserId;
+    }
+
+    public void setDriverUserId(UUID driverUserId) {
+        this.driverUserId = driverUserId;
     }
 
     public OrderStatus getStatus() {
@@ -285,5 +312,45 @@ public class OrderPersistenceModel {
 
     public void setCompletedAt(OffsetDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public UUID getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(UUID batchId) {
+        this.batchId = batchId;
+    }
+
+    public Integer getBatchPickupIndex() {
+        return batchPickupIndex;
+    }
+
+    public void setBatchPickupIndex(Integer batchPickupIndex) {
+        this.batchPickupIndex = batchPickupIndex;
+    }
+
+    public Integer getBatchDeliveryIndex() {
+        return batchDeliveryIndex;
+    }
+
+    public void setBatchDeliveryIndex(Integer batchDeliveryIndex) {
+        this.batchDeliveryIndex = batchDeliveryIndex;
+    }
+
+    public OffsetDateTime getEstimatedDeliveryAt() {
+        return estimatedDeliveryAt;
+    }
+
+    public String getFeeBreakdown() {
+        return feeBreakdown;
+    }
+
+    public void setFeeBreakdown(String feeBreakdown) {
+        this.feeBreakdown = feeBreakdown;
+    }
+
+    public void setEstimatedDeliveryAt(OffsetDateTime estimatedDeliveryAt) {
+        this.estimatedDeliveryAt = estimatedDeliveryAt;
     }
 }

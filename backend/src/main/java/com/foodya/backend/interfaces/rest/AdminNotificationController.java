@@ -7,6 +7,8 @@ import com.foodya.backend.interfaces.rest.dto.ApiSuccessResponse;
 import com.foodya.backend.interfaces.rest.dto.NotificationLogResponse;
 import com.foodya.backend.interfaces.rest.dto.PageMetadata;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -21,6 +23,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/notifications")
+@Tag(name = "Admin Notifications", description = "Admin view of dispatched notification logs")
 @Validated
 public class AdminNotificationController {
 
@@ -30,6 +33,7 @@ public class AdminNotificationController {
         this.notificationService = notificationService;
     }
 
+    @Operation(summary = "List notification logs", description = "Paginated notification delivery log across all users.")
     @GetMapping
     public ResponseEntity<ApiSuccessResponse<List<NotificationLogResponse>>> list(@RequestParam(required = false) @Min(0) Integer page,
                                                                                    @RequestParam(required = false) @Min(1) @Max(200) Integer size,

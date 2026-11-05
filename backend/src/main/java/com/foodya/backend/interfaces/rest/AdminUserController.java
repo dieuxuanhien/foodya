@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -86,7 +87,7 @@ public class AdminUserController {
                 request.password(), request.role(), request.status()
         );
         com.foodya.backend.application.dto.AdminUserSummaryView data = adminUserService.createUser(command, CurrentUser.userId(authentication));
-        return ResponseEntity.ok(ApiSuccessResponse.of(toResponse(data), RequestTrace.from(httpServletRequest)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiSuccessResponse.of(toResponse(data), RequestTrace.from(httpServletRequest)));
     }
 
     @PutMapping("/{id}")

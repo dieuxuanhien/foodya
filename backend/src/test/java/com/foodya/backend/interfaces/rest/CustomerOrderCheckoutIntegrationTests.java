@@ -93,8 +93,15 @@ class CustomerOrderCheckoutIntegrationTests {
     @MockitoBean
     private RouteDistancePort routeDistancePort;
 
+    /** Weather surcharges must not depend on a live forecast, otherwise the fee assertion flaps. */
+    @MockitoBean
+    private com.foodya.backend.application.ports.out.WeatherContextPort weatherContextPort;
+
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.when(weatherContextPort.getCurrentWeather(
+                org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+                .thenReturn(java.util.Optional.empty());
         cartItemRepository.deleteAll();
         cartRepository.deleteAll();
         orderRepository.deleteAll();
@@ -104,7 +111,7 @@ class CustomerOrderCheckoutIntegrationTests {
         userAccountRepository.deleteAll();
 
         given(routeDistancePort.routeDistanceKm(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
-                .willReturn(new BigDecimal("3.000"));
+                .willReturn(new BigDecimal("0.000"));
     }
 
     @Test
@@ -119,8 +126,8 @@ class CustomerOrderCheckoutIntegrationTests {
 
         String body = "{" +
                 "\"deliveryAddress\":\"123 Main Street\"," +
-                "\"deliveryLatitude\":10.7800000," +
-                "\"deliveryLongitude\":106.7100000," +
+                "\"deliveryLatitude\":10.7770000," +
+                "\"deliveryLongitude\":106.7000000," +
                 "\"customerNote\":\"no chili\"}";
 
         String idemKey = "checkout-key-001";
@@ -135,8 +142,8 @@ class CustomerOrderCheckoutIntegrationTests {
                 .andExpect(jsonPath("$.data.paymentMethod").value("COD"))
                 .andExpect(jsonPath("$.data.paymentStatus").value("UNPAID"))
                 .andExpect(jsonPath("$.data.subtotalAmount").value(70000))
-                .andExpect(jsonPath("$.data.deliveryFee").value(15000))
-                .andExpect(jsonPath("$.data.totalAmount").value(85000))
+                .andExpect(jsonPath("$.data.deliveryFee").value(10000))
+                .andExpect(jsonPath("$.data.totalAmount").value(80000))
                 .andReturn().getResponse().getContentAsString();
 
         String secondResponse = mockMvc.perform(post("/api/v1/customer/orders")
@@ -157,8 +164,8 @@ class CustomerOrderCheckoutIntegrationTests {
                         .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.deliveryAddress").value("123 Main Street"))
-                .andExpect(jsonPath("$.data.deliveryLatitude").value(10.7800000))
-                .andExpect(jsonPath("$.data.deliveryLongitude").value(106.7100000));
+                .andExpect(jsonPath("$.data.deliveryLatitude").value(10.7770000))
+                .andExpect(jsonPath("$.data.deliveryLongitude").value(106.7000000));
     }
 
     @Test
@@ -173,8 +180,8 @@ class CustomerOrderCheckoutIntegrationTests {
 
         String body = "{" +
                 "\"deliveryAddress\":\"123 Main Street\"," +
-                "\"deliveryLatitude\":10.7800000," +
-                "\"deliveryLongitude\":106.7100000," +
+                "\"deliveryLatitude\":10.7770000," +
+                "\"deliveryLongitude\":106.7000000," +
                 "\"customerNote\":\"less ice\"}";
 
         mockMvc.perform(post("/api/v1/customer/orders/review")
@@ -183,8 +190,8 @@ class CustomerOrderCheckoutIntegrationTests {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.subtotalAmount").value(70000))
-                .andExpect(jsonPath("$.data.deliveryFee").value(15000))
-                .andExpect(jsonPath("$.data.totalAmount").value(85000));
+                .andExpect(jsonPath("$.data.deliveryFee").value(10000))
+                .andExpect(jsonPath("$.data.totalAmount").value(80000));
 
         org.junit.jupiter.api.Assertions.assertEquals(0L, orderRepository.count());
     }
@@ -207,7 +214,7 @@ class CustomerOrderCheckoutIntegrationTests {
         user.setStatus(UserStatus.ACTIVE);
         user.setPasswordHash("$2a$10$abcdefghijklmnopqrstuv");
         UserAccount saved = new com.foodya.backend.infrastructure.mapper.UserAccountMapper().toDomain(userAccountRepository.save(user));
-        return tokenService.issueAccessToken(AuthPersistenceMapper.toData(saved), UUID.randomUUID().toString());
+        return tokenService.issueAccessToken(saved, UUID.randomUUID().toString());
     }
 
     private UUID extractUserIdFromToken(String token) {

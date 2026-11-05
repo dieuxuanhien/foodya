@@ -115,7 +115,7 @@ class OrderReviewIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Review Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
 
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/reviews", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
@@ -137,8 +137,8 @@ class OrderReviewIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Response Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
 
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
-        String merchantToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(merchant), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+        String merchantToken = tokenService.issueAccessToken(merchant, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/reviews", order.getId())
                         .header("Authorization", "Bearer " + customerToken)
@@ -150,11 +150,11 @@ class OrderReviewIntegrationTests {
             .map(orderReviewMapper::toDomain)
             .orElseThrow();
 
-        mockMvc.perform(patch("/api/v1/merchant/reviews/{id}/response", review.getId())
+        mockMvc.perform(post("/api/v1/merchant/reviews/{id}/replies", review.getId())
                         .header("Authorization", "Bearer " + merchantToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"response\":\"Thank you\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.merchantResponse").value("Thank you"));
     }
 
@@ -165,7 +165,7 @@ class OrderReviewIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Blocked Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.DELIVERING);
 
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/customer/orders/{id}/reviews", order.getId())
                         .header("Authorization", "Bearer " + customerToken)

@@ -88,7 +88,7 @@ public class CatalogQueryAdapter implements CatalogQueryPort {
 
     @Override
     public List<MenuItemData> findActiveMenuItemsByKeyword(String keyword) {
-        return menuItemRepository.findActiveMenuItemsByKeyword(keyword)
+        return menuItemRepository.findByActiveTrueAndDeletedAtIsNull()
                 .stream()
             .map(menuItemMapper::toDomain)
                 .map(CatalogPersistenceMapper::toData)

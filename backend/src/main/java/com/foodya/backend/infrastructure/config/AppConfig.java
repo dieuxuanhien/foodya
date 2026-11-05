@@ -1,6 +1,16 @@
 package com.foodya.backend.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodya.backend.application.ports.in.CatalogUseCase;
+import com.foodya.backend.application.ports.in.DeliveryRouteUseCase;
+import com.foodya.backend.application.ports.in.DriverEarningsUseCase;
+import com.foodya.backend.application.ports.in.DriverLifecycleUseCase;
+import com.foodya.backend.application.ports.in.OrderBatchingUseCase;
+import com.foodya.backend.application.ports.in.PaymentUseCase;
+import com.foodya.backend.application.ports.in.SettlementUseCase;
+import com.foodya.backend.application.ports.out.DriverOnlineSessionPort;
+import com.foodya.backend.infrastructure.integration.GoongMapsClient;
+import com.foodya.backend.application.usecases.DriverLifecycleService;
 import com.foodya.backend.application.support.PaginationPolicy;
 import com.foodya.backend.application.usecases.*;
 import com.foodya.backend.application.usecases.policy.BackupPolicyEnforcementService;
@@ -18,7 +28,8 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties({
 	SecretSourcesProperties.class,
 	SecurityProperties.class,
-	RateLimitProperties.class
+	RateLimitProperties.class,
+	VNPayProperties.class
 })
 public class AppConfig {
 
@@ -46,7 +57,7 @@ public class AppConfig {
 	}
 
 	@Bean
-	public CatalogService catalogService(
+	public CatalogUseCase catalogService(
 			CatalogQueryPort catalogQueryPort,
 			CategoryTaxonomyPort categoryTaxonomyPort,
 			SystemParameterPort systemParameterPort,
@@ -86,8 +97,11 @@ public class AppConfig {
 			CartItemPort cartItemPort,
 			RouteDistancePort routeDistancePort,
 			SystemParameterPort systemParameterPort,
-			OrderEventPublisherPort orderEventPublisherPort) {
-		return new OrderCheckoutService(orderCheckoutPort, cartPort, cartItemPort, routeDistancePort, systemParameterPort, orderEventPublisherPort);
+			OrderEventPublisherPort orderEventPublisherPort,
+			WeatherContextPort weatherContextPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			OrderManagementPort orderManagementPort) {
+		return new OrderCheckoutService(orderCheckoutPort, cartPort, cartItemPort, routeDistancePort, systemParameterPort, orderEventPublisherPort, weatherContextPort, driverOnlineSessionPort, orderManagementPort);
 	}
 
 	@Bean
@@ -97,9 +111,13 @@ public class AppConfig {
 			DeliveryTrackingPointPort deliveryTrackingPointPort,
 			OrderEventPublisherPort orderEventPublisherPort,
 			UserAccountPort userAccountPort,
-			OrderPaymentPort orderPaymentPort,
-			OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort) {
-		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderPaymentPort, orderTrackingUpdatePublisherPort);
+			OrderTrackingUpdatePublisherPort orderTrackingUpdatePublisherPort,
+			PaginationPolicy paginationPolicy,
+			DriverMatchingPort driverMatchingPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			DeliveryRouteQueryPort deliveryRouteQueryPort,
+			OrderClosureService orderClosureService) {
+		return new OrderLifecycleService(orderManagementPort, restaurantPort, deliveryTrackingPointPort, orderEventPublisherPort, userAccountPort, orderTrackingUpdatePublisherPort, paginationPolicy, driverMatchingPort, driverOnlineSessionPort, deliveryRouteQueryPort, orderClosureService);
 	}
 
 	@Bean
@@ -154,7 +172,8 @@ public class AppConfig {
 			AdminUserPort adminUserPort,
 			PaginationPolicy paginationPolicy,
 			AuditLogService auditLogService,
-			OrderPaymentPort orderPaymentPort) {
+			OrderPaymentPort orderPaymentPort,
+			OrderClosureService orderClosureService) {
 		return new AdminGovernanceService(
 				adminRestaurantPort,
 				adminOrderPort,
@@ -165,7 +184,8 @@ public class AppConfig {
 				adminUserPort,
 				paginationPolicy,
 				auditLogService,
-				orderPaymentPort
+				orderPaymentPort,
+				orderClosureService
 		);
 	}
 
@@ -193,8 +213,21 @@ public class AppConfig {
 			AiChatHistoryPort aiChatHistoryPort,
 			SystemParameterPort systemParameterPort,
 			GeoPort geoPort,
-			ObjectMapper objectMapper) {
-		return new AiRecommendationService(aiEmbeddingPort, aiCatalogVectorPort, menuItemPort, restaurantPort, userAccountPort, aiDraftPort, weatherContextPort, aiChatHistoryPort, systemParameterPort, geoPort, objectMapper);
+			WeatherCacheService weatherCacheService) {
+		return new AiRecommendationService(aiEmbeddingPort, aiCatalogVectorPort, menuItemPort, restaurantPort, userAccountPort, aiDraftPort, weatherContextPort, aiChatHistoryPort, systemParameterPort, geoPort, weatherCacheService);
+	}
+
+	@Bean
+	public WeatherCacheService weatherCacheService(
+			WeatherContextPort weatherContextPort,
+			CachePort cachePort,
+			GeoPort geoPort) {
+		return new WeatherCacheService(weatherContextPort, cachePort, geoPort);
+	}
+
+	@Bean
+	public DriverLocationCacheService driverLocationCacheService(CachePort cachePort) {
+		return new DriverLocationCacheService(cachePort);
 	}
 
 	@Bean
@@ -236,4 +269,93 @@ public class AppConfig {
 	public IntegrationStatusService integrationStatusService(IntegrationSecretPort integrationSecretPort) {
 		return new IntegrationStatusService(integrationSecretPort);
 	}
+
+	@Bean
+	public DriverLifecycleUseCase driverLifecycleService(DriverOnlineSessionPort driverOnlineSessionPort,
+			GeoPort geoPort,
+			DriverLocationCachePort driverLocationCachePort) {
+		return new DriverLifecycleService(driverOnlineSessionPort, geoPort, driverLocationCachePort);
+	}
+
+	@Bean
+	public OrderBatchingUseCase orderBatchingService(
+			OrderManagementPort orderManagementPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			DistanceMatrixPort distanceMatrixPort,
+			VrpSolverPort vrpSolverPort,
+			OrderBatchPort orderBatchPort,
+			GeoPort geoPort,
+			OrderEventPublisherPort orderEventPublisherPort,
+			SystemParameterPort systemParameterPort,
+			DriverMatchingPort driverMatchingPort,
+			RestaurantPort restaurantPort,
+			DeliveryRouteUseCase deliveryRouteUseCase,
+			OrderClosureService orderClosureService) {
+		return new OrderBatchingService(orderManagementPort, driverOnlineSessionPort,
+				distanceMatrixPort, vrpSolverPort, orderBatchPort, geoPort,
+				orderEventPublisherPort, systemParameterPort, driverMatchingPort, restaurantPort,
+				deliveryRouteUseCase, orderClosureService);
+	}
+
+	@Bean
+	public SettlementUseCase settlementService(
+			SettlementPort settlementPort,
+			UserAccountPort userAccountPort,
+			AuditLogService auditLogService,
+			PaginationPolicy paginationPolicy) {
+		return new SettlementService(settlementPort, userAccountPort, auditLogService, paginationPolicy);
+	}
+
+	@Bean
+	public OrderClosureService orderClosureService(
+			OrderManagementPort orderManagementPort,
+			OrderBatchPort orderBatchPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			OrderPaymentPort orderPaymentPort,
+			RestaurantPort restaurantPort,
+			OrderEventPublisherPort orderEventPublisherPort,
+			PaymentUseCase paymentUseCase,
+			SystemParameterPort systemParameterPort) {
+		return new OrderClosureService(orderManagementPort, orderBatchPort, driverOnlineSessionPort,
+				orderPaymentPort, restaurantPort, orderEventPublisherPort, paymentUseCase, systemParameterPort);
+	}
+
+	@Bean
+	public DriverEarningsUseCase driverEarningsService(OrderManagementPort orderManagementPort) {
+		return new DriverEarningsService(orderManagementPort);
+	}
+
+	@Bean
+	public PaymentUseCase paymentService(
+			OrderManagementPort orderManagementPort,
+			OrderPaymentPort orderPaymentPort,
+			PaymentTransactionPort paymentTransactionPort,
+			PaymentGatewayPort paymentGatewayPort) {
+		return new PaymentService(orderManagementPort, orderPaymentPort, paymentTransactionPort, paymentGatewayPort);
+	}
+
+	/**
+	 * RouteCalculationPort is provided by @Component GoongTripAdapter (component scanning);
+	 * only non-annotated services are wired here.
+	 */
+	@Bean
+	public DeliveryRoutePort deliveryRoutePort(
+			com.foodya.backend.infrastructure.repository.DeliveryRouteRepository repository,
+			ObjectMapper objectMapper) {
+		return new com.foodya.backend.infrastructure.adapter.DeliveryRoutePersistenceAdapter(repository, objectMapper);
+	}
+
+	@Bean
+	public DeliveryRouteUseCase deliveryRouteService(
+			RouteCalculationPort routeCalculationPort,
+			DeliveryRoutePort deliveryRoutePort,
+			OrderManagementPort orderManagementPort,
+			RestaurantPort restaurantPort,
+			DriverOnlineSessionPort driverOnlineSessionPort,
+			OrderBatchPort orderBatchPort) {
+		return new com.foodya.backend.application.usecases.DeliveryRouteService(
+				routeCalculationPort, deliveryRoutePort, orderManagementPort,
+				restaurantPort, driverOnlineSessionPort, orderBatchPort);
+	}
 }
+

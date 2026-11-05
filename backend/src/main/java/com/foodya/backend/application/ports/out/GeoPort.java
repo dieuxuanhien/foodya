@@ -12,4 +12,6 @@ public interface GeoPort {
     BigDecimal haversineKm(double lat1, double lng1, double lat2, double lng2);
 
     String reverseGeocodeVi(double lat, double lng);
+
+    String geoToH3Index(double lat, double lng, int resolution);
 }

@@ -1,3 +1,5 @@
 ALTER TABLE category_taxonomies
-    ADD COLUMN IF NOT EXISTS description VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS description VARCHAR(255);
+
+ALTER TABLE category_taxonomies
     ADD COLUMN IF NOT EXISTS icon VARCHAR(120);

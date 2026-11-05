@@ -45,6 +45,14 @@ public final class OrderLifecycleApiMapper {
     }
 
     public static OrderTrackingPointResponse toTrackingPoint(OrderTrackingPointView view) {
-        return new OrderTrackingPointResponse(view.lat(), view.lng(), view.recordedAt());
+        OrderTrackingPointResponse.SnappedPosition snapped = view.snapped() == null ? null
+                : new OrderTrackingPointResponse.SnappedPosition(
+                        view.snapped().lat(), view.snapped().lng(), view.snapped().progress());
+        OrderTrackingPointResponse.RouteProgress route = view.route() == null ? null
+                : new OrderTrackingPointResponse.RouteProgress(
+                        view.route().remainingDistanceMeters(),
+                        view.route().remainingDurationSeconds(),
+                        view.route().estimatedArrival());
+        return new OrderTrackingPointResponse(view.lat(), view.lng(), view.recordedAt(), snapped, route);
     }
 }

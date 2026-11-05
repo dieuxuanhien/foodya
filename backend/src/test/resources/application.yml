@@ -1,4 +1,11 @@
 spring:
+  cache:
+    # Tests run without a Redis server; the no-op adapter keeps behaviour identical to pre-cache code.
+    enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   datasource:
     url: jdbc:h2:mem:foodya_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     username: sa

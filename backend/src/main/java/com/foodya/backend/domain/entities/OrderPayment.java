@@ -88,4 +88,23 @@ public class OrderPayment {
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    public void markPaid(String transactionId) {
+        if (paymentStatus == PaymentStatus.FAILED) {
+            throw new IllegalStateException("Cannot mark a failed payment as paid");
+        }
+        this.paymentStatus = PaymentStatus.PAID;
+        this.externalRef = transactionId;
+        this.paidAt = OffsetDateTime.now();
+    }
+
+    public void markFailed(String reason) {
+        if (paymentStatus == PaymentStatus.PAID) {
+            throw new IllegalStateException("Cannot mark a completed payment as failed");
+        }
+        this.paymentStatus = PaymentStatus.FAILED;
+        if (reason != null && !reason.isBlank()) {
+            this.externalRef = reason.trim();
+        }
+    }
 }

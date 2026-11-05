@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/../../CleanArchitectureToDo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../KTPM" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../LiveEmotionMultimodal" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../claw-code" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../flgsb-oop-additional-practice" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../flutter" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../foodya-front" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../gitnexus" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../nextjs-boilerplate" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../sethrift" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../vibe.j2team.org" vcs="Git" />
+  </component>
+</project>

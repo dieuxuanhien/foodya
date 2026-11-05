@@ -1,6 +1,6 @@
 package com.foodya.backend.interfaces.rest.mapper;
 
-import com.foodya.backend.application.dto.UserAccountData;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.application.dto.CategoryTaxonomyData;
 import com.foodya.backend.application.dto.MenuCategoryData;
 import com.foodya.backend.application.dto.MenuItemData;
@@ -19,7 +19,7 @@ public final class CommonApiMapper {
     private CommonApiMapper() {
     }
 
-    public static ProfileResponse toProfileResponse(UserAccountData user) {
+    public static ProfileResponse toProfileResponse(UserAccount user) {
         return new ProfileResponse(
                 user.getId().toString(),
                 user.getUsername(),

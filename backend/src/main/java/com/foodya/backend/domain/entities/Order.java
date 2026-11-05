@@ -3,6 +3,9 @@ package com.foodya.backend.domain.entities;
 import com.foodya.backend.domain.value_objects.OrderStatus;
 import com.foodya.backend.domain.value_objects.PaymentMethod;
 import com.foodya.backend.domain.value_objects.PaymentStatus;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -25,12 +28,31 @@ import java.util.UUID;
  * This separation follows Clean Architecture's inward dependency principle:
  * Domain → no outer layer (framework) dependencies.
  */
+
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Order {
 
     private static final List<OrderStatus> CANCELLABLE_BY_CUSTOMER = List.of(
             OrderStatus.PENDING,
             OrderStatus.ACCEPTED,
             OrderStatus.ASSIGNED
+    );
+
+    private static final List<OrderStatus> REJECTABLE_BY_MERCHANT = List.of(
+            OrderStatus.PENDING,
+            OrderStatus.ACCEPTED,
+            OrderStatus.ASSIGNED,
+            OrderStatus.PREPARING
+    );
+
+    /** Operator/system cancellations are allowed up to the moment the driver starts. */
+    private static final List<OrderStatus> CANCELLABLE_BY_SYSTEM = List.of(
+            OrderStatus.PENDING,
+            OrderStatus.ACCEPTED,
+            OrderStatus.ASSIGNED,
+            OrderStatus.PREPARING
     );
 
     private UUID id;
@@ -43,6 +65,8 @@ public class Order {
 
     private UUID restaurantId;
 
+    private UUID driverUserId;
+
     private OrderStatus status;
 
     private String deliveryAddress;
@@ -52,6 +76,8 @@ public class Order {
     private BigDecimal deliveryLongitude;
 
     private String customerNote;
+    private String feeBreakdown;
+
 
     private BigDecimal subtotalAmount;
 
@@ -74,6 +100,14 @@ public class Order {
     private OffsetDateTime placedAt;
 
     private OffsetDateTime completedAt;
+
+    private UUID batchId;
+
+    private Integer batchPickupIndex;
+
+    private Integer batchDeliveryIndex;
+
+    private OffsetDateTime estimatedDeliveryAt;
 
     void onCreate() {
         if (id == null) {
@@ -133,6 +167,14 @@ public class Order {
         this.restaurantId = restaurantId;
     }
 
+    public UUID getDriverUserId() {
+        return driverUserId;
+    }
+
+    public void setDriverUserId(UUID driverUserId) {
+        this.driverUserId = driverUserId;
+    }
+
     public OrderStatus getStatus() {
         return status;
     }
@@ -151,23 +193,86 @@ public class Order {
         }
     }
 
+    /** System/operator cancellation (timeouts, no-driver, support action). */
+    public void cancelBySystem(String reason) {
+        if (!CANCELLABLE_BY_SYSTEM.contains(status)) {
+            throw invalidTransition("system cancel");
+        }
+        status = OrderStatus.CANCELLED;
+        if (reason != null && !reason.isBlank()) {
+            cancelReason = reason.trim();
+        }
+    }
+
     public void merchantAccept() {
         requireStatus(OrderStatus.PENDING, "merchant accept");
         status = OrderStatus.ACCEPTED;
     }
 
+    /**
+     * Merchant rejects an order it cannot fulfil (out of stock, closing, wrong address, etc.).
+     * Allowed before food preparation/delivery has started. Once the order has moved past
+     * {@code PREPARING} the merchant must contact support and an admin cancels instead.
+     */
+    public void merchantReject(String reason) {
+        if (!REJECTABLE_BY_MERCHANT.contains(status)) {
+            throw invalidTransition("merchant reject");
+        }
+        status = OrderStatus.CANCELLED;
+        if (reason != null && !reason.isBlank()) {
+            cancelReason = reason.trim();
+        }
+    }
+
+    /**
+     * Kitchen started cooking. Valid before assignment and again after the batch scheduler assigned
+     * a driver; the order stays async: the driver pickup event moves it to DELIVERING.
+     */
     public void merchantMarkPreparing() {
-        requireStatus(OrderStatus.ASSIGNED, "merchant mark preparing");
+        if (status != OrderStatus.ACCEPTED && status != OrderStatus.ASSIGNED) {
+            throw invalidTransition("merchant mark preparing");
+        }
         status = OrderStatus.PREPARING;
     }
 
-    public void deliveryAcceptAssignment() {
-        requireStatus(OrderStatus.ACCEPTED, "delivery accept assignment");
-        status = OrderStatus.ASSIGNED;
+    /**
+     * Auto-assigns a driver to this order (called by the matching algorithm).
+     * Transitions ACCEPTED → ASSIGNED and records the driver.
+     */
+    public void assignDriver(UUID driverUserId) {
+        requireStatus(OrderStatus.ACCEPTED, "assign driver");
+        this.driverUserId = driverUserId;
+        this.status = OrderStatus.ASSIGNED;
     }
 
+    /** Driver confirms the order assigned to them. The caller verifies it is the assigned driver. */
+    public void deliveryAcceptAssignment() {
+        if (status != OrderStatus.ASSIGNED && status != OrderStatus.PREPARING) {
+            throw invalidTransition("delivery accept assignment");
+        }
+    }
+
+    /**
+     * Releases the order from its driver so the batch scheduler can assign it again. Only possible
+     * before pickup. A kitchen that already started cooking goes back to ACCEPTED, so the merchant
+     * marks it as preparing again once a new driver is assigned.
+     */
+    public void releaseDriver() {
+        if (status != OrderStatus.ASSIGNED && status != OrderStatus.PREPARING) {
+            throw invalidTransition("release driver");
+        }
+        this.driverUserId = null;
+        this.batchId = null;
+        this.batchPickupIndex = null;
+        this.batchDeliveryIndex = null;
+        this.status = OrderStatus.ACCEPTED;
+    }
+
+    /** Pickup: the driver leaves the restaurant, whether or not the merchant marked it as preparing. */
     public void deliveryStart() {
-        requireStatus(OrderStatus.ASSIGNED, "delivery start");
+        if (status != OrderStatus.ASSIGNED && status != OrderStatus.PREPARING) {
+            throw invalidTransition("delivery start");
+        }
         status = OrderStatus.DELIVERING;
     }
 
@@ -286,6 +391,40 @@ public class Order {
         paymentStatus = PaymentStatus.FAILED;
     }
 
+    /** Marks a VNPAY (online gateway) order as paid. Unlike {@link #markCodPaid()} this is allowed for non-COD orders. */
+    public void markOnlinePaid() {
+        if (paymentMethod == PaymentMethod.COD) {
+            throw invalidPaymentTransition("mark online paid");
+        }
+        if (paymentStatus == PaymentStatus.PAID) {
+            return;
+        }
+        requirePaymentStatus(PaymentStatus.UNPAID, "mark online paid");
+        paymentStatus = PaymentStatus.PAID;
+    }
+
+    public void syncCodPaymentStatus(PaymentStatus targetPaymentStatus) {
+        if (paymentMethod != PaymentMethod.COD) {
+            return;
+        }
+        if (targetPaymentStatus == PaymentStatus.PAID) {
+            markCodPaid();
+        } else if (targetPaymentStatus == PaymentStatus.FAILED) {
+            markCodFailed();
+        }
+    }
+
+    /**
+     * Marks a refunded order: the customer has been made whole, so the payment is no longer
+     * outstanding. Only meaningful for orders that were actually paid.
+     */
+    public void markRefunded() {
+        if (paymentStatus != PaymentStatus.PAID) {
+            throw invalidPaymentTransition("mark refunded");
+        }
+        paymentStatus = PaymentStatus.REFUNDED;
+    }
+
     public BigDecimal getCommissionAmount() {
         return commissionAmount;
     }
@@ -332,6 +471,47 @@ public class Order {
 
     public void setCompletedAt(OffsetDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    /** JSON snapshot of the delivery-fee breakdown at order creation (null for legacy orders). */
+    public String getFeeBreakdown() {
+        return feeBreakdown;
+    }
+
+    public void setFeeBreakdown(String feeBreakdown) {
+        this.feeBreakdown = feeBreakdown;
+    }
+
+    public UUID getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(UUID batchId) {
+        this.batchId = batchId;
+    }
+
+    public Integer getBatchPickupIndex() {
+        return batchPickupIndex;
+    }
+
+    public void setBatchPickupIndex(Integer batchPickupIndex) {
+        this.batchPickupIndex = batchPickupIndex;
+    }
+
+    public Integer getBatchDeliveryIndex() {
+        return batchDeliveryIndex;
+    }
+
+    public void setBatchDeliveryIndex(Integer batchDeliveryIndex) {
+        this.batchDeliveryIndex = batchDeliveryIndex;
+    }
+
+    public OffsetDateTime getEstimatedDeliveryAt() {
+        return estimatedDeliveryAt;
+    }
+
+    public void setEstimatedDeliveryAt(OffsetDateTime estimatedDeliveryAt) {
+        this.estimatedDeliveryAt = estimatedDeliveryAt;
     }
 
     private void requireStatus(OrderStatus expected, String action) {

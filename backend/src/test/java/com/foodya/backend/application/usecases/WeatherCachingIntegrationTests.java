@@ -2,22 +2,14 @@ package com.foodya.backend.application.usecases;
 
 import com.foodya.backend.application.dto.AiChatHistoryData;
 import com.foodya.backend.application.dto.CreateAiChatRequest;
-import com.foodya.backend.application.dto.UserAccountData;
-import com.foodya.backend.application.ports.out.AiCatalogVectorPort;
-import com.foodya.backend.application.ports.out.AiChatHistoryPort;
-import com.foodya.backend.application.ports.out.AiDraftPort;
-import com.foodya.backend.application.ports.out.AiEmbeddingPort;
-import com.foodya.backend.application.ports.out.GeoPort;
-import com.foodya.backend.application.ports.out.MenuItemPort;
-import com.foodya.backend.application.ports.out.RestaurantPort;
-import com.foodya.backend.application.ports.out.SystemParameterPort;
-import com.foodya.backend.application.ports.out.UserAccountPort;
-import com.foodya.backend.application.ports.out.WeatherContextPort;
 import com.foodya.backend.domain.entities.MenuItem;
 import com.foodya.backend.domain.entities.Restaurant;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.domain.value_objects.RestaurantStatus;
 import com.foodya.backend.domain.value_objects.UserRole;
+import com.foodya.backend.application.dto.WeatherData;
 import com.foodya.backend.domain.value_objects.UserStatus;
+import com.foodya.backend.application.ports.out.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doAnswer;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -79,13 +72,16 @@ class WeatherCachingIntegrationTests {
     @MockitoBean
     private GeoPort geoPort;
 
+    @MockitoBean
+    private CachePort cachePort;
+
     private UUID userId;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
 
-        var user = new UserAccountData();
+        var user = new UserAccount();
         user.setId(userId);
         user.setUsername("weather-customer");
         user.setEmail("weather@example.com");
@@ -126,12 +122,24 @@ class WeatherCachingIntegrationTests {
 
         given(geoPort.haversineKm(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
                 .willReturn(new BigDecimal("1.200"));
+        given(geoPort.geoToH3Index(anyDouble(), anyDouble(), anyInt()))
+                .willReturn("8828308281fffff");
 
-        given(weatherContextPort.getCurrentWeatherRaw(anyDouble(), anyDouble()))
-                .willReturn("{\"weather\":[{\"main\":\"Rain\",\"description\":\"light rain\"}],\"main\":{\"temp\":28.1}}");
+        given(weatherContextPort.getCurrentWeather(anyDouble(), anyDouble()))
+                .willReturn(Optional.of(WeatherData.of("Rain", "light rain", 28.1)));
+
+        // In-JVM cache stand-in: the production adapter is Redis, but the caching contract is what
+        // this test asserts (one provider call for a repeated location).
+        InMemoryCache weatherCacheStore = new InMemoryCache();
+        given(cachePort.<WeatherData>get(anyString(), any(Class.class))).willAnswer(inv ->
+                weatherCacheStore.get(inv.getArgument(0), inv.<Class<WeatherData>>getArgument(1)));
+        doAnswer(inv -> {
+            weatherCacheStore.put(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2));
+            return null;
+        }).when(cachePort).put(anyString(), any(), any());
 
         given(aiDraftPort.generateRecommendationDraft(anyString()))
-                .willReturn("{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Try Pho Bo nearby\"}]}}]}");
+                .willReturn("Try Pho Bo nearby");
 
         given(aiChatHistoryPort.findByUserIdOrderByCreatedAtDesc(userId)).willReturn(List.of());
         given(aiChatHistoryPort.save(any(AiChatHistoryData.class))).willAnswer(invocation -> {
@@ -160,6 +168,6 @@ class WeatherCachingIntegrationTests {
         assertEquals(first.recommendations().size(), second.recommendations().size());
 
         verify(weatherContextPort, times(1))
-                .getCurrentWeatherRaw(request.lat().doubleValue(), request.lng().doubleValue());
+                .getCurrentWeather(request.lat().doubleValue(), request.lng().doubleValue());
     }
 }

@@ -15,5 +15,5 @@
   "firebase.measurement.id": "<FIREBASE_MEASUREMENT_ID>",
   "firebase.service.account.file": "<ABSOLUTE_OR_RELATIVE_PATH_TO_FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON>",
   "firebase.service.account.json": "<OPTIONAL_INLINE_FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON>",
-  "openweather.api.key": "<OPENWEATHER_API_KEY>"
+  "open-meteo.endpoint": "https://api.open-meteo.com"
 }

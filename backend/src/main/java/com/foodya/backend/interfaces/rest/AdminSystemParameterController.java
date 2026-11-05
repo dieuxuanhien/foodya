@@ -10,6 +10,7 @@ import com.foodya.backend.interfaces.rest.dto.SystemParameterPatchApiRequest;
 import com.foodya.backend.interfaces.rest.dto.SystemParameterPutApiRequest;
 import com.foodya.backend.interfaces.rest.dto.SystemParameterResponse;
 import com.foodya.backend.interfaces.rest.mapper.CommonApiMapper;
+import com.foodya.backend.interfaces.rest.support.CurrentUser;
 import com.foodya.backend.interfaces.rest.support.RequestTrace;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -72,9 +73,14 @@ public class AdminSystemParameterController {
     )
     public ResponseEntity<ApiSuccessResponse<SystemParameterResponse>> put(@PathVariable String key,
                                                                             @Valid @RequestBody SystemParameterPutApiRequest request,
-                                                                            @RequestHeader(value = "X-User-Role", required = false) String actorRole,
-                                                                            @RequestHeader(value = "X-Actor-Id", required = false, defaultValue = "unknown") String actorId,
+                                                                            Authentication authentication,
                                                                             HttpServletRequest httpServletRequest) {
+        String actorId = CurrentUser.userId(authentication).toString();
+        String actorRole = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse("");
+        
         SystemParameterPutRequest command = new SystemParameterPutRequest(
                 request.valueType(),
                 request.value(),
@@ -89,9 +95,14 @@ public class AdminSystemParameterController {
     @Operation(summary = "Patch a system parameter", description = "Admin-only partial update")
     public ResponseEntity<ApiSuccessResponse<SystemParameterResponse>> patch(@PathVariable String key,
 	                                                                          @Valid @RequestBody SystemParameterPatchApiRequest request,
-                                                                              @RequestHeader(value = "X-User-Role", required = false) String actorRole,
-                                                                              @RequestHeader(value = "X-Actor-Id", required = false, defaultValue = "unknown") String actorId,
+                                                                              Authentication authentication,
                                                                               HttpServletRequest httpServletRequest) {
+        String actorId = CurrentUser.userId(authentication).toString();
+        String actorRole = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse("");
+        
         SystemParameterPatchRequest command = new SystemParameterPatchRequest(
                 request.valueType(),
                 request.value(),

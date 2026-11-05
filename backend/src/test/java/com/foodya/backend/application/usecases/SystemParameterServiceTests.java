@@ -6,11 +6,11 @@ import com.foodya.backend.application.dto.SystemParameterPatchRequest;
 import com.foodya.backend.application.dto.SystemParameterPutRequest;
 import com.foodya.backend.application.exception.ForbiddenException;
 import com.foodya.backend.application.exception.ValidationException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -24,6 +24,18 @@ class SystemParameterServiceTests {
 
     @Autowired
     private SystemParameterService systemParameterService;
+
+    @AfterEach
+    void tearDown() {
+        try {
+            systemParameterService.patch(
+                    "shipping.base_delivery_fee",
+                    new SystemParameterPatchRequest(null, "10000", null, "Reset after test"),
+                    "ADMIN",
+                    "admin-user-1"
+            );
+        } catch (Exception ignored) {}
+    }
 
     @Test
     void bootstrapCreatesDefaultKeys() {

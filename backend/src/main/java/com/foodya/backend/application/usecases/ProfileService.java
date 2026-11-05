@@ -1,6 +1,5 @@
 package com.foodya.backend.application.usecases;
 
-import com.foodya.backend.application.dto.UserAccountData;
 import com.foodya.backend.application.dto.ChangePasswordRequest;
 import com.foodya.backend.application.dto.UpdateProfileRequest;
 import com.foodya.backend.application.exception.NotFoundException;
@@ -9,6 +8,7 @@ import com.foodya.backend.application.ports.in.ProfileUseCase;
 import com.foodya.backend.application.ports.out.PasswordHashPort;
 import com.foodya.backend.application.ports.out.UserAccountPort;
 import com.foodya.backend.application.ports.out.UserAvatarStoragePort;
+import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.domain.policies.PasswordPolicy;
 import com.foodya.backend.domain.services.PhoneNormalizer;
 
@@ -33,13 +33,12 @@ public class ProfileService implements ProfileUseCase {
         this.userAvatarStoragePort = userAvatarStoragePort;
     }
 
-    public UserAccountData me(UUID userId) {
-        return userAccountPort.findById(userId)
-                .orElseThrow(() -> new NotFoundException("user not found"));
+    public UserAccount me(UUID userId) {
+        return findUser(userId);
     }
 
-    public UserAccountData update(UUID userId, UpdateProfileRequest request) {
-        UserAccountData user = me(userId);
+    public UserAccount update(UUID userId, UpdateProfileRequest request) {
+        UserAccount user = findUser(userId);
         String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
         String normalizedPhone;
         try {
@@ -60,13 +59,13 @@ public class ProfileService implements ProfileUseCase {
         user.setEmail(normalizedEmail);
         user.setPhoneNumber(normalizedPhone);
         user.setAvatarUrl(request.avatarUrl());
-        UserAccountData saved = userAccountPort.save(user);
+        UserAccount saved = userAccountPort.save(user);
         String now = "{\"email\":\"" + saved.getEmail() + "\",\"phoneNumber\":\"" + saved.getPhoneNumber() + "\"}";
         auditLogService.securityEvent(saved.getId().toString(), "PROFILE_UPDATED", "USER", saved.getId().toString(), old, now);
         return saved;
     }
 
-    public UserAccountData uploadAvatar(UUID userId, String originalFileName, String contentType, byte[] content) {
+    public UserAccount uploadAvatar(UUID userId, String originalFileName, String contentType, byte[] content) {
         if (content == null || content.length == 0) {
             throw new ValidationException("invalid content", Map.of("file", "must not be empty"));
         }
@@ -78,14 +77,14 @@ public class ProfileService implements ProfileUseCase {
             throw new ValidationException("invalid contentType", Map.of("contentType", "must be an image mime type"));
         }
 
-        UserAccountData user = me(userId);
+        UserAccount user = findUser(userId);
         String avatarUrl = userAvatarStoragePort.store(userId, originalFileName, contentType, content);
         user.setAvatarUrl(avatarUrl);
         return userAccountPort.save(user);
     }
 
     public void changePassword(UUID userId, ChangePasswordRequest request) {
-        UserAccountData user = me(userId);
+        UserAccount user = findUser(userId);
         if (!passwordHashPort.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new ValidationException("currentPassword is invalid", Map.of("currentPassword", "does not match current password"));
         }
@@ -108,5 +107,10 @@ public class ProfileService implements ProfileUseCase {
         user.setPasswordHash(passwordHashPort.encode(request.newPassword()));
         userAccountPort.save(user);
         auditLogService.securityEvent(user.getId().toString(), "PROFILE_PASSWORD_CHANGED", "USER", user.getId().toString(), null, "password-changed");
+    }
+
+    private UserAccount findUser(UUID userId) {
+        return userAccountPort.findById(userId)
+                .orElseThrow(() -> new NotFoundException("user not found"));
     }
 }

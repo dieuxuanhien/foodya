@@ -1,8 +1,6 @@
 package com.foodya.backend.infrastructure.adapter;
 
-import com.foodya.backend.application.dto.PasswordResetChallengeData;
 import com.foodya.backend.application.ports.out.PasswordResetChallengePort;
-import com.foodya.backend.infrastructure.mapper.AuthPersistenceMapper;
 import com.foodya.backend.domain.entities.PasswordResetChallenge;
 import com.foodya.backend.domain.entities.UserAccount;
 import com.foodya.backend.infrastructure.mapper.PasswordResetChallengeMapper;
@@ -34,27 +32,21 @@ public class PasswordResetChallengeAdapter implements PasswordResetChallengePort
     }
 
     @Override
-    public Optional<PasswordResetChallengeData> findByChallengeToken(String challengeToken) {
+    public Optional<PasswordResetChallenge> findByChallengeToken(String challengeToken) {
         return repository.findByChallengeToken(Objects.requireNonNull(challengeToken))
-            .map(model -> AuthPersistenceMapper.toData(passwordResetChallengeMapper.toDomain(model, loadUserDomain(model.getUserId()))));
+            .map(model -> passwordResetChallengeMapper.toDomain(model, loadUserDomain(model.getUserId())));
     }
 
     @Override
-    public PasswordResetChallengeData save(PasswordResetChallengeData challenge) {
-        PasswordResetChallengeData challengeModel = Objects.requireNonNull(challenge);
-        UserAccount userEntity = loadUserDomain(Objects.requireNonNull(challengeModel.getUser().getId()));
-        PasswordResetChallenge entity = challengeModel.getId() == null
-                ? new PasswordResetChallenge()
-            : repository.findById(Objects.requireNonNull(challengeModel.getId()))
-                .map(model -> passwordResetChallengeMapper.toDomain(model, loadUserDomain(model.getUserId())))
-                .orElseGet(() -> {
-                    PasswordResetChallenge newEntity = new PasswordResetChallenge();
-                    newEntity.setId(challengeModel.getId());
-                    return newEntity;
-                });
-        AuthPersistenceMapper.copyToEntity(challengeModel, entity, userEntity);
-        entity.setId(challengeModel.getId());
-        return AuthPersistenceMapper.toData(passwordResetChallengeMapper.toDomain(repository.save(Objects.requireNonNull(passwordResetChallengeMapper.toPersistence(entity))), userEntity));
+    public PasswordResetChallenge save(PasswordResetChallenge challenge) {
+        PasswordResetChallenge challengeDomain = Objects.requireNonNull(challenge);
+        UserAccount userDomain = challengeDomain.getUser() != null
+                ? challengeDomain.getUser()
+                : (challengeDomain.getId() != null ? repository.findById(challengeDomain.getId()).map(m -> loadUserDomain(m.getUserId())).orElse(null) : null);
+        return passwordResetChallengeMapper.toDomain(
+            repository.save(Objects.requireNonNull(passwordResetChallengeMapper.toPersistence(challengeDomain))),
+            userDomain
+        );
     }
 
     private UserAccount loadUserDomain(UUID userId) {

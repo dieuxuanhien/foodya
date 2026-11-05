@@ -94,6 +94,8 @@ class OrderLifecycleIntegrationTests {
     @Autowired
     private RestaurantMapper restaurantMapper;
 
+    private UserAccount driver;
+
     @BeforeEach
     void setUp() {
         deliveryTrackingPointRepository.deleteAll();
@@ -106,6 +108,7 @@ class OrderLifecycleIntegrationTests {
         menuCategoryRepository.deleteAll();
         restaurantRepository.deleteAll();
         userAccountRepository.deleteAll();
+        driver = seedUser("integration-driver", UserRole.DELIVERY);
     }
 
     @Test
@@ -115,7 +118,7 @@ class OrderLifecycleIntegrationTests {
         Restaurant restaurant = seedRestaurant(merchant, "Cancel Store");
         Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
 
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
 
         mockMvc.perform(get("/api/v1/customer/orders")
                         .header("Authorization", "Bearer " + customerToken))
@@ -134,12 +137,12 @@ class OrderLifecycleIntegrationTests {
     void deliveryFlowSupportsTrackingAndCustomerRead() throws Exception {
         UserAccount customer = seedUser("customer-b", UserRole.CUSTOMER);
         UserAccount merchant = seedUser("merchant-b", UserRole.MERCHANT);
-        UserAccount delivery = seedUser("delivery-b", UserRole.DELIVERY);
+        UserAccount delivery = driver;
         Restaurant restaurant = seedRestaurant(merchant, "Delivery Store");
-        Order order = seedOrder(customer, restaurant, OrderStatus.ACCEPTED);
+        Order order = seedOrder(customer, restaurant, OrderStatus.ASSIGNED);
 
-        String deliveryToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(delivery), UUID.randomUUID().toString());
-        String customerToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(customer), UUID.randomUUID().toString());
+        String deliveryToken = tokenService.issueAccessToken(delivery, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/delivery/orders/{id}/accept", order.getId())
                         .header("Authorization", "Bearer " + deliveryToken))
@@ -150,7 +153,7 @@ class OrderLifecycleIntegrationTests {
                         .header("Authorization", "Bearer " + deliveryToken)
                         .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"lat\":10.7800000,\"lng\":106.7000000,\"recordedAt\":\"2026-03-31T00:00:00Z\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.lat").value(10.78));
 
         mockMvc.perform(get("/api/v1/customer/orders/{id}/tracking", order.getId())
@@ -163,11 +166,11 @@ class OrderLifecycleIntegrationTests {
     void deliverySuccessMarksCodOrderPaidAndMirrorsPaymentRow() throws Exception {
         UserAccount customer = seedUser("customer-c", UserRole.CUSTOMER);
         UserAccount merchant = seedUser("merchant-c", UserRole.MERCHANT);
-        UserAccount delivery = seedUser("delivery-c", UserRole.DELIVERY);
+        UserAccount delivery = driver;
         Restaurant restaurant = seedRestaurant(merchant, "Payment Store");
-        Order order = seedOrder(customer, restaurant, OrderStatus.ACCEPTED);
+        Order order = seedOrder(customer, restaurant, OrderStatus.ASSIGNED);
 
-        String deliveryToken = tokenService.issueAccessToken(AuthPersistenceMapper.toData(delivery), UUID.randomUUID().toString());
+        String deliveryToken = tokenService.issueAccessToken(delivery, UUID.randomUUID().toString());
 
         mockMvc.perform(post("/api/v1/delivery/orders/{id}/accept", order.getId())
                         .header("Authorization", "Bearer " + deliveryToken))
@@ -233,6 +236,12 @@ class OrderLifecycleIntegrationTests {
 
     private Order seedOrder(UserAccount customer, Restaurant restaurant, OrderStatus status) {
         Order order = new Order();
+        if (status == OrderStatus.SUCCESS) {
+            order.setCompletedAt(java.time.OffsetDateTime.now());
+        }
+        if (status != OrderStatus.PENDING && status != OrderStatus.ACCEPTED) {
+            order.setDriverUserId(driver.getId());
+        }
         order.setOrderCode("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         order.setCustomerUserId(customer.getId());
         order.setIdempotencyKey(UUID.randomUUID().toString());
@@ -254,5 +263,124 @@ class OrderLifecycleIntegrationTests {
         @SuppressWarnings("null")
         var saved = orderRepository.save(persistenceModel);
         return orderMapper.toDomain(saved);
+    }
+
+    @Test
+    void merchantCanRejectAnOrderItCannotFulfil() throws Exception {
+        UserAccount customer = seedUser("customer-rej", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-rej", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Reject Store");
+        Order order = seedOrder(customer, restaurant, OrderStatus.PENDING);
+        String merchantToken = tokenService.issueAccessToken(merchant, UUID.randomUUID().toString());
+        String customerToken = tokenService.issueAccessToken(customer, UUID.randomUUID().toString());
+
+        mockMvc.perform(post("/api/v1/merchant/orders/{id}/reject", order.getId())
+                        .header("Authorization", "Bearer " + merchantToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"reason\":\"out of stock\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+
+        mockMvc.perform(get("/api/v1/customer/orders/{id}", order.getId())
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+    }
+
+    @Test
+    void anotherDriverCannotActOnAnOrder() throws Exception {
+        UserAccount customer = seedUser("customer-authz", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-authz", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Authz Store");
+        Order order = seedOrder(customer, restaurant, OrderStatus.ASSIGNED);
+        UserAccount intruder = seedUser("driver-intruder", UserRole.DELIVERY);
+        String intruderToken = tokenService.issueAccessToken(intruder, UUID.randomUUID().toString());
+
+        mockMvc.perform(patch("/api/v1/delivery/orders/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + intruderToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"status\":\"DELIVERING\"}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/delivery/orders/{id}/tracking-points", order.getId())
+                        .header("Authorization", "Bearer " + intruderToken)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content("{\"lat\":10.78,\"lng\":106.70,\"recordedAt\":\"2026-03-31T00:00:00Z\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void assignedDriverCanDeclineAndOrderReturnsToThePool() throws Exception {
+        UserAccount customer = seedUser("customer-decline", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-decline", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Decline Store");
+        Order order = seedOrder(customer, restaurant, OrderStatus.ASSIGNED);
+        String deliveryToken = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+
+        mockMvc.perform(post("/api/v1/delivery/orders/{id}/reject", order.getId())
+                        .header("Authorization", "Bearer " + deliveryToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACCEPTED"));
+
+        var saved = orderRepository.findById(order.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertNull(saved.getDriverUserId());
+    }
+
+    @Test
+    void driverEarningsCreditTheDeliveryFeeMinusPlatformMargin() throws Exception {
+        UserAccount customer = seedUser("customer-earn", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-earn", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Earnings Store");
+        Order order = seedOrder(customer, restaurant, OrderStatus.SUCCESS);
+        orderRepository.save(orderMapper.toPersistence(order));
+        String deliveryToken = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+
+        mockMvc.perform(get("/api/v1/delivery/earnings").header("Authorization", "Bearer " + deliveryToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.deliveryCount").value(1))
+                .andExpect(jsonPath("$.data.totalEarnings").value(10000))
+                .andExpect(jsonPath("$.data.codCashCollected").value(60000));
+    }
+
+    @Test
+    void aDriverOnlySeesOrdersTheyHold() throws Exception {
+        UserAccount customer = seedUser("customer-assign", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-assign", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Assign Store");
+        Order mine = seedOrder(customer, restaurant, OrderStatus.ASSIGNED);
+        Order alsoMine = seedOrder(customer, restaurant, OrderStatus.DELIVERING);
+        seedOrder(customer, restaurant, OrderStatus.ACCEPTED);      // not yet assigned to anyone
+        String deliveryToken = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+
+        String body = mockMvc.perform(get("/api/v1/delivery/orders/assignments")
+                        .header("Authorization", "Bearer " + deliveryToken))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        var ids = new java.util.ArrayList<String>();
+        for (var node : new com.fasterxml.jackson.databind.ObjectMapper().readTree(body).get("data")) {
+            ids.add(node.get("orderId").asText());
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(ids.contains(mine.getId().toString()));
+        org.junit.jupiter.api.Assertions.assertTrue(ids.contains(alsoMine.getId().toString()));
+        org.junit.jupiter.api.Assertions.assertEquals(2, ids.size(),
+                "unassigned ACCEPTED orders must not be listed as the driver's assignments");
+    }
+
+    @Test
+    void anotherDriversOrdersAreNotListed() throws Exception {
+        UserAccount customer = seedUser("customer-foreign", UserRole.CUSTOMER);
+        UserAccount merchant = seedUser("merchant-foreign", UserRole.MERCHANT);
+        Restaurant restaurant = seedRestaurant(merchant, "Foreign Store");
+        Order heldBySomeoneElse = seedOrder(customer, restaurant, OrderStatus.ASSIGNED);
+        UserAccount otherDriver = seedUser("driver-other", UserRole.DELIVERY);
+        heldBySomeoneElse.setDriverUserId(otherDriver.getId());
+        orderRepository.save(orderMapper.toPersistence(heldBySomeoneElse));
+        String driverToken = tokenService.issueAccessToken(driver, UUID.randomUUID().toString());
+
+        mockMvc.perform(get("/api/v1/delivery/orders/assignments")
+                        .header("Authorization", "Bearer " + driverToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
     }
 }
