@@ -14,6 +14,10 @@ import '../../features/customer/presentation/pages/customer_orders_page.dart';
 import '../../features/customer/presentation/pages/customer_profile_page.dart';
 import '../../features/customer/presentation/pages/restaurant_browse_page.dart';
 import '../../features/customer/presentation/pages/restaurant_detail_page.dart';
+import '../../features/delivery/presentation/pages/delivery_batch_detail_page.dart';
+import '../../features/delivery/presentation/pages/delivery_batch_management_page.dart';
+import '../../features/delivery/presentation/pages/delivery_home_page.dart';
+import '../../features/delivery/presentation/pages/delivery_wallet_page.dart';
 import '../../features/merchant/presentation/pages/merchant_catalog_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../../features/merchant/presentation/pages/merchant_notifications_page.dart';
@@ -28,12 +32,14 @@ import '../ui/foodya_shell.dart';
 import 'go_router_refresh_stream.dart';
 
 class AppRouter {
-  AppRouter(this._sessionCubit);
+  AppRouter(this._sessionCubit, {String initialLocation = '/auth/loading'})
+    : _initialLocation = initialLocation;
 
   final SessionCubit _sessionCubit;
+  final String _initialLocation;
 
   late final GoRouter router = GoRouter(
-    initialLocation: '/auth/loading',
+    initialLocation: _initialLocation,
     refreshListenable: GoRouterRefreshStream(_sessionCubit.stream),
     redirect: _redirect,
     routes: [
@@ -84,6 +90,49 @@ class AppRouter {
             path: '/customer/profile',
             name: 'customer-profile',
             builder: (context, state) => const CustomerProfilePage(),
+          ),
+        ],
+      ),
+      ShellRoute(
+        builder:
+            (context, state, child) => FoodyaRoleShell(
+              role: UserRole.delivery,
+              location: state.matchedLocation,
+              child: child,
+            ),
+        routes: [
+          GoRoute(
+            path: '/delivery/home',
+            name: 'delivery-home',
+            builder: (context, state) => const DeliveryHomePage(),
+          ),
+          GoRoute(
+            path: '/delivery/batches/active',
+            name: 'delivery-active-batch',
+            builder:
+                (context, state) =>
+                    const DeliveryBatchDetailPage(batchId: 'active'),
+          ),
+          GoRoute(
+            path: '/delivery/batches/:batchId/manage',
+            name: 'delivery-batch-management',
+            builder:
+                (context, state) => DeliveryBatchManagementPage(
+                  batchId: state.pathParameters['batchId'] ?? '',
+                ),
+          ),
+          GoRoute(
+            path: '/delivery/batches/:batchId',
+            name: 'delivery-batch-detail',
+            builder:
+                (context, state) => DeliveryBatchDetailPage(
+                  batchId: state.pathParameters['batchId'] ?? '',
+                ),
+          ),
+          GoRoute(
+            path: '/delivery/wallet',
+            name: 'delivery-wallet',
+            builder: (context, state) => const DeliveryWalletPage(),
           ),
         ],
       ),
@@ -195,12 +244,12 @@ class AppRouter {
       return role.homePath;
     }
 
-    if (role == UserRole.customer && location.startsWith('/merchant/')) {
-      return UserRole.customer.homePath;
-    }
-
-    if (role == UserRole.merchant && location.startsWith('/customer/')) {
-      return UserRole.merchant.homePath;
+    final requestedRole = UserRole.values.cast<UserRole?>().firstWhere(
+      (candidate) => location.startsWith(candidate!.routeNamespace),
+      orElse: () => null,
+    );
+    if (requestedRole != null && requestedRole != role) {
+      return role.homePath;
     }
 
     return null;

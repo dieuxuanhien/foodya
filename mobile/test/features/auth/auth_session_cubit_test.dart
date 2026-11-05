@@ -24,6 +24,14 @@ void main() {
   });
 
   group('SessionCubit', () {
+    test('DELIVERY role round-trips through API values', () {
+      expect(UserRole.delivery.apiValue, 'DELIVERY');
+      expect(UserRole.fromApiValue('delivery'), UserRole.delivery);
+      expect(UserRole.delivery.homePath, '/delivery/home');
+      expect(UserRole.selfRegistrationRoles, contains(UserRole.delivery));
+      expect(UserRole.fromApiValue('ADMIN'), isNull);
+    });
+
     blocTest<SessionCubit, SessionState>(
       'emits authenticated and unauthenticated states',
       build: SessionCubit.new,

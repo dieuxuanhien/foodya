@@ -302,7 +302,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                   errorText: state.fieldErrors['role'],
                 ),
                 items:
-                    UserRole.values
+                    UserRole.selfRegistrationRoles
                         .map(
                           (role) => DropdownMenuItem<UserRole>(
                             value: role,

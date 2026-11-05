@@ -39,6 +39,8 @@ import 'features/customer/domain/repositories/customer_notification_repository.d
 import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_profile_repository.dart';
+import 'features/delivery/data/repositories/unavailable_delivery_repository.dart';
+import 'features/delivery/domain/repositories/delivery_repository.dart';
 import 'features/merchant/data/data_sources/merchant_restaurant_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_catalog_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_order_remote_data_source.dart';
@@ -293,6 +295,9 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<CustomerAiRepository>.value(
           value: _customerAiRepository,
+        ),
+        RepositoryProvider<DeliveryRepository>(
+          create: (_) => const UnavailableDeliveryRepository(),
         ),
         RepositoryProvider<MerchantRestaurantRepository>.value(
           value: _merchantRestaurantRepository,

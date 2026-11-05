@@ -14,6 +14,8 @@ import 'package:foodya_mobile/features/customer/domain/repositories/customer_cat
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_notification_repository.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_order_repository.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_profile_repository.dart';
+import 'package:foodya_mobile/features/delivery/data/repositories/demo_delivery_repository.dart';
+import 'package:foodya_mobile/features/delivery/domain/repositories/delivery_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_catalog_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_notification_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_order_repository.dart';
@@ -174,6 +176,9 @@ void main() {
           RepositoryProvider<CustomerAiRepository>.value(
             value: customerAiRepository,
           ),
+          RepositoryProvider<DeliveryRepository>(
+            create: (_) => DemoDeliveryRepository(),
+          ),
           RepositoryProvider<MerchantRestaurantRepository>.value(
             value: merchantRestaurantRepository,
           ),
@@ -255,6 +260,41 @@ void main() {
 
     expect(router.state.matchedLocation, '/merchant/home');
     expect(find.text('Dashboard'), findsAtLeastNWidgets(1));
+  });
+
+  testWidgets('authenticated delivery lands on delivery home', (tester) async {
+    sessionCubit.signInAs(UserRole.delivery);
+    final router = await pumpRouter(tester);
+
+    await tester.pumpAndSettle();
+
+    expect(router.state.matchedLocation, '/delivery/home');
+    expect(find.text('Delivery Home'), findsOneWidget);
+    expect(find.textContaining('Demo Data'), findsOneWidget);
+  });
+
+  testWidgets('all authenticated roles reject cross-role routes', (
+    tester,
+  ) async {
+    final cases = <(UserRole, String)>[
+      (UserRole.customer, '/delivery/home'),
+      (UserRole.customer, '/merchant/orders'),
+      (UserRole.merchant, '/delivery/wallet'),
+      (UserRole.merchant, '/customer/cart'),
+      (UserRole.delivery, '/customer/home'),
+      (UserRole.delivery, '/merchant/home'),
+    ];
+
+    for (final (role, path) in cases) {
+      sessionCubit.signInAs(role);
+      final router = await pumpRouter(tester);
+      await tester.pumpAndSettle();
+      router.go(path);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, role.homePath);
+      router.dispose();
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
   });
 
   testWidgets('merchant auxiliary routes render inside merchant shell', (
