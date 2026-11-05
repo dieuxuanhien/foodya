@@ -1,0 +1,12 @@
+{
+  "name": "Foodya Delivery Demo",
+  "short_name": "Foodya Delivery",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FFF8F1",
+  "theme_color": "#EA580C",
+  "description": "Fixture-backed Flutter prototype for the Foodya Delivery experience.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": []
+}
