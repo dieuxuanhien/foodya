@@ -62,10 +62,13 @@ import 'core/location/geolocation_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseMessaging.onBackgroundMessage(
-    foodyaFirebaseMessagingBackgroundHandler,
-  );
+  final firebaseOptions = DefaultFirebaseOptions.currentPlatformOrNull;
+  if (firebaseOptions != null) {
+    await Firebase.initializeApp(options: firebaseOptions);
+    FirebaseMessaging.onBackgroundMessage(
+      foodyaFirebaseMessagingBackgroundHandler,
+    );
+  }
   runApp(FoodyaMobileBootstrap());
 }
 
@@ -98,7 +101,7 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final GoRouter _router;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
-  late final FcmNotificationService _fcmNotificationService;
+  FcmNotificationService? _fcmNotificationService;
   late final OrderTrackingRealtimeService _orderTrackingRealtimeService;
   StreamSubscription? _sessionSubscription;
 
@@ -113,30 +116,36 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       client: widget._httpClient,
     );
 
-    _authRepository = HttpAuthRepository(
-      remoteDataSource: _authRemoteDataSource,
-      tokenStore: widget._tokenStore,
-    );
-
     _authSessionRecovery = AuthSessionRecovery(
       tokenStore: widget._tokenStore,
       refreshTokenExchange: _authRemoteDataSource.refresh,
     );
 
-    _fcmNotificationService = FcmNotificationService(
-      baseUrl: AppConfig.apiBaseUrl,
-      client: widget._httpClient,
+    _authRepository = HttpAuthRepository(
+      remoteDataSource: _authRemoteDataSource,
+      tokenStore: widget._tokenStore,
       sessionRecovery: _authSessionRecovery,
     );
+
+    if (DefaultFirebaseOptions.isConfiguredForCurrentPlatform) {
+      _fcmNotificationService = FcmNotificationService(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+        sessionRecovery: _authSessionRecovery,
+      );
+    }
     _orderTrackingRealtimeService = StompOrderTrackingRealtimeService(
       baseUrl: AppConfig.apiBaseUrl,
       tokenStore: widget._tokenStore,
       sessionRecovery: _authSessionRecovery,
     );
-    unawaited(_fcmNotificationService.initialize());
+    final notificationService = _fcmNotificationService;
+    if (notificationService != null) {
+      unawaited(notificationService.initialize());
+    }
     _sessionSubscription = _sessionCubit.stream.listen((state) {
       if (state.isAuthenticated) {
-        unawaited(_fcmNotificationService.registerCurrentDevice());
+        unawaited(notificationService?.registerCurrentDevice());
       }
     });
 

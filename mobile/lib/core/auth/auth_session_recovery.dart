@@ -49,7 +49,26 @@ class AuthSessionRecovery {
       }
     }
 
-    final refreshed = await _refreshWithSingleFlight(stored.refreshToken);
+    final latest = await _tokenStore.read();
+    if (latest == null) {
+      throw const ApiException(
+        statusCode: 401,
+        code: 'SESSION_EXPIRED',
+        message: 'Your session has expired. Please log in again.',
+      );
+    }
+
+    if (latest.accessToken != stored.accessToken) {
+      try {
+        return await action(latest.accessToken);
+      } on ApiException catch (error) {
+        if (error.statusCode != 401) {
+          rethrow;
+        }
+      }
+    }
+
+    final refreshed = await _refreshWithSingleFlight(latest.refreshToken);
     try {
       return await action(refreshed.accessToken);
     } on ApiException catch (error) {
@@ -84,6 +103,10 @@ class AuthSessionRecovery {
       return refreshed;
     } on ApiException catch (error) {
       if (error.statusCode == 401) {
+        final latest = await _tokenStore.read();
+        if (latest != null && latest.refreshToken != refreshToken) {
+          return latest;
+        }
         await _tokenStore.clear();
         throw const ApiException(
           statusCode: 401,
