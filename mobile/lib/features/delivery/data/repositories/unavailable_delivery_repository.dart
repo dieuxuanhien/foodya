@@ -28,11 +28,17 @@ class UnavailableDeliveryRepository implements DeliveryRepository {
   Future<DeliverySession> goOnline({double? lat, double? lng}) =>
       _unavailable();
   @override
+  Future<DeliverySession> updateLocation(double lat, double lng) =>
+      _unavailable();
+  @override
   Future<DeliveryBatch> markDelivered(String batchId, String orderId) =>
       _unavailable();
   @override
-  Future<DeliveryBatch> markFailed(String batchId, String orderId) =>
-      _unavailable();
+  Future<DeliveryBatch> markFailed(
+    String batchId,
+    String orderId, {
+    String? reason,
+  }) => _unavailable();
   @override
   Future<DeliveryBatch> markPickup(String batchId, String orderId) =>
       _unavailable();

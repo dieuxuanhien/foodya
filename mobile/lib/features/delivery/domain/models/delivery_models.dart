@@ -34,46 +34,54 @@ enum DriverAvailability {
 }
 
 enum DeliveryOrderStatus {
+  accepted,
   assigned,
   preparing,
   delivering,
   success,
   failed,
+  cancelled,
   unknown;
 
   static DeliveryOrderStatus fromApi(String? value) => switch (value
       ?.toUpperCase()) {
+    'ACCEPTED' => accepted,
     'ASSIGNED' => assigned,
     'PREPARING' => preparing,
     'DELIVERING' => delivering,
     'SUCCESS' => success,
     'FAILED' => failed,
+    'CANCELLED' => cancelled,
     _ => unknown,
   };
 
   String get label => switch (this) {
+    accepted => 'Awaiting assignment',
     assigned => 'Assigned',
     preparing => 'Preparing',
     delivering => 'Delivering',
     success => 'Delivered',
     failed => 'Failed',
+    cancelled => 'Cancelled',
     unknown => 'Unknown',
   };
 }
 
 enum DeliveryBatchStatus {
-  planned,
+  pending,
   active,
   completed,
   cancelled,
+  partial,
   unknown;
 
   static DeliveryBatchStatus fromApi(String? value) => switch (value
       ?.toUpperCase()) {
-    'PLANNED' => planned,
-    'ACTIVE' || 'IN_PROGRESS' => active,
+    'PENDING' => pending,
+    'ACTIVE' => active,
     'COMPLETED' => completed,
     'CANCELLED' => cancelled,
+    'PARTIAL' => partial,
     _ => unknown,
   };
 }
@@ -81,6 +89,7 @@ enum DeliveryBatchStatus {
 enum DeliveryStopStatus {
   pending,
   pickedUp,
+  delivering,
   delivered,
   failed,
   unknown;
@@ -89,6 +98,7 @@ enum DeliveryStopStatus {
       ?.toUpperCase()) {
     'PENDING' => pending,
     'PICKED_UP' || 'PICKUP_COMPLETE' => pickedUp,
+    'DELIVERING' => delivering,
     'DELIVERED' || 'DELIVERY_COMPLETE' => delivered,
     'FAILED' => failed,
     _ => unknown,
@@ -138,7 +148,17 @@ class DeliverySession extends Equatable {
   final int maxConcurrentOrders;
   final String? message;
 
-  bool get isOnline => status != DriverAvailability.offline;
+  bool get isOnline => switch (status) {
+    DriverAvailability.online ||
+    DriverAvailability.onDelivery ||
+    DriverAvailability.busy ||
+    DriverAvailability.goingOffline => true,
+    _ => false,
+  };
+
+  bool get canToggleAvailability =>
+      status != DriverAvailability.suspended &&
+      status != DriverAvailability.unknown;
 
   DeliverySession copyWith({DriverAvailability? status, String? message}) {
     return DeliverySession(
@@ -393,8 +413,8 @@ class DeliveryBatch extends Equatable {
   final DateTime? createdAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
-  final List<String> pickupSequence;
-  final List<String> deliverySequence;
+  final List<DeliverySequenceStop> pickupSequence;
+  final List<DeliverySequenceStop> deliverySequence;
 
   DeliveryBatch copyWith({
     DeliveryBatchStatus? status,
@@ -424,6 +444,34 @@ class DeliveryBatch extends Equatable {
     completedAt,
     pickupSequence,
     deliverySequence,
+  ];
+}
+
+class DeliverySequenceStop extends Equatable {
+  const DeliverySequenceStop({
+    required this.orderId,
+    this.lat,
+    this.lng,
+    this.estimatedArrivalSeconds,
+    this.serviceTimeSeconds,
+  });
+
+  final String orderId;
+  final double? lat;
+  final double? lng;
+  final int? estimatedArrivalSeconds;
+  final int? serviceTimeSeconds;
+
+  bool get hasUsableCoordinates =>
+      lat != null && lng != null && !(lat == 0 && lng == 0);
+
+  @override
+  List<Object?> get props => [
+    orderId,
+    lat,
+    lng,
+    estimatedArrivalSeconds,
+    serviceTimeSeconds,
   ];
 }
 
@@ -592,20 +640,31 @@ int? _nullableInteger(Object? value) => value == null ? null : _integer(value);
 DateTime? _date(Object? value) =>
     value == null ? null : DateTime.tryParse(value.toString())?.toUtc();
 
-List<String> _decodeSequence(Object? raw) {
+List<DeliverySequenceStop> _decodeSequence(Object? raw) {
   if (raw == null || raw.toString().trim().isEmpty) return const [];
   try {
     final decoded = raw is String ? jsonDecode(raw) : raw;
     if (decoded is! List) return const [];
     return decoded
+        .whereType<Map>()
         .map((item) {
-          if (item is Map) {
-            return item['orderId']?.toString() ??
-                item['id']?.toString() ??
-                jsonEncode(item);
-          }
-          return item.toString();
+          final mapped = item.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+          final lat = _number(mapped['lat']);
+          final lng = _number(mapped['lng']);
+          return DeliverySequenceStop(
+            orderId:
+                mapped['orderId']?.toString() ?? mapped['id']?.toString() ?? '',
+            lat: lat == 0 && lng == 0 ? null : lat,
+            lng: lat == 0 && lng == 0 ? null : lng,
+            estimatedArrivalSeconds: _nullableInteger(
+              mapped['estimatedArrivalSec'],
+            ),
+            serviceTimeSeconds: _nullableInteger(mapped['serviceTimeSec']),
+          );
         })
+        .where((item) => item.orderId.isNotEmpty)
         .toList(growable: false);
   } catch (_) {
     return const [];

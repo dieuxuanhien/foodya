@@ -5,8 +5,14 @@ enum DeliveryDemoScenario {
   offline('offline'),
   onlineEmpty('online-empty'),
   singleAssignment('single-assignment'),
+  assignmentList('assignment-list'),
+  orderDetail('order-detail'),
+  acknowledged('assignment-acknowledged'),
+  delivering('delivering'),
+  completed('completed'),
   batchDetail('batch-detail'),
   batchProgress('batch-progress'),
+  earnings('earnings'),
   walletPreview('wallet-preview'),
   networkError('network-error');
 
@@ -90,6 +96,25 @@ class DemoDeliveryRepository implements DeliveryRepository {
   }
 
   @override
+  Future<DeliverySession> updateLocation(double lat, double lng) async {
+    await _delay();
+    _session = DeliverySession(
+      sessionId: _session.sessionId,
+      status: _session.status,
+      startedAt: _session.startedAt,
+      endedAt: _session.endedAt,
+      lastHeartbeat: _session.lastHeartbeat,
+      currentLat: lat,
+      currentLng: lng,
+      h3Cell: _session.h3Cell,
+      activeOrderCount: _session.activeOrderCount,
+      maxConcurrentOrders: _session.maxConcurrentOrders,
+      message: 'Demo location updated.',
+    );
+    return _session;
+  }
+
+  @override
   Future<List<DeliveryAssignment>> getAssignments() async {
     await _delay();
     return List.unmodifiable(_assignments);
@@ -151,7 +176,11 @@ class DemoDeliveryRepository implements DeliveryRepository {
   }
 
   @override
-  Future<DeliveryBatch> markFailed(String batchId, String orderId) {
+  Future<DeliveryBatch> markFailed(
+    String batchId,
+    String orderId, {
+    String? reason,
+  }) {
     return _updateStop(batchId, orderId, DeliveryStopStatus.failed);
   }
 
@@ -260,17 +289,23 @@ class DemoDeliveryRepository implements DeliveryRepository {
   ) {
     if (scenario == DeliveryDemoScenario.offline ||
         scenario == DeliveryDemoScenario.onlineEmpty ||
+        scenario == DeliveryDemoScenario.earnings ||
         scenario == DeliveryDemoScenario.walletPreview ||
         scenario == DeliveryDemoScenario.networkError) {
       return [];
     }
-    return const [
+    final status = switch (scenario) {
+      DeliveryDemoScenario.delivering => DeliveryOrderStatus.delivering,
+      DeliveryDemoScenario.completed => DeliveryOrderStatus.success,
+      _ => DeliveryOrderStatus.assigned,
+    };
+    return [
       DeliveryAssignment(
         orderId: 'demo-order-1',
         orderCode: 'FY-241105-001',
         customerName: 'Nguyễn Minh Anh',
         restaurantName: 'Bếp Việt Sài Gòn',
-        status: DeliveryOrderStatus.assigned,
+        status: status,
         paymentStatus: 'UNPAID',
         paymentMethod: 'COD',
         totalAmount: 186000,
