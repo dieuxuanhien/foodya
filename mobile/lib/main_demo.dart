@@ -10,7 +10,9 @@ import 'features/auth/data/repositories/mock_auth_repository.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/presentation/cubit/login_cubit.dart';
 import 'features/delivery/data/repositories/demo_delivery_repository.dart';
+import 'features/delivery/data/services/geolocator_delivery_position_provider.dart';
 import 'features/delivery/domain/repositories/delivery_repository.dart';
+import 'features/delivery/domain/services/delivery_position_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,7 +79,13 @@ class _FoodyaDeliveryDemoState extends State<FoodyaDeliveryDemo> {
       DeliveryDemoScenario.batchDetail => '/delivery/batches/active',
       DeliveryDemoScenario.batchProgress =>
         '/delivery/batches/BATCH-DEMO-2404/manage',
-      DeliveryDemoScenario.walletPreview => '/delivery/wallet',
+      DeliveryDemoScenario.walletPreview ||
+      DeliveryDemoScenario.earnings => '/delivery/earnings',
+      DeliveryDemoScenario.assignmentList => '/delivery/orders',
+      DeliveryDemoScenario.orderDetail ||
+      DeliveryDemoScenario.acknowledged ||
+      DeliveryDemoScenario.delivering ||
+      DeliveryDemoScenario.completed => '/delivery/orders/demo-order-1',
       _ => '/delivery/home',
     };
   }
@@ -89,6 +97,9 @@ class _FoodyaDeliveryDemoState extends State<FoodyaDeliveryDemo> {
       providers: [
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
         RepositoryProvider<DeliveryRepository>.value(value: _repository),
+        RepositoryProvider<DeliveryPositionProvider>.value(
+          value: const DemoDeliveryPositionProvider(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [

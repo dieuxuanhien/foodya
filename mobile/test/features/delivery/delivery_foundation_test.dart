@@ -5,12 +5,19 @@ import 'package:foodya_mobile/core/auth/session_cubit.dart';
 import 'package:foodya_mobile/features/auth/data/repositories/mock_auth_repository.dart';
 import 'package:foodya_mobile/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:foodya_mobile/features/delivery/data/repositories/demo_delivery_repository.dart';
+import 'package:foodya_mobile/features/delivery/data/services/geolocator_delivery_position_provider.dart';
 import 'package:foodya_mobile/features/delivery/domain/models/delivery_models.dart';
 import 'package:foodya_mobile/features/delivery/domain/repositories/delivery_repository.dart';
+import 'package:foodya_mobile/features/delivery/domain/services/delivery_position_provider.dart';
 import 'package:foodya_mobile/features/delivery/presentation/cubit/delivery_home_cubit.dart';
 import 'package:foodya_mobile/features/delivery/presentation/cubit/delivery_home_state.dart';
+import 'package:foodya_mobile/features/delivery/presentation/cubit/delivery_assignments_cubit.dart';
+import 'package:foodya_mobile/features/delivery/presentation/cubit/delivery_assignments_state.dart';
+import 'package:foodya_mobile/features/delivery/presentation/cubit/delivery_order_cubit.dart';
 import 'package:foodya_mobile/features/delivery/presentation/pages/delivery_batch_detail_page.dart';
 import 'package:foodya_mobile/features/delivery/presentation/pages/delivery_batch_management_page.dart';
+import 'package:foodya_mobile/features/delivery/presentation/pages/delivery_assignments_page.dart';
+import 'package:foodya_mobile/features/delivery/presentation/pages/delivery_order_page.dart';
 import 'package:foodya_mobile/features/delivery/presentation/pages/delivery_home_page.dart';
 import 'package:foodya_mobile/features/delivery/presentation/pages/delivery_wallet_page.dart';
 
@@ -97,12 +104,52 @@ void main() {
       ],
     });
 
-    expect(batch.pickupSequence, ['order-1']);
+    expect(batch.pickupSequence.single.orderId, 'order-1');
     expect(batch.deliverySequence, isEmpty);
     expect(batch.stops.single.restaurantName, 'Restaurant unavailable');
     expect(route.waypoints.single.type, 'PICKUP');
     expect(earnings.entries.single.driverEarning, 27000);
   });
+
+  test(
+    'all verified Delivery statuses parse and zero sequence coordinates hide',
+    () {
+      expect(
+        DeliveryOrderStatus.fromApi('ACCEPTED'),
+        DeliveryOrderStatus.accepted,
+      );
+      expect(
+        DeliveryOrderStatus.fromApi('CANCELLED'),
+        DeliveryOrderStatus.cancelled,
+      );
+      expect(
+        DeliveryBatchStatus.fromApi('PENDING'),
+        DeliveryBatchStatus.pending,
+      );
+      expect(
+        DeliveryBatchStatus.fromApi('PARTIAL'),
+        DeliveryBatchStatus.partial,
+      );
+      expect(
+        DeliveryStopStatus.fromApi('DELIVERING'),
+        DeliveryStopStatus.delivering,
+      );
+      expect(
+        DeliveryBatchStatus.fromApi('FUTURE'),
+        DeliveryBatchStatus.unknown,
+      );
+
+      final batch = DeliveryBatch.fromJson({
+        'batchId': 'batch-zero',
+        'status': 'PENDING',
+        'pickupSequence':
+            '[{"orderId":"order-1","lat":0,"lng":0,"estimatedArrivalSec":30,"serviceTimeSec":10}]',
+        'items': <Object?>[],
+      });
+      expect(batch.pickupSequence.single.hasUsableCoordinates, isFalse);
+      expect(batch.pickupSequence.single.estimatedArrivalSeconds, 30);
+    },
+  );
 
   test(
     'all deterministic demo scenarios can be loaded or fail intentionally',
@@ -126,7 +173,10 @@ void main() {
   );
 
   test('home cubit ignores delayed completion after disposal', () async {
-    final cubit = DeliveryHomeCubit(DemoDeliveryRepository());
+    final cubit = DeliveryHomeCubit(
+      DemoDeliveryRepository(),
+      const DemoDeliveryPositionProvider(),
+    );
     final load = cubit.load();
     await cubit.close();
     await expectLater(load, completes);
@@ -135,6 +185,7 @@ void main() {
   test('home cubit prevents duplicate availability actions', () async {
     final cubit = DeliveryHomeCubit(
       DemoDeliveryRepository(scenario: DeliveryDemoScenario.offline),
+      const DemoDeliveryPositionProvider(),
     );
     await cubit.load();
 
@@ -147,26 +198,73 @@ void main() {
     await cubit.close();
   });
 
-  testWidgets('delivery home renders demo assignment without narrow overflow', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  test(
+    'home goes online without coordinates when permission is denied',
+    () async {
+      final cubit = DeliveryHomeCubit(
+        DemoDeliveryRepository(scenario: DeliveryDemoScenario.offline),
+        const _DeniedPositionProvider(),
+      );
+      await cubit.load();
+      await cubit.toggleAvailability();
+      expect(cubit.state.session?.status, DriverAvailability.online);
+      expect(cubit.state.infoMessage, contains('matching requires a location'));
+      await cubit.close();
+    },
+  );
 
-    await _pumpDeliveryPage(
-      tester,
-      repository: DemoDeliveryRepository(),
-      child: const DeliveryHomePage(),
-    );
-    await tester.pumpAndSettle();
+  test(
+    'assignments cubit blocks duplicate acknowledgment and refreshes',
+    () async {
+      final repository = _CountingDemoDeliveryRepository();
+      final cubit = DeliveryAssignmentsCubit(repository);
+      await cubit.load();
+      await Future.wait([
+        cubit.acknowledge('demo-order-1'),
+        cubit.acknowledge('demo-order-1'),
+      ]);
+      expect(repository.acceptCalls, 1);
+      expect(cubit.state.status, DeliveryAssignmentsStatus.ready);
+      expect(cubit.state.infoMessage, contains('acknowledged'));
+      await cubit.close();
+    },
+  );
 
-    expect(find.textContaining('Demo Data'), findsOneWidget);
-    expect(find.text('Single orders'), findsOneWidget);
-    expect(find.text('FY-241105-001'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+  test('order cubit enriches detail and executes valid transitions', () async {
+    final repository = DemoDeliveryRepository();
+    final cubit = DeliveryOrderCubit(repository);
+    await cubit.load('demo-order-1');
+    expect(cubit.state.route?.distanceMeters, 8200);
+    await cubit.acknowledge();
+    expect(cubit.state.order?.deliveryAddress, isNotNull);
+    await cubit.updateStatus(DeliveryOrderStatus.delivering);
+    expect(cubit.state.order?.status, DeliveryOrderStatus.delivering);
+    await cubit.updateStatus(DeliveryOrderStatus.success);
+    expect(cubit.state.order?.status, DeliveryOrderStatus.success);
+    await cubit.close();
   });
+
+  testWidgets(
+    'delivery home renders session controls without narrow overflow',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpDeliveryPage(
+        tester,
+        repository: DemoDeliveryRepository(),
+        child: const DeliveryHomePage(),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Demo Data'), findsOneWidget);
+      expect(find.text('Driver actions'), findsOneWidget);
+      expect(find.text('View assigned orders'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('batch detail and management render progress states', (
     tester,
@@ -195,7 +293,32 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('wallet preview labels fixture values as nontransactional', (
+  testWidgets('assignments and order detail render verified actions', (
+    tester,
+  ) async {
+    final repository = DemoDeliveryRepository();
+    await _pumpDeliveryPage(
+      tester,
+      repository: repository,
+      child: const DeliveryAssignmentsPage(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('FY-241105-001'), findsOneWidget);
+    expect(find.text('Acknowledge'), findsOneWidget);
+    expect(find.text('Release'), findsOneWidget);
+
+    await _pumpDeliveryPage(
+      tester,
+      repository: repository,
+      child: const DeliveryOrderPage(orderId: 'demo-order-1'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Planned route summary'), findsOneWidget);
+    expect(find.text('Start delivery'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('earnings report labels fixture values as read only', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 800);
@@ -211,8 +334,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Illustrative earnings'), findsOneWidget);
-    expect(find.textContaining('not a transactional wallet'), findsOneWidget);
+    expect(find.text('Delivery earnings · VND'), findsOneWidget);
+    expect(find.text('Read-only report'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -226,8 +349,28 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Retry'), findsOneWidget);
-    expect(find.textContaining('Demo network error'), findsOneWidget);
+    expect(find.textContaining('Unable to load Delivery status'), findsWidgets);
   });
+}
+
+class _DeniedPositionProvider implements DeliveryPositionProvider {
+  const _DeniedPositionProvider();
+
+  @override
+  Future<DeliveryPositionResult> getCurrentPosition() async =>
+      const DeliveryPositionResult.failure(
+        DeliveryPositionFailure.permissionDenied,
+      );
+}
+
+class _CountingDemoDeliveryRepository extends DemoDeliveryRepository {
+  int acceptCalls = 0;
+
+  @override
+  Future<DeliveryAssignment> acceptAssignment(String orderId) {
+    acceptCalls++;
+    return super.acceptAssignment(orderId);
+  }
 }
 
 Future<void> _pumpDeliveryPage(
@@ -242,6 +385,9 @@ Future<void> _pumpDeliveryPage(
     MultiRepositoryProvider(
       providers: [
         RepositoryProvider<DeliveryRepository>.value(value: repository),
+        RepositoryProvider<DeliveryPositionProvider>.value(
+          value: const DemoDeliveryPositionProvider(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [

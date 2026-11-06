@@ -17,7 +17,10 @@ import '../../features/customer/presentation/pages/restaurant_detail_page.dart';
 import '../../features/delivery/presentation/pages/delivery_batch_detail_page.dart';
 import '../../features/delivery/presentation/pages/delivery_batch_management_page.dart';
 import '../../features/delivery/presentation/pages/delivery_home_page.dart';
+import '../../features/delivery/presentation/pages/delivery_assignments_page.dart';
+import '../../features/delivery/presentation/pages/delivery_order_page.dart';
 import '../../features/delivery/presentation/pages/delivery_wallet_page.dart';
+import '../../features/delivery/domain/models/delivery_models.dart';
 import '../../features/merchant/presentation/pages/merchant_catalog_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../../features/merchant/presentation/pages/merchant_notifications_page.dart';
@@ -107,6 +110,23 @@ class AppRouter {
             builder: (context, state) => const DeliveryHomePage(),
           ),
           GoRoute(
+            path: '/delivery/orders',
+            name: 'delivery-orders',
+            builder: (context, state) => const DeliveryAssignmentsPage(),
+          ),
+          GoRoute(
+            path: '/delivery/orders/:orderId',
+            name: 'delivery-order-detail',
+            builder:
+                (context, state) => DeliveryOrderPage(
+                  orderId: state.pathParameters['orderId'] ?? '',
+                  seed:
+                      state.extra is DeliveryAssignment
+                          ? state.extra! as DeliveryAssignment
+                          : null,
+                ),
+          ),
+          GoRoute(
             path: '/delivery/batches/active',
             name: 'delivery-active-batch',
             builder:
@@ -130,9 +150,14 @@ class AppRouter {
                 ),
           ),
           GoRoute(
+            path: '/delivery/earnings',
+            name: 'delivery-earnings',
+            builder: (context, state) => const DeliveryEarningsPage(),
+          ),
+          GoRoute(
             path: '/delivery/wallet',
-            name: 'delivery-wallet',
-            builder: (context, state) => const DeliveryWalletPage(),
+            name: 'delivery-wallet-compatibility',
+            redirect: (context, state) => '/delivery/earnings',
           ),
         ],
       ),

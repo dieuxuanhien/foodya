@@ -29,13 +29,14 @@ class DeliveryBatchState extends Equatable {
   DeliveryBatchState copyWith({
     DeliveryBatchViewStatus? status,
     DeliveryBatch? batch,
+    bool clearBatch = false,
     String? errorMessage,
     String? infoMessage,
     bool clearError = false,
     bool clearInfo = false,
   }) => DeliveryBatchState(
     status: status ?? this.status,
-    batch: batch ?? this.batch,
+    batch: clearBatch ? null : batch ?? this.batch,
     errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     infoMessage: clearInfo ? null : infoMessage ?? this.infoMessage,
   );

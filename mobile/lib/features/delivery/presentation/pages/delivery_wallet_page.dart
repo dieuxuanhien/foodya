@@ -7,25 +7,34 @@ import '../cubit/delivery_wallet_cubit.dart';
 import '../cubit/delivery_wallet_state.dart';
 import '../widgets/delivery_prototype_widgets.dart';
 
-class DeliveryWalletPage extends StatelessWidget {
-  const DeliveryWalletPage({super.key});
+class DeliveryEarningsPage extends StatelessWidget {
+  const DeliveryEarningsPage({super.key});
+
   @override
   Widget build(BuildContext context) => BlocProvider(
     create:
         (context) =>
             DeliveryWalletCubit(context.read<DeliveryRepository>())..load(),
-    child: const _WalletView(),
+    child: const _EarningsView(),
   );
 }
 
-class _WalletView extends StatelessWidget {
-  const _WalletView();
+class DeliveryWalletPage extends StatelessWidget {
+  const DeliveryWalletPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => const DeliveryEarningsPage();
+}
+
+class _EarningsView extends StatelessWidget {
+  const _EarningsView();
+
   @override
   Widget build(BuildContext context) =>
       BlocBuilder<DeliveryWalletCubit, DeliveryWalletState>(
         builder:
             (context, state) => Scaffold(
-              appBar: AppBar(title: const Text('Wallet Preview')),
+              appBar: AppBar(title: const Text('Earnings Report')),
               body: DeliveryPrototypeBody(child: _content(context, state)),
             ),
       );
@@ -42,7 +51,7 @@ class _WalletView extends StatelessWidget {
     }
     if (state.status == DeliveryWalletStatus.failure) {
       return DeliveryErrorCard(
-        message: state.errorMessage ?? 'Unable to load earnings preview.',
+        message: state.errorMessage ?? 'Unable to load earnings.',
         onRetry: context.read<DeliveryWalletCubit>().load,
       );
     }
@@ -56,58 +65,59 @@ class _WalletView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  children: [
-                    CircleAvatar(child: Icon(Icons.delivery_dining)),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Nguyễn Quốc Hải',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text('Illustrative earnings'),
+                const Text('Delivery earnings · VND'),
                 const SizedBox(height: 4),
                 Text(
                   formatVndCurrency(report.totalEarnings),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
+                Text('${report.deliveryCount} completed deliveries'),
                 Text(
-                  '${report.deliveryCount} completed deliveries · COD held ${formatVndCurrency(report.codCashCollected)}',
+                  'COD cash collected: ${formatVndCurrency(report.codCashCollected)}',
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        const Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: Icon(Icons.receipt_long_outlined),
-                title: Text('Earnings history'),
-                subtitle: Text('Live integration planned for Phase 5'),
-                trailing: Icon(Icons.lock_outline),
-              ),
-              Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.account_balance_outlined),
-                title: Text('Settlement management'),
+        Text(
+          'Completed deliveries',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        if (report.entries.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('No completed deliveries in this reporting period.'),
+            ),
+          )
+        else
+          for (final entry in report.entries)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: Text(entry.orderCode),
                 subtitle: Text(
-                  'Not available in the verified backend contract',
+                  '${entry.paymentMethod} · ${entry.completedAt.toLocal().toString().split('.').first}',
                 ),
-                trailing: Icon(Icons.block),
+                trailing: Text(formatVndCurrency(entry.driverEarning)),
               ),
-            ],
+            ),
+        const SizedBox(height: 12),
+        const Card(
+          child: ListTile(
+            leading: Icon(Icons.info_outline),
+            title: Text('Read-only report'),
+            subtitle: Text(
+              'Transactions, withdrawals and settlement management are not available.',
+            ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Text(
-          'This is not a transactional wallet. Values are deterministic demo fixtures.',
+          'The current Delivery API omits currencyCode; Foodya is configured for VND.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall,
         ),

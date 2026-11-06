@@ -147,6 +147,7 @@ class _StopSummary extends StatelessWidget {
   String _label(DeliveryStopStatus status) => switch (status) {
     DeliveryStopStatus.pending => 'Pending',
     DeliveryStopStatus.pickedUp => 'Picked up',
+    DeliveryStopStatus.delivering => 'Delivering',
     DeliveryStopStatus.delivered => 'Delivered',
     DeliveryStopStatus.failed => 'Failed',
     DeliveryStopStatus.unknown => 'Unknown',

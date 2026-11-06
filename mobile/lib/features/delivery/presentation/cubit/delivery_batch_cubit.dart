@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/network/api_error_ui_message.dart';
 import '../../domain/models/delivery_models.dart';
 import '../../domain/repositories/delivery_repository.dart';
 import 'delivery_batch_state.dart';
@@ -30,15 +31,20 @@ class DeliveryBatchCubit extends Cubit<DeliveryBatchState> {
                   ? DeliveryBatchViewStatus.empty
                   : DeliveryBatchViewStatus.ready,
           batch: batch,
+          clearBatch: batch == null,
           clearError: true,
         ),
       );
     } catch (error) {
       if (isClosed) return;
+      final message = ApiErrorUiMessageMapper.mapAny(
+        error,
+        fallback: 'Unable to load this batch.',
+      ).message;
       emit(
         state.copyWith(
           status: DeliveryBatchViewStatus.failure,
-          errorMessage: error.toString(),
+          errorMessage: message,
         ),
       );
     }
@@ -48,10 +54,14 @@ class DeliveryBatchCubit extends Cubit<DeliveryBatchState> {
       _update(orderId, DeliveryStopStatus.pickedUp);
   Future<void> markDelivered(String orderId) =>
       _update(orderId, DeliveryStopStatus.delivered);
-  Future<void> markFailed(String orderId) =>
-      _update(orderId, DeliveryStopStatus.failed);
+  Future<void> markFailed(String orderId, {String? reason}) =>
+      _update(orderId, DeliveryStopStatus.failed, reason: reason);
 
-  Future<void> _update(String orderId, DeliveryStopStatus target) async {
+  Future<void> _update(
+    String orderId,
+    DeliveryStopStatus target, {
+    String? reason,
+  }) async {
     final batch = state.batch;
     if (batch == null || state.isBusy) return;
     emit(
@@ -74,6 +84,7 @@ class DeliveryBatchCubit extends Cubit<DeliveryBatchState> {
         DeliveryStopStatus.failed => await _repository.markFailed(
           batch.batchId,
           orderId,
+          reason: reason,
         ),
         _ => batch,
       };
@@ -82,15 +93,20 @@ class DeliveryBatchCubit extends Cubit<DeliveryBatchState> {
         state.copyWith(
           status: DeliveryBatchViewStatus.ready,
           batch: updated,
-          infoMessage: 'Demo batch progress updated.',
+          infoMessage: 'Batch progress updated.',
         ),
       );
     } catch (error) {
       if (isClosed) return;
+      final message =
+          ApiErrorUiMessageMapper.mapAny(
+            error,
+            fallback: 'Unable to update batch progress.',
+          ).message;
       emit(
         state.copyWith(
-          status: DeliveryBatchViewStatus.failure,
-          errorMessage: error.toString(),
+          status: DeliveryBatchViewStatus.ready,
+          errorMessage: message,
         ),
       );
     }

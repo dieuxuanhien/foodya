@@ -144,7 +144,10 @@ class _ManageStopCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<DeliveryBatchCubit>();
     final canPickup = stop.status == DeliveryStopStatus.pending;
-    final canDeliver = stop.status == DeliveryStopStatus.pickedUp;
+    final canDeliver =
+        stop.status == DeliveryStopStatus.pickedUp ||
+        stop.status == DeliveryStopStatus.delivering;
+    final canFail = canDeliver;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -178,9 +181,9 @@ class _ManageStopCard extends StatelessWidget {
                 ),
                 OutlinedButton(
                   onPressed:
-                      busy || stop.status == DeliveryStopStatus.delivered
+                      busy || !canFail
                           ? null
-                          : () => cubit.markFailed(stop.orderId),
+                          : () => _reportFailure(context, cubit),
                   child: const Text('Report failure'),
                 ),
               ],
@@ -189,5 +192,45 @@ class _ManageStopCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _reportFailure(
+    BuildContext context,
+    DeliveryBatchCubit cubit,
+  ) async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Report delivery failure'),
+            content: TextField(
+              controller: controller,
+              maxLength: 200,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                hintText: 'Unable to reach customer',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Report'),
+              ),
+            ],
+          ),
+    );
+    final reason = controller.text.trim();
+    controller.dispose();
+    if (confirmed == true && context.mounted) {
+      await cubit.markFailed(
+        stop.orderId,
+        reason: reason.isEmpty ? null : reason,
+      );
+    }
   }
 }

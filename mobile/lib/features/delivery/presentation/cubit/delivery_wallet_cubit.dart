@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/network/api_error_ui_message.dart';
 import '../../domain/repositories/delivery_repository.dart';
 import 'delivery_wallet_state.dart';
 
@@ -18,10 +19,15 @@ class DeliveryWalletCubit extends Cubit<DeliveryWalletState> {
       );
     } catch (error) {
       if (isClosed) return;
+      final message =
+          ApiErrorUiMessageMapper.mapAny(
+            error,
+            fallback: 'Unable to load earnings.',
+          ).message;
       emit(
         DeliveryWalletState(
           status: DeliveryWalletStatus.failure,
-          errorMessage: error.toString(),
+          errorMessage: message,
         ),
       );
     }

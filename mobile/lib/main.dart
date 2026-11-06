@@ -39,8 +39,11 @@ import 'features/customer/domain/repositories/customer_notification_repository.d
 import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_profile_repository.dart';
-import 'features/delivery/data/repositories/unavailable_delivery_repository.dart';
+import 'features/delivery/data/data_sources/delivery_remote_data_source.dart';
+import 'features/delivery/data/repositories/http_delivery_repository.dart';
+import 'features/delivery/data/services/geolocator_delivery_position_provider.dart';
 import 'features/delivery/domain/repositories/delivery_repository.dart';
+import 'features/delivery/domain/services/delivery_position_provider.dart';
 import 'features/merchant/data/data_sources/merchant_restaurant_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_catalog_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_order_remote_data_source.dart';
@@ -99,6 +102,8 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final MerchantReviewRepository _merchantReviewRepository;
   late final MerchantRevenueRepository _merchantRevenueRepository;
   late final MerchantNotificationRepository _merchantNotificationRepository;
+  late final DeliveryRepository _deliveryRepository;
+  late final DeliveryPositionProvider _deliveryPositionProvider;
   late final GeolocationService _geolocationService;
   late final GoRouter _router;
   late final AuthRemoteDataSource _authRemoteDataSource;
@@ -128,6 +133,16 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       tokenStore: widget._tokenStore,
       sessionRecovery: _authSessionRecovery,
     );
+
+    _deliveryRepository = HttpDeliveryRepository(
+      remoteDataSource: DeliveryRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+      onSessionExpired: _sessionCubit.signOut,
+    );
+    _deliveryPositionProvider = const GeolocatorDeliveryPositionProvider();
 
     if (DefaultFirebaseOptions.isConfiguredForCurrentPlatform) {
       _fcmNotificationService = FcmNotificationService(
@@ -296,8 +311,11 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         RepositoryProvider<CustomerAiRepository>.value(
           value: _customerAiRepository,
         ),
-        RepositoryProvider<DeliveryRepository>(
-          create: (_) => const UnavailableDeliveryRepository(),
+        RepositoryProvider<DeliveryRepository>.value(
+          value: _deliveryRepository,
+        ),
+        RepositoryProvider<DeliveryPositionProvider>.value(
+          value: _deliveryPositionProvider,
         ),
         RepositoryProvider<MerchantRestaurantRepository>.value(
           value: _merchantRestaurantRepository,
