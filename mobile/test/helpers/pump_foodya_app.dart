@@ -13,6 +13,10 @@ import 'package:foodya_mobile/features/customer/domain/repositories/customer_cat
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_notification_repository.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_order_repository.dart';
 import 'package:foodya_mobile/features/customer/domain/repositories/customer_profile_repository.dart';
+import 'package:foodya_mobile/features/delivery/data/repositories/demo_delivery_repository.dart';
+import 'package:foodya_mobile/features/delivery/data/services/geolocator_delivery_position_provider.dart';
+import 'package:foodya_mobile/features/delivery/domain/repositories/delivery_repository.dart';
+import 'package:foodya_mobile/features/delivery/domain/services/delivery_position_provider.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_catalog_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_notification_repository.dart';
 import 'package:foodya_mobile/features/merchant/domain/repositories/merchant_order_repository.dart';
@@ -61,6 +65,12 @@ Future<void> pumpFoodyaApp(
         ),
         RepositoryProvider<CustomerAiRepository>.value(
           value: customerAiRepository,
+        ),
+        RepositoryProvider<DeliveryRepository>(
+          create: (_) => DemoDeliveryRepository(),
+        ),
+        RepositoryProvider<DeliveryPositionProvider>.value(
+          value: const DemoDeliveryPositionProvider(),
         ),
         RepositoryProvider<MerchantRestaurantRepository>.value(
           value: merchantRestaurantRepository,

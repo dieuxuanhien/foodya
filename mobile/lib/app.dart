@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
 
 class FoodyaMobileApp extends StatelessWidget {
-  const FoodyaMobileApp({super.key, required this.router});
+  const FoodyaMobileApp({super.key, required this.router, this.builder});
 
   final GoRouter router;
+  final TransitionBuilder? builder;
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +16,7 @@ class FoodyaMobileApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: router,
+      builder: builder,
     );
   }
 }

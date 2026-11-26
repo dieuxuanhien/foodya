@@ -121,6 +121,32 @@ class FoodyaRoleShell extends StatelessWidget {
           selectedIcon: Icons.person,
         ),
       ],
+      UserRole.delivery => const [
+        _ShellDestination(
+          path: '/delivery/home',
+          label: 'Home',
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home,
+        ),
+        _ShellDestination(
+          path: '/delivery/orders',
+          label: 'Orders',
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long,
+        ),
+        _ShellDestination(
+          path: '/delivery/batches/active',
+          label: 'Active Batch',
+          icon: Icons.route_outlined,
+          selectedIcon: Icons.route,
+        ),
+        _ShellDestination(
+          path: '/delivery/earnings',
+          label: 'Earnings',
+          icon: Icons.payments_outlined,
+          selectedIcon: Icons.payments,
+        ),
+      ],
     };
   }
 }

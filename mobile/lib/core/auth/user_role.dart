@@ -1,6 +1,9 @@
 enum UserRole {
   customer,
-  merchant;
+  merchant,
+  delivery;
+
+  static const selfRegistrationRoles = [customer, merchant, delivery];
 
   String get apiValue {
     switch (this) {
@@ -8,6 +11,8 @@ enum UserRole {
         return 'CUSTOMER';
       case UserRole.merchant:
         return 'MERCHANT';
+      case UserRole.delivery:
+        return 'DELIVERY';
     }
   }
 
@@ -17,6 +22,8 @@ enum UserRole {
         return 'Customer';
       case UserRole.merchant:
         return 'Merchant';
+      case UserRole.delivery:
+        return 'Delivery';
     }
   }
 
@@ -26,8 +33,12 @@ enum UserRole {
         return '/customer/home';
       case UserRole.merchant:
         return '/merchant/home';
+      case UserRole.delivery:
+        return '/delivery/home';
     }
   }
+
+  String get routeNamespace => '/$name/';
 
   static UserRole? fromApiValue(String? value) {
     switch (value?.toUpperCase()) {
@@ -35,6 +46,8 @@ enum UserRole {
         return UserRole.customer;
       case 'MERCHANT':
         return UserRole.merchant;
+      case 'DELIVERY':
+        return UserRole.delivery;
       default:
         return null;
     }

@@ -39,6 +39,11 @@ import 'features/customer/domain/repositories/customer_notification_repository.d
 import 'features/customer/domain/repositories/customer_order_repository.dart';
 import 'features/customer/domain/repositories/customer_catalog_repository.dart';
 import 'features/customer/domain/repositories/customer_profile_repository.dart';
+import 'features/delivery/data/data_sources/delivery_remote_data_source.dart';
+import 'features/delivery/data/repositories/http_delivery_repository.dart';
+import 'features/delivery/data/services/geolocator_delivery_position_provider.dart';
+import 'features/delivery/domain/repositories/delivery_repository.dart';
+import 'features/delivery/domain/services/delivery_position_provider.dart';
 import 'features/merchant/data/data_sources/merchant_restaurant_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_catalog_remote_data_source.dart';
 import 'features/merchant/data/data_sources/merchant_order_remote_data_source.dart';
@@ -62,10 +67,13 @@ import 'core/location/geolocation_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseMessaging.onBackgroundMessage(
-    foodyaFirebaseMessagingBackgroundHandler,
-  );
+  final firebaseOptions = DefaultFirebaseOptions.currentPlatformOrNull;
+  if (firebaseOptions != null) {
+    await Firebase.initializeApp(options: firebaseOptions);
+    FirebaseMessaging.onBackgroundMessage(
+      foodyaFirebaseMessagingBackgroundHandler,
+    );
+  }
   runApp(FoodyaMobileBootstrap());
 }
 
@@ -94,11 +102,13 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
   late final MerchantReviewRepository _merchantReviewRepository;
   late final MerchantRevenueRepository _merchantRevenueRepository;
   late final MerchantNotificationRepository _merchantNotificationRepository;
+  late final DeliveryRepository _deliveryRepository;
+  late final DeliveryPositionProvider _deliveryPositionProvider;
   late final GeolocationService _geolocationService;
   late final GoRouter _router;
   late final AuthRemoteDataSource _authRemoteDataSource;
   late final AuthSessionRecovery _authSessionRecovery;
-  late final FcmNotificationService _fcmNotificationService;
+  FcmNotificationService? _fcmNotificationService;
   late final OrderTrackingRealtimeService _orderTrackingRealtimeService;
   StreamSubscription? _sessionSubscription;
 
@@ -113,30 +123,46 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
       client: widget._httpClient,
     );
 
-    _authRepository = HttpAuthRepository(
-      remoteDataSource: _authRemoteDataSource,
-      tokenStore: widget._tokenStore,
-    );
-
     _authSessionRecovery = AuthSessionRecovery(
       tokenStore: widget._tokenStore,
       refreshTokenExchange: _authRemoteDataSource.refresh,
     );
 
-    _fcmNotificationService = FcmNotificationService(
-      baseUrl: AppConfig.apiBaseUrl,
-      client: widget._httpClient,
+    _authRepository = HttpAuthRepository(
+      remoteDataSource: _authRemoteDataSource,
+      tokenStore: widget._tokenStore,
       sessionRecovery: _authSessionRecovery,
     );
+
+    _deliveryRepository = HttpDeliveryRepository(
+      remoteDataSource: DeliveryRemoteDataSource(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+      ),
+      sessionRecovery: _authSessionRecovery,
+      onSessionExpired: _sessionCubit.signOut,
+    );
+    _deliveryPositionProvider = const GeolocatorDeliveryPositionProvider();
+
+    if (DefaultFirebaseOptions.isConfiguredForCurrentPlatform) {
+      _fcmNotificationService = FcmNotificationService(
+        baseUrl: AppConfig.apiBaseUrl,
+        client: widget._httpClient,
+        sessionRecovery: _authSessionRecovery,
+      );
+    }
     _orderTrackingRealtimeService = StompOrderTrackingRealtimeService(
       baseUrl: AppConfig.apiBaseUrl,
       tokenStore: widget._tokenStore,
       sessionRecovery: _authSessionRecovery,
     );
-    unawaited(_fcmNotificationService.initialize());
+    final notificationService = _fcmNotificationService;
+    if (notificationService != null) {
+      unawaited(notificationService.initialize());
+    }
     _sessionSubscription = _sessionCubit.stream.listen((state) {
       if (state.isAuthenticated) {
-        unawaited(_fcmNotificationService.registerCurrentDevice());
+        unawaited(notificationService?.registerCurrentDevice());
       }
     });
 
@@ -284,6 +310,12 @@ class _FoodyaMobileBootstrapState extends State<FoodyaMobileBootstrap> {
         ),
         RepositoryProvider<CustomerAiRepository>.value(
           value: _customerAiRepository,
+        ),
+        RepositoryProvider<DeliveryRepository>.value(
+          value: _deliveryRepository,
+        ),
+        RepositoryProvider<DeliveryPositionProvider>.value(
+          value: _deliveryPositionProvider,
         ),
         RepositoryProvider<MerchantRestaurantRepository>.value(
           value: _merchantRestaurantRepository,

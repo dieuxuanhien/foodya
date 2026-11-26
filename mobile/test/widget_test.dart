@@ -50,6 +50,13 @@ void main() {
     expect(find.text('Sign In'), findsOneWidget);
     expect(find.textContaining('SRS'), findsNothing);
     expect(find.textContaining('FR'), findsNothing);
+
+    await tester.tap(find.text('Register'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(DropdownButtonFormField<UserRole>));
+    await tester.tap(find.byType(DropdownButtonFormField<UserRole>));
+    await tester.pumpAndSettle();
+    expect(find.text('Delivery'), findsOneWidget);
   });
 
   testWidgets('login form shows validation copy for empty submit', (

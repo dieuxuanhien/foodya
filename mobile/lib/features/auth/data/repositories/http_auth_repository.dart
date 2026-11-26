@@ -14,12 +14,15 @@ class HttpAuthRepository implements AuthRepository {
   HttpAuthRepository({
     required AuthRemoteDataSource remoteDataSource,
     required TokenStore tokenStore,
+    AuthSessionRecovery? sessionRecovery,
   }) : _remoteDataSource = remoteDataSource,
        _tokenStore = tokenStore,
-       _sessionRecovery = AuthSessionRecovery(
-         tokenStore: tokenStore,
-         refreshTokenExchange: remoteDataSource.refresh,
-       );
+       _sessionRecovery =
+           sessionRecovery ??
+           AuthSessionRecovery(
+             tokenStore: tokenStore,
+             refreshTokenExchange: remoteDataSource.refresh,
+           );
 
   final AuthRemoteDataSource _remoteDataSource;
   final TokenStore _tokenStore;
